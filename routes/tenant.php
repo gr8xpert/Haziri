@@ -53,6 +53,16 @@ Route::middleware([
         return Illuminate\Support\Facades\Storage::disk('local')->response($punch->photo_path, null, ['Cache-Control' => 'private, max-age=600']);
     })->middleware('signed')->name('tenant.punch-photo');
 
+    // Printable visitor badge (receptionist, logged in to the panel).
+    Route::get('/visitors/{visitor}/badge', function (App\Models\Visitor $visitor) {
+        abort_unless(auth()->user()?->can('visitors.manage'), 403);
+        $photo = $visitor->photo_path && Illuminate\Support\Facades\Storage::disk('local')->exists($visitor->photo_path)
+            ? 'data:image/jpeg;base64,' . base64_encode(Illuminate\Support\Facades\Storage::disk('local')->get($visitor->photo_path))
+            : null;
+
+        return view('visitors.badge', ['visitor' => $visitor, 'photo' => $photo, 'company' => tenant('company_name')]);
+    })->middleware('auth')->name('tenant.visitor-badge');
+
     // ---- Tablet kiosk (spec §6.5) ----
     Route::prefix('kiosk/{token}')->name('kiosk.')->where(['token' => '[A-Za-z0-9]{40}'])->group(function () {
         Route::get('/', [KioskController::class, 'show'])->name('show');

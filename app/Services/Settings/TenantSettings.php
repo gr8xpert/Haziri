@@ -31,6 +31,20 @@ final class TenantSettings
         return $this->all()[$key] ?? $default;
     }
 
+    /** Provider credentials are stored encrypted (spec §15: "encrypt provider credentials"). */
+    public function secret(string $key): ?string
+    {
+        $value = $this->get($key);
+        if (! is_string($value) || $value === '') {
+            return null;
+        }
+        try {
+            return \Illuminate\Support\Facades\Crypt::decryptString($value);
+        } catch (\Illuminate\Contracts\Encryption\DecryptException) {
+            return null;
+        }
+    }
+
     public function featureEnabled(string $flag): bool
     {
         return (bool) $this->get("feature.{$flag}", false);
