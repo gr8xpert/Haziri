@@ -55,6 +55,16 @@ class Punch extends Model
         return $this->belongsTo(Employee::class);
     }
 
+    public function enteredBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'entered_by_user_id');
+    }
+
+    public function device(): BelongsTo
+    {
+        return $this->belongsTo(Device::class);
+    }
+
     public function toInput(): PunchInput
     {
         /** @var CarbonImmutable $at */

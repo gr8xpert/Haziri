@@ -19,14 +19,15 @@ return [
      *
      * Only relevant if you're using the domain or subdomain identification middleware.
      */
-    'central_domains' => [
+    'central_domains' => array_values(array_filter([
         '127.0.0.1',
         'localhost',
-        $centralDomain,
+        // Dedicated mode: the root domain serves the single tenant, so it is not central (spec §3.2).
+        env('HAZRI_MODE', 'shared') === 'dedicated' ? null : $centralDomain,
         env('HAZRI_ADMIN_DOMAIN', 'admin.' . $centralDomain),
         env('HAZRI_ADMS_DOMAIN', 'adms.' . $centralDomain),
         env('HAZRI_API_DOMAIN', 'api.' . $centralDomain),
-    ],
+    ])),
 
     /**
      * Tenancy bootstrappers are executed when tenancy is initialized.
@@ -172,7 +173,7 @@ return [
      * understand which ones you want to enable.
      */
     'features' => [
-        // Stancl\Tenancy\Features\UserImpersonation::class,
+        Stancl\Tenancy\Features\UserImpersonation::class,
         // Stancl\Tenancy\Features\TelescopeTags::class,
         // Stancl\Tenancy\Features\UniversalRoutes::class,
         // Stancl\Tenancy\Features\TenantConfig::class, // https://tenancyforlaravel.com/docs/v3/features/tenant-config

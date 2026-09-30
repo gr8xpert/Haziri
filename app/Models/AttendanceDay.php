@@ -39,4 +39,22 @@ class AttendanceDay extends Model
     {
         return $this->belongsTo(Shift::class);
     }
+
+    /** Back to the engine's value object, for PeriodCalculator rollups. */
+    public function toResult(): \App\Services\Attendance\Engine\DayResult
+    {
+        return new \App\Services\Attendance\Engine\DayResult(
+            status: $this->status,
+            flags: array_values(array_filter(array_map(
+                fn (string $f) => \App\Enums\AttendanceFlag::tryFrom($f),
+                $this->flags ?? [],
+            ))),
+            workedMin: (int) $this->worked_min,
+            lateMin: (int) $this->late_min,
+            earlyOutMin: (int) $this->early_out_min,
+            overtimeMin: (int) $this->overtime_min,
+            expectedMin: (int) $this->expected_min,
+            leaveRequestId: $this->leave_request_id,
+        );
+    }
 }

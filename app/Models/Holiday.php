@@ -29,4 +29,9 @@ class Holiday extends Model
     {
         return LogOptions::defaults()->logAll()->logOnlyDirty();
     }
+
+    public function branch(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(Branch::class);
+    }
 }

@@ -9,8 +9,8 @@ use Illuminate\Support\Facades\Route;
 | Tenant routes live in routes/tenant.php; the super-admin panel registers itself on admin.*.
 */
 foreach (config('tenancy.central_domains') as $domain) {
-    if ($domain === config('hazri.admin_domain')) {
-        continue; // "/" there is the Filament central panel
+    if (in_array($domain, [config('hazri.admin_domain'), config('hazri.adms_domain'), config('hazri.api_domain')], true)) {
+        continue; // admin "/" is the Filament central panel; adms/api only serve their endpoints
     }
     Route::domain($domain)->group(function () use ($domain) {
         Route::get('/', fn () => view('welcome'))->name('central.home.' . $domain);

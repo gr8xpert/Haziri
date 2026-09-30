@@ -192,4 +192,3 @@ it('runs through the queued job', function () {
     expect(AttendanceDay::where('employee_id', $e->id)->value('status'))->toBe(AttendanceStatus::Present);
 });
 
-it('re-attaches punches when an unmapped PIN is mapped')->todo('Ingestion pipeline (§17 step 6)');

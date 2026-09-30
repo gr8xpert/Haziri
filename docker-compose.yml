@@ -6,6 +6,8 @@ services:
     build: ./docker/php
     volumes:
       - ./:/var/www
+      # vendor/ lives in a named volume: Docker Desktop's Windows bind mounts make composer and PHP very slow.
+      - vendor:/var/www/vendor
     depends_on:
       - db
 
@@ -37,6 +39,7 @@ services:
     build: ./docker/php
     volumes:
       - ./:/var/www
+      - vendor:/var/www/vendor
     depends_on:
       - db
     command: >
@@ -49,3 +52,4 @@ services:
 
 volumes:
   dbdata:
+  vendor:

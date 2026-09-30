@@ -11,14 +11,13 @@ use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
 use Filament\Widgets\AccountWidget;
-use Filament\Widgets\FilamentInfoWidget;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
-use Stancl\Tenancy\Middleware\InitializeTenancyByDomainOrSubdomain;
+use App\Http\Middleware\IdentifyTenant;
 use Stancl\Tenancy\Middleware\PreventAccessFromCentralDomains;
 
 class TenantPanelProvider extends PanelProvider
@@ -41,12 +40,11 @@ class TenantPanelProvider extends PanelProvider
             ->discoverWidgets(in: app_path('Filament/Tenant/Widgets'), for: 'App\Filament\Tenant\Widgets')
             ->widgets([
                 AccountWidget::class,
-                FilamentInfoWidget::class,
             ])
             ->middleware([
                 // Tenancy first: the session user and everything after it live in the tenant DB.
                 // Persistent so Livewire update requests are tenant-aware too.
-                InitializeTenancyByDomainOrSubdomain::class,
+                IdentifyTenant::class,
                 PreventAccessFromCentralDomains::class,
             ], isPersistent: true)
             ->middleware([

@@ -1,0 +1,53 @@
+<?php
+
+declare(strict_types=1);
+
+use App\Enums\Role;
+use App\Models\User;
+use Filament\Facades\Filament;
+
+/*
+| Renders every tenant-panel page as the owner, so a broken form/table/page definition fails CI
+| instead of the receptionist's browser.
+*/
+beforeEach(function () {
+    $this->owner = User::where('email', 'owner@pest.test')->firstOrFail();
+    $host = 'pest.' . config('hazri.central_domain');
+    $this->base = "http://{$host}";
+    Filament::setCurrentPanel(Filament::getPanel('tenant'));
+});
+
+it('renders every tenant panel page for the owner', function () {
+    $panel = Filament::getPanel('tenant');
+    $urls = ['/admin'];
+    foreach ($panel->getResources() as $resource) {
+        if ($resource::hasPage('index')) {
+            $urls[] = parse_url($resource::getUrl('index'), PHP_URL_PATH);
+        }
+        if ($resource::hasPage('create')) {
+            $urls[] = parse_url($resource::getUrl('create'), PHP_URL_PATH);
+        }
+    }
+    foreach ($panel->getPages() as $page) {
+        $urls[] = parse_url($page::getUrl(), PHP_URL_PATH);
+    }
+
+    foreach (array_unique($urls) as $path) {
+        $this->actingAs($this->owner)->get($this->base . $path)->assertOk();
+    }
+    expect(count($urls))->toBeGreaterThan(3);
+});
+
+it('hides the admin panel from plain employees', function () {
+    $employee = User::create(['name' => 'E', 'email' => 'emp@pest.test', 'password' => 'x']);
+    $employee->assignRole(Role::Employee->value);
+
+    $this->actingAs($employee)->get($this->base . '/admin')->assertForbidden();
+});
+
+it('stops a receptionist from opening organisation settings', function () {
+    $rec = User::create(['name' => 'R', 'email' => 'rec2@pest.test', 'password' => 'x']);
+    $rec->assignRole(Role::Receptionist->value);
+
+    $this->actingAs($rec)->get($this->base . '/admin/branches')->assertForbidden();
+});
