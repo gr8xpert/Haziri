@@ -14,7 +14,7 @@ beforeEach(function () {
 });
 
 it('renders the central panel pages for a super admin', function () {
-    foreach (['/', '/tenants', '/tenants/create', '/plans'] as $path) {
+    foreach (['/', '/tenants', '/tenants/create', '/plans', '/invoices', '/unknown-devices'] as $path) {
         $this->actingAs($this->admin, 'super_admin')->get($this->base . $path)->assertOk();
     }
 });

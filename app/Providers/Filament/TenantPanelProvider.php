@@ -54,6 +54,7 @@ class TenantPanelProvider extends PanelProvider
                 // Persistent so Livewire update requests are tenant-aware too.
                 IdentifyTenant::class,
                 PreventAccessFromCentralDomains::class,
+                \App\Http\Middleware\ApplyTenantBranding::class,
             ], isPersistent: true)
             ->middleware([
                 EncryptCookies::class,

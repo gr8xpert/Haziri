@@ -60,6 +60,13 @@ return [
         'readonly_db_password' => env('AI_DB_READONLY_PASSWORD'),
     ],
 
+    'billing' => [
+        'due_days' => (int) env('HAZRI_BILLING_DUE_DAYS', 10),
+        'grace_days' => (int) env('HAZRI_BILLING_GRACE_DAYS', 15),
+        // Shown to company owners on the Billing page (spec §4.1: manual bank / JazzCash / Easypaisa).
+        'payment_instructions' => env('HAZRI_PAYMENT_INSTRUCTIONS', 'Bank: Meezan Bank · Title: Hazri · IBAN: PKxx MEZN xxxx xxxx xxxx xxxx · JazzCash / Easypaisa: 03xx-xxxxxxx. Put the invoice number in the reference.'),
+    ],
+
     'notifications' => [
         'whatsapp_provider' => env('WHATSAPP_PROVIDER', 'log'),
         'sms_provider' => env('SMS_PROVIDER', 'log'),

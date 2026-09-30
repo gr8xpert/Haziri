@@ -32,5 +32,7 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         \Illuminate\Support\Facades\Event::subscribe(\App\Listeners\NotificationSubscriber::class);
+        // Plan limit on active employees (spec §9 phase 4: usage enforcement).
+        \App\Models\Employee::creating(fn () => \App\Services\Billing\BillingService::assertEmployeeCapacity());
     }
 }

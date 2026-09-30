@@ -24,3 +24,7 @@ Schedule::command('tenants:run hazri:notify:scheduled')->everyFifteenMinutes()->
 
 // Spec §12.3: nightly rule-based anomaly scan (AI only phrases the explanations).
 Schedule::command('tenants:run hazri:anomalies:detect')->dailyAt('06:00');
+
+// Billing (central): invoices on the 1st, suspension check daily.
+Schedule::command('hazri:billing --invoice')->monthlyOn(1, '07:00');
+Schedule::command('hazri:billing --enforce')->dailyAt('07:30');

@@ -27,6 +27,10 @@ final class AskHazri
     /** @return array{ok: bool, sql?: string, columns?: list<string>, rows?: list<array<string, mixed>>, error?: string, query_id?: int} */
     public function ask(string $question, int $userId): array
     {
+        // Spec §12.1c: generated SQL only ever runs as the read-only user (SELECT on the four views, nothing else).
+        if (! config('hazri.ai.readonly_db_username')) {
+            return ['ok' => false, 'error' => __('Ask Hazri needs the read-only database user (AI_DB_READONLY_USERNAME). Please contact support.')];
+        }
         $statuses = implode(', ', array_map(fn (AttendanceStatus $s) => $s->value, AttendanceStatus::cases()));
         $system = "You translate HR questions about attendance into one MariaDB SELECT statement.\n"
             . "Use ONLY these read-only views:\n" . self::SCHEMA . "\n"
@@ -104,11 +108,9 @@ final class AskHazri
      */
     private function readonlyConnection(): string
     {
-        $config = Config::get('database.connections.tenant');
-        if ($user = config('hazri.ai.readonly_db_username')) {
-            $config = array_merge($config, ['username' => $user, 'password' => config('hazri.ai.readonly_db_password')]);
-        }
-        Config::set('database.connections.ai_readonly', $config);
+        Config::set('database.connections.ai_readonly', array_merge(Config::get('database.connections.tenant'), [
+            'username' => config('hazri.ai.readonly_db_username'), 'password' => config('hazri.ai.readonly_db_password'),
+        ]));
         DB::purge('ai_readonly');
 
         return 'ai_readonly';

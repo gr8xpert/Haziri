@@ -29,7 +29,9 @@ final class MailChannel implements NotificationChannel
         $body = $message->body . ($message->url ? "\n\n" . $message->url : '');
         Mail::raw($body, function (Message $m) use ($to, $message) {
             $m->to($to->email, $to->name)->subject($message->subject ?? config('app.name'));
-            if ($from = tenant('company_name')) {
+            $settings = app(\App\Services\Settings\TenantSettings::class);
+            $from = ($settings->featureEnabled('white_label') ? $settings->get('email_from_name') : null) ?: tenant('company_name');
+            if ($from) {
                 $m->from(config('mail.from.address'), $from . ' via Hazri');
             }
         });

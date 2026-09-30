@@ -1,5 +1,18 @@
 # Changelog
 
+## 2026-10-01 — Milestone 10d: billing, custom domains, white-label, photo gallery, deploy kit
+
+- Billing (central): monthly invoices (active employees × plan price + fixed fee, due in 10 days), payment references
+  submitted by the owner (bank / JazzCash / Easypaisa) and confirmed by super-admin, suspension after due + 15 grace
+  days, automatic reactivation when paid, plan employee-limit enforcement on new employees.
+- Super-admin: invoices screen, **unknown devices** screen with one-click "attach to company" (spec §6.1; was missing).
+- Custom domains (CNAME to the company subdomain) and white-label (logo, primary colour, email sender) — plan feature
+  `white_label`. Punch-photo gallery ("all punches for PIN 47 this week").
+- `deploy/`: `deploy.sh`, `cron.txt`, `backup.sh`, `plesk-notes.md`; project `README.md`.
+- Security (review finding): SQL guard now checks every item of comma-joined FROM lists, including after derived
+  tables; Ask Hazri **requires** the read-only DB user (SELECT on the four views only) — verified by a DB-level test.
+- Tests: 182 PHP + 5 Python passing.
+
 ## 2026-10-01 — Milestone 10c: public API + webhooks (§13.3)
 
 - Feature flags `public_api` and `white_label` added.

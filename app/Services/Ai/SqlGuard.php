@@ -56,6 +56,30 @@ final class SqlGuard
         if ($m[1] === []) {
             return ['ok' => false, 'error' => 'no FROM clause'];
         }
+        // Comma joins: every item of every FROM list ("FROM v_a x, users u") must be allowed too. Parenthesised
+        // groups (subqueries, derived tables, function args) are peeled off innermost-first and each is checked on
+        // its own, so "FROM (SELECT …) x, users u" can't hide a table behind a closing parenthesis.
+        $segments = [];
+        $flat = $sql;
+        while (preg_match('/\(([^()]*)\)/', $flat, $inner)) {
+            $segments[] = $inner[1];
+            $flat = preg_replace('/\(([^()]*)\)/', ' __sub__ ', $flat, 1);
+        }
+        $segments[] = $flat;
+        foreach ($segments as $segment) {
+            preg_match_all('/\bfrom\s+(.+?)(?=\bwhere\b|\bgroup\b|\border\b|\blimit\b|\bhaving\b|\bwindow\b|\bunion\b|\bjoin\b|\b(?:left|right|inner|cross|natural|straight_join)\b|$)/is', $segment, $lists);
+            foreach ($lists[1] as $list) {
+                foreach (explode(',', $list) as $item) {
+                    $name = strtolower((string) preg_split('/\s+/', trim($item))[0]);
+                    if ($name === '' || $name === '__sub__') {
+                        continue;
+                    }
+                    if (! in_array($name, self::VIEWS, true) && ! in_array($name, $ctes, true)) {
+                        return ['ok' => false, 'error' => "table '{$name}' is not allowed"];
+                    }
+                }
+            }
+        }
 
         // LIMIT ≤ MAX_ROWS (added when missing).
         if (preg_match('/\blimit\s+(\d+)(\s*,\s*(\d+))?\s*$/i', $sql, $lim)) {

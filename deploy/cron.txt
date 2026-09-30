@@ -1,0 +1,6 @@
+# Plesk → Scheduled Tasks, both "every minute" (spec §14.5). Adjust the PHP path to the 8.4 binary.
+cd /var/www/vhosts/hazri.pk/httpdocs && /opt/plesk/php/8.4/bin/php artisan schedule:run >> storage/logs/cron.log 2>&1
+cd /var/www/vhosts/hazri.pk/httpdocs && /opt/plesk/php/8.4/bin/php artisan queue:work database --stop-when-empty --max-time=55 --tries=3 >> storage/logs/queue.log 2>&1
+
+# Nightly backup (02:30):
+30 2 * * * /var/www/vhosts/hazri.pk/httpdocs/deploy/backup.sh >> /var/www/vhosts/hazri.pk/httpdocs/storage/logs/backup.log 2>&1

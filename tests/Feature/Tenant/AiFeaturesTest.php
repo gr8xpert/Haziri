@@ -53,7 +53,20 @@ it('accepts only single SELECTs over the curated views', function (string $sql, 
     ['SELECT sleep(10) FROM v_employees', false],
     ['SELECT * FROM v_employees INTO OUTFILE "/tmp/x"', false],
     ['SELECT * FROM v_employees LIMIT 999999', false],
+    ['SELECT * FROM v_employees, users', false],                          // comma join (review finding)
+    ['SELECT u.* FROM v_employees e, users u WHERE e.code = u.name', false],
+    ['SELECT * FROM v_employees e, v_leave l WHERE e.code = l.code', true],
+    ['SELECT * FROM (SELECT * FROM v_leave) x, personal_access u', false],
 ]);
+
+it('runs generated SQL as a user that can only read the curated views', function () {
+    $config = array_merge(config('database.connections.tenant'), ['username' => 'hazri_ai', 'password' => 'hazri_ai']);
+    config(['database.connections.ro_probe' => $config]);
+
+    expect(Illuminate\Support\Facades\DB::connection('ro_probe')->select('SELECT COUNT(*) AS n FROM v_employees'))->toHaveCount(1)
+        ->and(fn () => Illuminate\Support\Facades\DB::connection('ro_probe')->select('SELECT * FROM users'))
+        ->toThrow(Illuminate\Database\QueryException::class);
+});
 
 it('adds a row limit when the model forgets one', function () {
     expect(SqlGuard::check('SELECT code FROM v_employees')['sql'])->toEndWith('LIMIT 5000');
