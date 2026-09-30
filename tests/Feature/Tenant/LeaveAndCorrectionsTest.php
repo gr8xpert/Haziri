@@ -1,0 +1,193 @@
+<?php
+
+declare(strict_types=1);
+
+use App\Actions\Corrections\DecideCorrection;
+use App\Actions\Corrections\SubmitCorrection;
+use App\Actions\Leave\CancelLeaveRequest;
+use App\Actions\Leave\DecideLeaveRequest;
+use App\Actions\Leave\SubmitLeaveRequest;
+use App\Actions\Periods\PeriodActions;
+use App\Actions\Punches\CreateManualPunches;
+use App\Enums\AttendanceStatus;
+use App\Enums\CorrectionType;
+use App\Enums\LeaveDayPart;
+use App\Enums\PeriodStatus;
+use App\Enums\RequestStatus;
+use App\Enums\Role;
+use App\Models\AttendanceDay;
+use App\Models\Employee;
+use App\Models\Holiday;
+use App\Models\LeaveBalance;
+use App\Models\LeaveType;
+use App\Models\Shift;
+use App\Models\User;
+use App\Services\Attendance\MissingPunchSuggester;
+use App\Services\Leave\LeaveBalanceService;
+use Carbon\CarbonImmutable;
+use Illuminate\Validation\ValidationException;
+
+function person(string $code, array $attrs = []): Employee
+{
+    return Employee::create(array_merge(['code' => $code, 'first_name' => $code, 'joined_on' => '2025-01-01'], $attrs));
+}
+
+function login(string $email, Role $role, ?Employee $employee = null): User
+{
+    $u = User::create(['name' => $email, 'email' => $email, 'password' => 'x', 'employee_id' => $employee?->id]);
+    $u->assignRole($role->value);
+
+    return $u;
+}
+
+function dayStatus(Employee $e, string $date): ?AttendanceStatus
+{
+    return AttendanceDay::where('employee_id', $e->id)->whereDate('date', $date)->value('status');
+}
+
+beforeEach(function () {
+    $this->boss = person('BOSS');
+    $this->emp = person('EMP', ['manager_employee_id' => $this->boss->id]);
+    $this->manager = login('mgr@pest.test', Role::Manager, $this->boss);
+    $this->hr = login('hr@pest.test', Role::Hr);
+    $this->self = login('emp@pest.test', Role::Employee, $this->emp);
+    $this->cl = LeaveType::where('code', 'CL')->first();
+    $this->al = LeaveType::where('code', 'AL')->first();
+    $this->sl = LeaveType::where('code', 'SL')->first();
+    $this->submit = app(SubmitLeaveRequest::class);
+    $this->decide = app(DecideLeaveRequest::class);
+});
+
+it('counts working days only and routes through manager then HR', function () {
+    Holiday::create(['date' => '2026-09-02', 'name' => 'Test holiday']);
+    // Tue 1 → Mon 7 Sep: Sun 6 is off, Wed 2 is a holiday → 5 working days
+    $r = ($this->submit)($this->emp, $this->cl, '2026-09-01', '2026-09-07', $this->self);
+
+    expect($r->days)->toBe(5.0)
+        ->and(array_column($r->approver_chain, 'step'))->toBe(['manager', 'hr'])
+        ->and(LeaveBalance::where(['employee_id' => $this->emp->id, 'leave_type_id' => $this->cl->id])->value('pending'))->toBe(5.0);
+
+    ($this->decide)($r, $this->manager, true);
+    expect($r->fresh()->status)->toBe(RequestStatus::Pending)->and($r->fresh()->current_step)->toBe(1);
+    // (an HR-level approval at step 0 would have completed the chain in one go)
+
+    expect(fn () => ($this->decide)($r->fresh(), $this->manager, true))->toThrow(ValidationException::class); // HR step now
+
+    ($this->decide)($r->fresh(), $this->hr, true, 'ok');
+    $balance = LeaveBalance::where(['employee_id' => $this->emp->id, 'leave_type_id' => $this->cl->id])->first();
+    expect($r->fresh()->status)->toBe(RequestStatus::Approved)
+        ->and($balance->pending)->toBe(0.0)->and($balance->used)->toBe(5.0)
+        ->and(dayStatus($this->emp, '2026-09-03'))->toBe(AttendanceStatus::LeavePaid)
+        ->and(dayStatus($this->emp, '2026-09-02'))->toBe(AttendanceStatus::Holiday);
+});
+
+it('skips the manager step when there is no manager login', function () {
+    $loner = person('LONE');
+    $r = ($this->submit)($loner, $this->cl, '2026-09-01', '2026-09-01', $this->hr);
+
+    expect(array_column($r->approver_chain, 'step'))->toBe(['hr']);
+});
+
+it('requires a reason to reject and releases the pending balance', function () {
+    $r = ($this->submit)($this->emp, $this->cl, '2026-09-01', '2026-09-01', $this->self);
+    expect(fn () => ($this->decide)($r, $this->hr, false))->toThrow(ValidationException::class);
+
+    ($this->decide)($r->fresh(), $this->hr, false, 'busy week');
+
+    expect($r->fresh()->status)->toBe(RequestStatus::Rejected)
+        ->and(LeaveBalance::where(['employee_id' => $this->emp->id, 'leave_type_id' => $this->cl->id])->value('pending'))->toBe(0.0);
+});
+
+it('enforces balance, overlap, attachment and half-day rules', function () {
+    expect(fn () => ($this->submit)($this->emp, $this->cl, '2026-09-01', '2026-09-30', $this->self))->toThrow(ValidationException::class);
+    ($this->submit)($this->emp, $this->cl, '2026-09-01', '2026-09-01', $this->self);
+    expect(fn () => ($this->submit)($this->emp, $this->cl, '2026-09-01', '2026-09-01', $this->self))->toThrow(ValidationException::class)
+        ->and(fn () => ($this->submit)($this->emp, $this->sl, '2026-09-08', '2026-09-10', $this->self))->toThrow(ValidationException::class)
+        ->and(fn () => ($this->submit)($this->emp, $this->al, '2026-09-08', '2026-09-09', $this->self, LeaveDayPart::FirstHalf))->toThrow(ValidationException::class);
+
+    $half = ($this->submit)($this->emp, $this->cl, '2026-09-10', '2026-09-10', $this->self, LeaveDayPart::FirstHalf);
+    expect($half->days)->toBe(0.5);
+});
+
+it('applies the sandwich rule on approval and reverses it on cancel', function () {
+    Shift::where('is_default', true)->first()->update(['weekly_off_days' => [0, 6]]);
+    $fri = ($this->submit)($this->emp, $this->al, '2026-09-04', '2026-09-04', $this->hr);
+    ($this->decide)($fri, $this->hr, true);
+    $mon = ($this->submit)($this->emp, $this->al, '2026-09-07', '2026-09-07', $this->hr);
+    ($this->decide)($mon, $this->hr, true);
+
+    $balance = fn () => LeaveBalance::where(['employee_id' => $this->emp->id, 'leave_type_id' => $this->al->id])->first();
+    expect($mon->fresh()->sandwich_dates)->toBe(['2026-09-05', '2026-09-06'])
+        ->and($balance()->used)->toBe(4.0)
+        ->and(dayStatus($this->emp, '2026-09-05'))->toBe(AttendanceStatus::LeavePaid);
+
+    app(CancelLeaveRequest::class)($mon->fresh(), $this->hr, 'changed plans');
+    expect($balance()->used)->toBe(1.0)->and(dayStatus($this->emp, '2026-09-05'))->toBe(AttendanceStatus::WeeklyOff);
+});
+
+it('accrues monthly leave and caps carry-forward', function () {
+    $monthly = LeaveType::create(['name' => 'Monthly', 'code' => 'MO', 'annual_quota_days' => 12, 'accrual' => 'monthly', 'carry_forward_max' => 7]);
+    $svc = app(LeaveBalanceService::class);
+    $joiner = person('NEW', ['joined_on' => '2026-03-15']);
+
+    expect($svc->accrued($this->emp, $monthly, 2026, CarbonImmutable::parse('2026-06-10')))->toBe(6.0)
+        ->and($svc->accrued($joiner, $this->al, 2026))->toBe(11.5); // 14 × 10/12 = 11.67 → 11.5
+
+    LeaveBalance::create(['employee_id' => $this->emp->id, 'leave_type_id' => $monthly->id, 'year' => 2025, 'accrued' => 12, 'used' => 3]);
+    $svc->openYear(2026);
+    expect(LeaveBalance::where(['employee_id' => $this->emp->id, 'leave_type_id' => $monthly->id, 'year' => 2026])->value('opening'))->toBe(7.0);
+});
+
+it('applies approved corrections automatically', function () {
+    $submit = app(SubmitCorrection::class);
+    $decide = app(DecideCorrection::class);
+    app(CreateManualPunches::class)($this->emp, '2026-09-08', '09:00', null, 'forgot out', $this->hr);
+
+    $add = $submit($this->emp, '2026-09-08', CorrectionType::AddPunch, ['time' => '18:05', 'direction' => 'out'], 'forgot', $this->self);
+    ($decide)($add, $this->manager, true);
+    ($decide)($add->fresh(), $this->hr, true);
+    $day = AttendanceDay::where('employee_id', $this->emp->id)->whereDate('date', '2026-09-08')->first();
+    expect($day->status)->toBe(AttendanceStatus::Present)->and($day->flags)->not->toContain('missing_out');
+
+    $od = $submit($this->emp, '2026-09-09', CorrectionType::MarkOd, [], 'client visit', $this->manager);
+    ($decide)($od, $this->hr, true);
+    expect(dayStatus($this->emp, '2026-09-09'))->toBe(AttendanceStatus::OfficialDuty);
+
+    $st = $submit($this->emp, '2026-09-10', CorrectionType::ChangeStatus, ['status' => 'wfh'], 'worked from home', $this->hr);
+    ($decide)($st, $this->hr, true);
+    expect(dayStatus($this->emp, '2026-09-10'))->toBe(AttendanceStatus::Wfh);
+});
+
+it('stops managers from requesting for people outside their team', function () {
+    $other = person('OTHER');
+
+    app(SubmitCorrection::class)($other, '2026-09-09', CorrectionType::MarkWfh, [], 'x', $this->manager);
+})->throws(ValidationException::class);
+
+it('suggests the median usual out time for a missing punch', function () {
+    foreach (['17:55', '18:00', '18:05', '18:10', '18:30', '19:00'] as $i => $t) {
+        AttendanceDay::create(['employee_id' => $this->emp->id, 'date' => sprintf('2026-08-%02d', $i + 3), 'status' => AttendanceStatus::Present,
+            'last_out' => CarbonImmutable::parse("2026-08-01 {$t}", 'Asia/Karachi')->utc()->format('Y-m-d H:i:s'), 'flags' => []]);
+    }
+
+    expect(app(MissingPunchSuggester::class)->suggestOut($this->emp))->toBe('18:07');
+});
+
+it('locks a month with a snapshot, blocks changes, and unlocks only with permission and reason', function () {
+    app(CreateManualPunches::class)($this->emp, '2026-08-03', '09:00', '18:00', 'entry', $this->hr);
+    $owner = User::where('email', 'owner@pest.test')->first();
+    $actions = app(PeriodActions::class);
+    $period = $actions->period(2026, 8);
+
+    $actions->lock($period, $this->hr);
+
+    expect($period->fresh()->status)->toBe(PeriodStatus::Locked)
+        ->and($period->fresh()->summary['employees'][$this->emp->id]['presentDays'])->toBe(1)
+        ->and(AttendanceDay::whereDate('date', '2026-08-03')->where('employee_id', $this->emp->id)->value('is_locked'))->toBeTrue()
+        ->and(fn () => ($this->submit)($this->emp, $this->cl, '2026-08-10', '2026-08-10', $this->hr))->toThrow(ValidationException::class)
+        ->and(fn () => $actions->unlock($period->fresh(), $this->hr, 'oops'))->toThrow(ValidationException::class)
+        ->and(fn () => $actions->unlock($period->fresh(), $owner, ''))->toThrow(ValidationException::class);
+
+    $actions->unlock($period->fresh(), $owner, 'late correction');
+    expect($period->fresh()->status)->toBe(PeriodStatus::Review);
+});

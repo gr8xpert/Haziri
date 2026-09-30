@@ -74,7 +74,8 @@ final class AttendanceImpactServiceProvider extends ServiceProvider
             if (! $l->wasRecentlyCreated && ! $l->wasChanged(['status', 'from_date', 'to_date', 'day_part', 'sandwich_dates']) && $l->exists) {
                 return;
             }
-            $sandwich = $l->sandwich_dates ?? [];
+            // Include the previous sandwich days too: a cancel clears them but they still need recomputing.
+            $sandwich = array_merge($l->sandwich_dates ?? [], (array) ($l->getOriginal('sandwich_dates') ?? []));
             $from = min([...$this->dates($l, 'from_date'), ...$sandwich]);
             $to = max([...$this->dates($l, 'to_date'), ...$sandwich]);
             AttendanceImpact::dispatch([$l->employee_id], $from, $to);

@@ -24,7 +24,7 @@ return [
 
     'roles' => [
         'owner' => ['*'],
-        'admin' => ['*', '-billing.manage', '-data.delete', '-periods.unlock'],
+        'admin' => ['*', '-billing.manage', '-data.delete'],
         'hr' => [
             'attendance.view_all', 'attendance.manual_entry', 'attendance.manual_edit', 'attendance.override_status',
             'attendance.recompute', 'employees.view', 'employees.manage', 'employees.import', 'organisation.manage',

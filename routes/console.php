@@ -14,3 +14,7 @@ Schedule::command('tenants:run hazri:attendance:recompute-recent')->dailyAt('02:
 // Spec §6.1: devices silent for 15 min are marked offline (once per outage); daily time sync.
 Schedule::command('tenants:run hazri:devices:check')->everyFiveMinutes()->withoutOverlapping();
 Schedule::command('tenants:run hazri:devices:check --option="sync-time=1"')->dailyAt('03:00');
+
+// Leave: monthly accrual on the 1st; new leave year (carry-forward) on 1 January.
+Schedule::command('tenants:run hazri:leave:balances')->monthlyOn(1, '01:00');
+Schedule::command('tenants:run hazri:leave:balances --option="open-year=1"')->yearlyOn(1, 1, '00:30');

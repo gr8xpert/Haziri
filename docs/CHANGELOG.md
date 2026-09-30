@@ -1,5 +1,20 @@
 # Changelog
 
+## 2026-10-01 — Milestone 6: leave, corrections, month lock (§17 step 9)
+
+- Approval chains (`ApprovalChain`): setting-driven manager → HR, manager skipped when absent, HR approval completes the chain.
+- Leave: types (quota, accrual, carry-forward, half-day, short leave, sandwich, attachment rule, eligibility),
+  balances (yearly upfront prorated for joiners, monthly accrual, carry-forward cap), requests (self / on behalf),
+  validation (balance, overlap, max consecutive, locked month), sandwich rule at approval, cancel with balance reversal,
+  leave calendar ("who's off"), balance adjustments. Scheduled accrual + year opening.
+- Corrections & OD/WFH: add/remove punch, change status, mark OD/WFH; auto-applied on final approval;
+  missing-punch suggestion = median usual out time (spec §12.4, statistical).
+- Months: open → review → locked (per-employee snapshot, rows frozen) → unlock (owner/admin + reason, audited).
+- Reports R6 missing punch, R7 overtime, R8 leave balances, R9 leave register, R11 department summary,
+  R12 payroll input (uses the locked snapshot), R14 manual entry audit, R15 device sync.
+- `hazri:permissions:sync` (deploy step). Admin may unlock months (spec §5.7).
+- Tests: 106 passing.
+
 ## 2026-10-01 — Milestones 3–5: ingestion, ADMS receiver, bridge agent (§17 steps 6–8)
 
 - USB import page: ZKTeco `*_attlog.dat` (tolerant parser) and Hazri CSV/XLSX template; preview with duplicates,
