@@ -1,0 +1,51 @@
+# Local development stack. Browse to http://hazri.localhost:8000 (central),
+# http://admin.hazri.localhost:8000 (super-admin), http://{tenant}.hazri.localhost:8000 (tenants).
+# *.localhost resolves to 127.0.0.1 in modern browsers without editing the hosts file.
+services:
+  app:
+    build: ./docker/php
+    volumes:
+      - ./:/var/www
+    depends_on:
+      - db
+
+  web:
+    image: nginx:1.27-alpine
+    ports:
+      - "8000:80"
+    volumes:
+      - ./:/var/www
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - app
+
+  db:
+    image: mariadb:10.11
+    environment:
+      MARIADB_ROOT_PASSWORD: root
+      MARIADB_DATABASE: hazri_central
+      MARIADB_USER: hazri
+      MARIADB_PASSWORD: hazri
+    ports:
+      - "3307:3306"
+    volumes:
+      - dbdata:/var/lib/mysql
+      - ./docker/mariadb/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+
+  # Mirrors the Plesk cron: scheduler + database queue worker every minute.
+  cron:
+    build: ./docker/php
+    volumes:
+      - ./:/var/www
+    depends_on:
+      - db
+    command: >
+      sh -c "while true; do
+               php artisan schedule:run --no-interaction;
+               php artisan queue:work database --stop-when-empty --max-time=55 --tries=3;
+               sleep 5;
+             done"
+    profiles: ["cron"]
+
+volumes:
+  dbdata:

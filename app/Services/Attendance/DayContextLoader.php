@@ -1,0 +1,103 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Services\Attendance;
+
+use App\Enums\AttendanceStatus;
+use App\Enums\PunchStatus;
+use App\Enums\RequestStatus;
+use App\Models\AttendanceDay;
+use App\Models\AttendanceMarker;
+use App\Models\Employee;
+use App\Models\Holiday;
+use App\Models\LeaveRequest;
+use App\Models\Punch;
+use App\Services\Attendance\Engine\DayContext;
+use App\Services\Attendance\Engine\EngineSettings;
+use App\Services\Attendance\Engine\LeaveInput;
+use App\Services\Settings\TenantSettings;
+use Carbon\CarbonImmutable;
+use Illuminate\Database\Eloquent\Builder;
+
+/** Builds the engine's DayContext for one employee-day from the tenant DB. */
+final class DayContextLoader
+{
+    public function __construct(
+        private readonly ShiftResolver $shifts,
+        private readonly TenantSettings $settings,
+    ) {}
+
+    public function load(Employee $employee, string $date, CarbonImmutable $now): DayContext
+    {
+        $timezone = $this->timezoneFor($employee);
+
+        // Wide enough for any shift window incl. night shifts; the engine narrows it down.
+        $from = CarbonImmutable::parse($date, $timezone)->subDay()->utc();
+        $to = CarbonImmutable::parse($date, $timezone)->addDays(2)->utc();
+        $punches = Punch::query()
+            ->where('employee_id', $employee->id)
+            ->where('status', PunchStatus::Valid)
+            ->whereBetween('punched_at', [$from->format('Y-m-d H:i:s'), $to->format('Y-m-d H:i:s')])
+            ->orderBy('punched_at')
+            ->get()
+            ->map(fn (Punch $p) => $p->toInput())
+            ->all();
+
+        $holiday = Holiday::query()
+            ->whereDate('date', $date)
+            ->where(fn (Builder $q) => $q->whereNull('branch_id')->orWhere('branch_id', $employee->branch_id))
+            ->first();
+
+        $marker = AttendanceMarker::query()->where('employee_id', $employee->id)->whereDate('date', $date)->first();
+        $existing = AttendanceDay::query()->where('employee_id', $employee->id)->whereDate('date', $date)->first();
+        $override = $existing?->manual_override['status'] ?? null;
+
+        return new DayContext(
+            date: $date,
+            timezone: $timezone,
+            now: $now,
+            joinedOn: $employee->joined_on?->format('Y-m-d'),
+            leftOn: $employee->left_on?->format('Y-m-d'),
+            shift: $this->shifts->resolve($employee, $date, $timezone),
+            punches: $punches,
+            holidayId: $holiday?->id,
+            isHoliday: $holiday !== null,
+            leave: $this->leaveFor($employee, $date),
+            marker: $marker?->status,
+            manualOverride: $override !== null ? AttendanceStatus::from($override) : null,
+            overtimeEligible: $employee->overtime_eligible,
+            settings: EngineSettings::fromArray($this->settings->all()),
+        );
+    }
+
+    public function timezoneFor(Employee $employee): string
+    {
+        return $employee->branch?->timezone ?? tenant('timezone') ?? config('hazri.default_timezone');
+    }
+
+    private function leaveFor(Employee $employee, string $date): ?LeaveInput
+    {
+        $request = LeaveRequest::query()
+            ->with('leaveType')
+            ->where('employee_id', $employee->id)
+            ->where('status', RequestStatus::Approved)
+            ->where(fn (Builder $q) => $q
+                ->where(fn (Builder $r) => $r->where('from_date', '<=', $date)->where('to_date', '>=', $date))
+                ->orWhereJsonContains('sandwich_dates', $date))
+            ->orderByDesc('id')
+            ->first();
+
+        if ($request === null) {
+            return null;
+        }
+
+        return new LeaveInput(
+            leaveRequestId: $request->id,
+            isPaid: (bool) $request->leaveType?->is_paid,
+            dayPart: $request->day_part,
+            sandwich: in_array($date, $request->sandwich_dates ?? [], true),
+            isShortLeave: $request->short_leave_from !== null,
+        );
+    }
+}
