@@ -17,7 +17,7 @@ class AttendancePeriod extends Model
 
     protected function casts(): array
     {
-        return ['status' => PeriodStatus::class, 'locked_at' => 'immutable_datetime', 'summary' => 'array'];
+        return ['status' => PeriodStatus::class, 'locked_at' => 'immutable_datetime', 'summary' => 'array', 'narrative' => 'array'];
     }
 
     public function getActivitylogOptions(): LogOptions

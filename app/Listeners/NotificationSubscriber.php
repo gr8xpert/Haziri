@@ -68,6 +68,7 @@ final class NotificationSubscriber
 
     public function periodLocked(PeriodLocked $e): void
     {
+        \App\Jobs\GenerateMonthlyNarrative::dispatch($e->period->id); // spec §12.2 (no-op when AI is off)
         $p = $e->period;
         $this->notifier->send('period_locked', Recipients::withRoles(Role::Owner), [
             'month' => date('F Y', mktime(0, 0, 0, $p->month, 1, $p->year)),

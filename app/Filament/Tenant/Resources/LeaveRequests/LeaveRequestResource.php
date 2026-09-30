@@ -78,6 +78,27 @@ class LeaveRequestResource extends Resource
                 SelectFilter::make('leave_type_id')->relationship('leaveType', 'name')->label('Type'),
             ])
             ->recordActions([
+                Action::make('readAttachment')->label('Read attachment (AI)')->icon(Heroicon::OutlinedSparkles)->color('gray')
+                    ->visible(fn (LeaveRequest $r) => $r->attachment_path !== null
+                        && app(\App\Services\Settings\TenantSettings::class)->featureEnabled('ai_reports')
+                        && auth()->user()->can('leave.approve_final'))
+                    ->action(function (LeaveRequest $record, \App\Services\Ai\AttachmentReader $reader) {
+                        $r = $reader->read($record, auth()->id());
+                        if (! $r['ok']) {
+                            Notification::make()->danger()->title($r['error'])->send();
+
+                            return;
+                        }
+                        $d = $r['data'];
+                        Notification::make()->persistent()->color($d['matches_request'] ? 'success' : 'warning')
+                            ->title($d['matches_request'] ? __('Certificate dates match the request') : __('Check the dates'))
+                            ->body(sprintf("%s → %s
+%s, %s
+%s
+(%s)", $d['from_date'] ?? '?', $d['to_date'] ?? '?',
+                                $d['doctor'] ?? '?', $d['clinic'] ?? '?', $d['summary'] ?? '', __('AI suggestion — please verify')))
+                            ->send();
+                    }),
                 self::decision('approve', true),
                 self::decision('reject', false),
                 Action::make('cancel')->icon(Heroicon::OutlinedArrowPath)->color('gray')->requiresConfirmation()

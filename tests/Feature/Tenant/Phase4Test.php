@@ -77,6 +77,13 @@ it('rejects SSRF targets for tenant-configured URLs', function (string $url, boo
     ['ftp://example.com/', false],
     ['https://user:pass@8.8.8.8/', false],
     ['https://8.8.8.8/sms', true],
+    ['http://[::ffff:127.0.0.1]/', false],        // IPv4-mapped IPv6
+    ['http://[::ffff:a9fe:a9fe]/', false],         // mapped 169.254.169.254, hex form
+    ['http://[::127.0.0.1]/', false],              // IPv4-compatible
+    ['http://[64:ff9b::a00:1]/', false],           // NAT64 of 10.0.0.1
+    ['http://[2002:7f00:1::]/', false],            // 6to4 of 127.0.0.1
+    ['http://[::]/', false],
+    ['http://[2606:4700:4700::1111]/', true],      // public IPv6
 ]);
 
 it('never reads files outside the visitor photo folder for badges', function () {

@@ -21,3 +21,6 @@ Schedule::command('tenants:run hazri:leave:balances --option="open-year=1"')->ye
 
 // Spec §11: time-based notifications (absent at 11:00, missing punch-out, daily summary, HR reminders).
 Schedule::command('tenants:run hazri:notify:scheduled')->everyFifteenMinutes()->withoutOverlapping();
+
+// Spec §12.3: nightly rule-based anomaly scan (AI only phrases the explanations).
+Schedule::command('tenants:run hazri:anomalies:detect')->dailyAt('06:00');

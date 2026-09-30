@@ -77,6 +77,7 @@ final class ProvisionTenant
         });
 
         \App\Models\Central\TenantUserLink::link($adminEmail, $tenant->id);
+        app(GrantAiReadonly::class)($tenant);
         event(new TenantProvisioned($tenant));
 
         return ['tenant' => $tenant, 'owner' => $owner, 'password' => $password];

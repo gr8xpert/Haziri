@@ -54,7 +54,7 @@ return [
 
     'ai' => [
         'api_key' => env('ANTHROPIC_API_KEY'),
-        'model' => env('ANTHROPIC_MODEL', 'claude-sonnet-5-5'),
+        'model' => env('ANTHROPIC_MODEL', 'claude-opus-5-5'),
         'readonly_db_username' => env('AI_DB_READONLY_USERNAME'),
         'readonly_db_password' => env('AI_DB_READONLY_PASSWORD'),
     ],

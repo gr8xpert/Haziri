@@ -39,6 +39,24 @@ final class PublicUrl
 
     public static function isPublic(string $ip): bool
     {
+        $bin = @inet_pton($ip);
+        if ($bin === false) {
+            return false;
+        }
+        if (strlen($bin) === 16) {
+            // IPv6 that carries an IPv4 address — judge the embedded IPv4 instead (PHP's range flags miss these):
+            // ::ffff:a.b.c.d (mapped), ::a.b.c.d (compatible), 64:ff9b::/96 (NAT64), 2002:aabb:ccdd::/16 (6to4).
+            $embedded = match (true) {
+                substr($bin, 0, 10) === str_repeat("\0", 10) && in_array(substr($bin, 10, 2), ["\xff\xff", "\0\0"], true) => substr($bin, 12, 4),
+                substr($bin, 0, 12) === "\x00\x64\xff\x9b" . str_repeat("\0", 8) => substr($bin, 12, 4),
+                substr($bin, 0, 2) === "\x20\x02" => substr($bin, 2, 4),
+                default => null,
+            };
+            if ($embedded !== null) {
+                return $bin !== str_repeat("\0", 16) && self::isPublic((string) inet_ntop($embedded));
+            }
+        }
+        $ip = (string) inet_ntop($bin); // canonical form for the checks below
         if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE) === false) {
             return false;
         }

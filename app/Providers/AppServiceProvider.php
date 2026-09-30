@@ -16,6 +16,7 @@ class AppServiceProvider extends ServiceProvider
     {
         // Per request / per job; also forgotten whenever tenancy switches (TenancyServiceProvider).
         $this->app->scoped(TenantSettings::class);
+        $this->app->bind(\App\Contracts\AiModel::class, \App\Services\Ai\AnthropicAiModel::class);
         $this->app->singleton(\App\Services\Notifications\ChannelRegistry::class, function () {
             $registry = new \App\Services\Notifications\ChannelRegistry;
             $registry->extend('whatsapp', 'meta', \App\Services\Notifications\Channels\MetaWhatsAppChannel::class);

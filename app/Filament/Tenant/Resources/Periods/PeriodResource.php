@@ -59,6 +59,16 @@ class PeriodResource extends Resource
                     fn (PeriodActions $a, AttendancePeriod $p) => $a->lock($p, auth()->user()))
                     ->visible(fn (AttendancePeriod $r) => $r->status !== PeriodStatus::Locked)
                     ->requiresConfirmation()->modalDescription(__('Locked months cannot be edited or recomputed. The summary is snapshotted.')),
+                Action::make('narrative')->label('Summary')->icon(Heroicon::OutlinedDocumentChartBar)->color('gray')
+                    ->visible(fn (AttendancePeriod $r) => $r->narrative !== null)
+                    ->fillForm(fn (AttendancePeriod $r) => ['en' => $r->narrative['en'] ?? '', 'ur' => $r->narrative['ur'] ?? ''])
+                    ->schema([
+                        Textarea::make('en')->label('English')->rows(8),
+                        Textarea::make('ur')->label('اردو')->rows(8)->extraInputAttributes(['dir' => 'rtl']),
+                    ])
+                    ->action(fn (AttendancePeriod $record, array $data) => $record->update(['narrative' => array_merge($record->narrative ?? [], $data, [
+                        'edited_by' => auth()->id(), 'edited_at' => now()->toIso8601String(),
+                    ])])),
                 Action::make('unlock')->icon(Heroicon::OutlinedArrowPath)->color('danger')
                     ->visible(fn (AttendancePeriod $r) => $r->status === PeriodStatus::Locked && auth()->user()->can('periods.unlock'))
                     ->schema([Textarea::make('reason')->required()])
