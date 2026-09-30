@@ -1,5 +1,18 @@
 # Changelog
 
+## 2026-10-01 — Milestone 7: notifications (§17 step 10)
+
+- `NotificationChannel` contract; drivers: mail, in-app (Filament database notifications + bell), log;
+  WhatsApp / SMS resolve to a per-tenant provider (log until one is configured — M9 adds real drivers).
+- Templates: defaults in `config/notification_templates.php` (English + Urdu), tenant overrides in
+  `notification_templates` (System → Notification texts). `{{ placeholders }}` filled from event data.
+- `Notifier` + queued `SendNotification` (3 tries, backoff, quiet hours for WhatsApp/SMS), every attempt in `notification_logs`.
+- Events: leave requested / decided (incl. next approver), correction requested / decided, device offline, month locked;
+  scheduled every 15 min: not-in-yet alert to managers (11:00), missing punch-out (shift end + 2 h), daily summary
+  (18:00), unmapped PINs, probation (7 days) / contract (30 days) ending, birthdays — each deduped per day.
+- Company settings page for all §7.4 rule parameters, approval chains and notification timing; "Recompute this month".
+- Tests: 111 passing.
+
 ## 2026-10-01 — Milestone 6: leave, corrections, month lock (§17 step 9)
 
 - Approval chains (`ApprovalChain`): setting-driven manager → HR, manager skipped when absent, HR approval completes the chain.

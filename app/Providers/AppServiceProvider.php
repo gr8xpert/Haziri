@@ -16,6 +16,7 @@ class AppServiceProvider extends ServiceProvider
     {
         // Per request / per job; also forgotten whenever tenancy switches (TenancyServiceProvider).
         $this->app->scoped(TenantSettings::class);
+        $this->app->singleton(\App\Services\Notifications\ChannelRegistry::class);
     }
 
     /**
@@ -23,6 +24,6 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        \Illuminate\Support\Facades\Event::subscribe(\App\Listeners\NotificationSubscriber::class);
     }
 }

@@ -18,3 +18,6 @@ Schedule::command('tenants:run hazri:devices:check --option="sync-time=1"')->dai
 // Leave: monthly accrual on the 1st; new leave year (carry-forward) on 1 January.
 Schedule::command('tenants:run hazri:leave:balances')->monthlyOn(1, '01:00');
 Schedule::command('tenants:run hazri:leave:balances --option="open-year=1"')->yearlyOn(1, 1, '00:30');
+
+// Spec §11: time-based notifications (absent at 11:00, missing punch-out, daily summary, HR reminders).
+Schedule::command('tenants:run hazri:notify:scheduled')->everyFifteenMinutes()->withoutOverlapping();

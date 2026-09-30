@@ -54,6 +54,7 @@ final class PeriodActions
                 'summary' => $this->snapshot($period),
             ]);
             $this->rows($period)->update(['is_locked' => true, 'locked_by_period_id' => $period->id]);
+            \App\Events\PeriodLocked::dispatch($period, $by);
 
             return $period;
         });

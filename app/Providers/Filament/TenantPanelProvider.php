@@ -29,6 +29,8 @@ class TenantPanelProvider extends PanelProvider
             ->path('admin')
             ->login()
             ->brandName(fn () => tenant('company_name') ?? 'Hazri')
+            ->databaseNotifications()
+            ->databaseNotificationsPolling('60s')
             ->colors([
                 'primary' => Color::Emerald,
             ])

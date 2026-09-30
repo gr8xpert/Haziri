@@ -45,6 +45,11 @@ return [
         'employee_can_see_others' => false,
         'leave_approval_chain' => ['manager', 'hr'],
         'correction_approval_chain' => ['manager', 'hr'],
+        // Notifications (spec §11). notify.{event} = [channels] overrides the per-event defaults.
+        'daily_summary_at' => '18:00',
+        'absent_alert_at' => '11:00',
+        'quiet_hours' => ['22:00', '08:00'],
+        'notify_employee_late' => false,
     ],
 
     'ai' => [
