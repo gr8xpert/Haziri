@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-10-01 — Milestone 10c: public API + webhooks (§13.3)
+
+- Feature flags `public_api` and `white_label` added.
+- Personal access tokens (hashed, abilities `read` / `punches:write`, revocable, 60 req/min per token) —
+  System → API tokens. Endpoints on the tenant host: `GET /api/v1/employees`, `GET /api/v1/attendance?from&to&employee`,
+  `GET /api/v1/leave/balances?year`, `POST /api/v1/punches` (source `api`), `GET /api/v1/periods/{Y-m}/payroll-input`.
+- Webhooks (System → Webhooks): events `punch.created`, `attendance_day.updated`, `leave.decided`, `period.locked`,
+  `payroll.generated`; headers `X-Hazri-Event/Delivery/Timestamp/Signature` (`sha256=HMAC(secret, "{ts}.{body}")`);
+  server-generated secret; SSRF guard on save and on every attempt; no redirects; 5 tries with backoff; delivery log; test ping.
+
 ## 2026-10-01 — Milestone 8: employee PWA, kiosk, mobile punch (§17 step 11)
 
 - `/me` installable PWA (Blade + Alpine + Tailwind via Vite, RTL for Urdu): login by email/password or phone OTP

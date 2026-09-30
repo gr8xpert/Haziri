@@ -101,6 +101,7 @@ final class PayrollActions
             }
             $run->update(['status' => 'final']);
         });
+        \App\Services\Webhooks\Webhooks::dispatch('payroll.generated', ['month' => $run->label(), 'totals' => $run->fresh()->totals]);
 
         foreach ($run->payslips()->with('employee')->get() as $slip) {
             $this->notifier->send('payslip_ready', [Recipient::fromEmployee($slip->employee)],

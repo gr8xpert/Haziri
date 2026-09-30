@@ -22,6 +22,7 @@ return [
     /* Optional modules; plans define defaults, super-admin overrides per tenant (spec §3.3). */
     'feature_flags' => [
         'machine_sync', 'kiosk', 'mobile_punch', 'leave', 'payroll_lite', 'visitors', 'ai_reports', 'whatsapp',
+        'public_api', 'white_label',
     ],
 
     /* Tenant rule parameters and their defaults (spec §7.4). Stored per tenant in the `settings` table. */

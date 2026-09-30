@@ -42,6 +42,7 @@ final class MachineSyncServiceProvider extends ServiceProvider
         Device::deleted(fn (Device $d) => app(DeviceRegistrar::class)->forget($d));
 
         RateLimiter::for('agent', fn (Request $r) => Limit::perMinute(120)->by($r->bearerToken() ?: $r->ip()));
+        RateLimiter::for('public-api', fn (Request $r) => Limit::perMinute(60)->by(tenant('id') . '|' . ($r->bearerToken() ?: $r->ip())));
 
         $this->loadRoutesFrom(base_path('routes/agent.php'));
     }

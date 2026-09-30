@@ -70,6 +70,20 @@ Route::middleware([
         return view('visitors.badge', ['visitor' => $visitor, 'photo' => $photo, 'company' => tenant('company_name')]);
     })->middleware('auth')->name('tenant.visitor-badge');
 
+    // ---- Public API v1 (spec §13.3): bearer token, per-token rate limit, no session/CSRF ----
+    Route::prefix('api/v1')->name('api.')
+        ->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\PreventRequestForgery::class])
+        ->middleware(\Illuminate\Routing\Middleware\ThrottleRequests::using('public-api'))
+        ->group(function () {
+            $read = App\Http\Middleware\AuthenticateApiToken::class . ':read';
+            Route::get('employees', [App\Http\Controllers\Api\PublicApiController::class, 'employees'])->middleware($read);
+            Route::get('attendance', [App\Http\Controllers\Api\PublicApiController::class, 'attendance'])->middleware($read);
+            Route::get('leave/balances', [App\Http\Controllers\Api\PublicApiController::class, 'leaveBalances'])->middleware($read);
+            Route::get('periods/{ym}/payroll-input', [App\Http\Controllers\Api\PublicApiController::class, 'payrollInput'])->middleware($read);
+            Route::post('punches', [App\Http\Controllers\Api\PublicApiController::class, 'punch'])
+                ->middleware(App\Http\Middleware\AuthenticateApiToken::class . ':punches:write');
+        });
+
     // ---- Tablet kiosk (spec §6.5) ----
     Route::prefix('kiosk/{token}')->name('kiosk.')->where(['token' => '[A-Za-z0-9]{40}'])->group(function () {
         Route::get('/', [KioskController::class, 'show'])->name('show');

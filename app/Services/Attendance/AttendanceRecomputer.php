@@ -65,7 +65,15 @@ final class AttendanceRecomputer
             'source_summary' => $result->sourceSummary,
             'computed_at' => CarbonImmutable::now('UTC'),
             'computed_version' => self::ENGINE_VERSION,
-        ])->save();
+        ]);
+        $changed = $day->isDirty(['status', 'flags', 'first_in', 'last_out', 'late_min', 'overtime_min']);
+        $day->save();
+        if ($changed) {
+            \App\Services\Webhooks\Webhooks::dispatch('attendance_day.updated', [
+                'employee' => $employee->code, 'date' => $date, 'status' => $day->status?->value, 'flags' => $day->flags,
+                'worked_min' => $day->worked_min, 'late_min' => $day->late_min, 'overtime_min' => $day->overtime_min,
+            ]);
+        }
 
         return $day;
     }

@@ -36,6 +36,10 @@ final class NotificationSubscriber
 
             return;
         }
+        \App\Services\Webhooks\Webhooks::dispatch('leave.decided', [
+            'id' => $r->id, 'employee' => $r->employee?->code, 'type' => $r->leaveType?->code, 'status' => $r->status->value,
+            'from' => $r->from_date->format('Y-m-d'), 'to' => $r->to_date->format('Y-m-d'), 'days' => $r->days,
+        ]);
         $this->notifier->send('leave_decided', [Recipient::fromEmployee($r->employee)], $this->leaveData($r) + [
             'status' => __($r->status->value),
             'note' => (string) $r->decided_note,
@@ -69,6 +73,9 @@ final class NotificationSubscriber
     public function periodLocked(PeriodLocked $e): void
     {
         \App\Jobs\GenerateMonthlyNarrative::dispatch($e->period->id); // spec §12.2 (no-op when AI is off)
+        \App\Services\Webhooks\Webhooks::dispatch('period.locked', [
+            'year' => $e->period->year, 'month' => $e->period->month, 'totals' => $e->period->summary['totals'] ?? [],
+        ]);
         $p = $e->period;
         $this->notifier->send('period_locked', Recipients::withRoles(Role::Owner), [
             'month' => date('F Y', mktime(0, 0, 0, $p->month, 1, $p->year)),

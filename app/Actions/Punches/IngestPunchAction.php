@@ -86,6 +86,10 @@ final class IngestPunchAction
         }
         if ($status === PunchStatus::Valid) {
             self::queueRecompute($employee->id, $localDate);
+            \App\Services\Webhooks\Webhooks::dispatch('punch.created', [
+                'id' => $punch->id, 'employee' => $employee->code, 'punched_at' => $punch->punched_at->toIso8601String(),
+                'local_date' => $localDate, 'direction' => $direction->value, 'source' => $data->source->value,
+            ]);
         }
 
         return new IngestResult(match ($status) {
