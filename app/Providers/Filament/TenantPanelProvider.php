@@ -29,6 +29,12 @@ class TenantPanelProvider extends PanelProvider
             ->path('admin')
             ->login()
             ->brandName(fn () => tenant('company_name') ?? 'Hazri')
+            ->userMenuItems([
+                \Filament\Actions\Action::make('switchCompany')->label(__('Switch company'))
+                    ->icon(\Filament\Support\Icons\Heroicon::OutlinedBuildingOffice2)
+                    ->url(fn () => \App\Filament\Tenant\Pages\SwitchCompany::getUrl())
+                    ->visible(fn () => \App\Filament\Tenant\Pages\SwitchCompany::canAccess()),
+            ])
             ->databaseNotifications()
             ->databaseNotificationsPolling('60s')
             ->colors([

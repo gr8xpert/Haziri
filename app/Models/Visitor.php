@@ -13,7 +13,10 @@ class Visitor extends Model
 {
     use LogsActivity;
 
-    protected $guarded = ['id'];
+    protected $fillable = [
+        'name', 'phone', 'cnic', 'company', 'host_employee_id', 'purpose', 'photo_path', 'branch_id',
+        'checked_in_at', 'checked_out_at', 'badge_no', 'entered_by',
+    ];
 
     protected function casts(): array
     {

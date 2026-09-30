@@ -121,13 +121,13 @@ it('reports WhatsApp API errors as failed deliveries', function () {
 });
 
 it('sends SMS through a configurable HTTP gateway', function () {
-    setting('sms_http_url', 'https://sms.example.pk/api/send');
+    setting('sms_http_url', 'https://203.0.113.10/api/send'); // literal public address: passes the SSRF guard without DNS
     setting('sms_http_method', 'GET');
     setting('sms_http_params', ['key' => '{api_key}', 'receiver' => '{to}', 'msgdata' => '{message}', 'mask' => '{sender}']);
     setting('sms_http_api_key', Crypt::encryptString('k-123'));
     setting('sms_http_sender', 'ACME');
     setting('sms_http_success_contains', 'Message Sent');
-    Http::fake(['sms.example.pk/*' => Http::response('Message Sent Successfully')]);
+    Http::fake(['203.0.113.10/*' => Http::response('Message Sent Successfully')]);
 
     $r = app(HttpSmsChannel::class)->send(new Recipient('B', null, '03211234567'), new RenderedMessage('test', null, 'Hello'));
 

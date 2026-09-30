@@ -14,6 +14,6 @@ class ManageAdvances extends ManageRecords
 
     protected function getHeaderActions(): array
     {
-        return [CreateAction::make()->mutateDataUsing(fn (array $data) => $data + ['remaining' => (int) $data['amount'], 'status' => 'active'])];
+        return [CreateAction::make()->mutateDataUsing(fn (array $data) => array_merge($data, ['remaining' => (int) $data['amount'], 'status' => 'active']))];
     }
 }

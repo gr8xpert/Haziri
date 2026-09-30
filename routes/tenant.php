@@ -48,16 +48,23 @@ Route::middleware([
 
     // Punch photos: private storage, only via short-lived signed URLs (spec §15).
     Route::get('/photos/punch/{punch}', function (App\Models\Punch $punch) {
-        abort_if($punch->photo_path === null || ! Illuminate\Support\Facades\Storage::disk('local')->exists($punch->photo_path), 404);
+        $path = (string) $punch->photo_path;
+        abort_if(! str_starts_with($path, 'photos/') || str_contains($path, '..') || ! Illuminate\Support\Facades\Storage::disk('local')->exists($path), 404);
 
         return Illuminate\Support\Facades\Storage::disk('local')->response($punch->photo_path, null, ['Cache-Control' => 'private, max-age=600']);
     })->middleware('signed')->name('tenant.punch-photo');
 
+    // Multi-company: jump to another company this login is linked to.
+    Route::get('/switch/{tenantId}', App\Http\Controllers\SwitchCompanyController::class)
+        ->middleware(['auth', 'throttle:10,1'])->name('tenant.switch');
+
     // Printable visitor badge (receptionist, logged in to the panel).
     Route::get('/visitors/{visitor}/badge', function (App\Models\Visitor $visitor) {
         abort_unless(auth()->user()?->can('visitors.manage'), 403);
-        $photo = $visitor->photo_path && Illuminate\Support\Facades\Storage::disk('local')->exists($visitor->photo_path)
-            ? 'data:image/jpeg;base64,' . base64_encode(Illuminate\Support\Facades\Storage::disk('local')->get($visitor->photo_path))
+        $path = (string) $visitor->photo_path;
+        $safe = str_starts_with($path, 'visitor-photos/') && ! str_contains($path, '..');
+        $photo = $safe && Illuminate\Support\Facades\Storage::disk('local')->exists($path)
+            ? 'data:image/jpeg;base64,' . base64_encode(Illuminate\Support\Facades\Storage::disk('local')->get($path))
             : null;
 
         return view('visitors.badge', ['visitor' => $visitor, 'photo' => $photo, 'company' => tenant('company_name')]);

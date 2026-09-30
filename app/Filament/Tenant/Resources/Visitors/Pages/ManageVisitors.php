@@ -17,9 +17,9 @@ class ManageVisitors extends ManageRecords
     {
         return [
             CreateAction::make()->label(__('Check in visitor'))
-                ->mutateDataUsing(fn (array $data) => $data + [
-                    'checked_in_at' => now(), 'badge_no' => Visitor::nextBadge(), 'entered_by' => auth()->id(),
-                ]),
+                ->mutateDataUsing(fn (array $data) => array_merge($data, [
+                    'checked_in_at' => now(), 'badge_no' => Visitor::nextBadge(), 'entered_by' => auth()->id(), 'checked_out_at' => null,
+                ])),
         ];
     }
 }

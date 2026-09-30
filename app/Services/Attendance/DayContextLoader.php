@@ -59,7 +59,7 @@ final class DayContextLoader
             now: $now,
             joinedOn: $employee->joined_on?->format('Y-m-d'),
             leftOn: $employee->left_on?->format('Y-m-d'),
-            shift: $this->shifts->resolve($employee, $date, $timezone),
+            shift: $this->shifts->resolve($employee, $date, $timezone, $this->firstPunchLocal($punches, $date, $timezone)),
             punches: $punches,
             holidayId: $holiday?->id,
             isHoliday: $holiday !== null,
@@ -69,6 +69,19 @@ final class DayContextLoader
             overtimeEligible: $employee->overtime_eligible,
             settings: EngineSettings::fromArray($this->settings->all()),
         );
+    }
+
+    /** @param list<\App\Services\Attendance\Engine\PunchInput> $punches */
+    private function firstPunchLocal(array $punches, string $date, string $timezone): ?string
+    {
+        foreach ($punches as $p) { // already ordered by time
+            $local = $p->at->setTimezone($timezone);
+            if ($local->format('Y-m-d') === $date) {
+                return $local->format('H:i');
+            }
+        }
+
+        return null;
     }
 
     public function timezoneFor(Employee $employee): string

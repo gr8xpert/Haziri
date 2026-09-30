@@ -20,7 +20,10 @@ final class ShiftResolver
 {
     public function __construct(private readonly ShiftOverrideApplier $applier) {}
 
-    public function resolve(Employee $employee, string $date, string $timezone): ?ResolvedShift
+    /**
+     * @param  string|null  $firstPunchLocal  "HH:MM" of the day's first punch — used only for auto shift detection
+     */
+    public function resolve(Employee $employee, string $date, string $timezone, ?string $firstPunchLocal = null): ?ResolvedShift
     {
         $shift = ShiftAssignment::query()
             ->where('employee_id', $employee->id)
@@ -29,6 +32,7 @@ final class ShiftResolver
             ->orderByDesc('effective_from')
             ->orderByDesc('id')
             ->first()?->shift
+            ?? $this->detect($firstPunchLocal)
             ?? Shift::query()->where('is_default', true)->first();
 
         if ($shift === null) {
@@ -52,5 +56,29 @@ final class ShiftResolver
             ->all();
 
         return $this->applier->apply($resolved, $date, $timezone, $overrides);
+    }
+
+    /**
+     * Spec §9 phase 4: with `auto_shift_detection` on, an employee without an assignment gets the shift whose start
+     * is nearest to their first punch, if within ±3 h (circular, so a 23:50 punch matches a 00:00 shift).
+     */
+    private function detect(?string $firstPunchLocal): ?Shift
+    {
+        if ($firstPunchLocal === null || ! app(\App\Services\Settings\TenantSettings::class)->get('auto_shift_detection')) {
+            return null;
+        }
+        [$h, $m] = array_map('intval', explode(':', $firstPunchLocal));
+        $punch = $h * 60 + $m;
+
+        return Shift::query()->get()
+            ->map(function (Shift $s) use ($punch) {
+                [$sh, $sm] = array_map('intval', explode(':', substr((string) $s->start_time, 0, 5)));
+                $diff = abs($punch - ($sh * 60 + $sm));
+
+                return ['shift' => $s, 'diff' => min($diff, 1440 - $diff)];
+            })
+            ->filter(fn (array $c) => $c['diff'] <= 180)
+            ->sortBy('diff')
+            ->first()['shift'] ?? null;
     }
 }

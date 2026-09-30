@@ -40,6 +40,9 @@ final class HttpSmsChannel implements NotificationChannel
         if ($url === '') {
             return DeliveryResult::failed('SMS gateway URL is not configured.');
         }
+        if (($problem = \App\Support\Security\PublicUrl::check($url)) !== null) {
+            return DeliveryResult::failed("SMS gateway URL rejected: {$problem}");
+        }
         $vars = [
             '{to}' => OtpService::normalise((string) $to->phone),
             '{message}' => mb_substr(trim(($message->subject ? $message->subject . ': ' : '') . $message->body), 0, 459),
@@ -48,7 +51,7 @@ final class HttpSmsChannel implements NotificationChannel
         ];
         $params = array_map(fn ($v) => strtr((string) $v, $vars), (array) $this->settings->get('sms_http_params', ['to' => '{to}', 'message' => '{message}']));
 
-        $request = Http::timeout(20);
+        $request = Http::timeout(20)->withoutRedirecting(); // a redirect could bounce to an internal address
         $response = strtoupper((string) $this->settings->get('sms_http_method', 'POST')) === 'GET'
             ? $request->get($url, $params)
             : $request->asForm()->post($url, $params);

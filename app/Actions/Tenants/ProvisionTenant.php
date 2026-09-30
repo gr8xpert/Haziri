@@ -76,6 +76,7 @@ final class ProvisionTenant
             return $owner;
         });
 
+        \App\Models\Central\TenantUserLink::link($adminEmail, $tenant->id);
         event(new TenantProvisioned($tenant));
 
         return ['tenant' => $tenant, 'owner' => $owner, 'password' => $password];

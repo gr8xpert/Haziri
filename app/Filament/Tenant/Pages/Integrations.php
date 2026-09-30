@@ -69,7 +69,12 @@ class Integrations extends Page
             ]),
             Section::make('SMS')->columns(2)->schema([
                 Select::make('sms_provider')->options(['log' => 'Not set up (log only)', 'http' => 'HTTP gateway'])->live(),
-                TextInput::make('sms_http_url')->url()->label('Gateway URL')->visible($is('sms_provider', 'http')),
+                TextInput::make('sms_http_url')->url()->label('Gateway URL')->visible($is('sms_provider', 'http'))
+                    ->rule(fn () => function (string $attribute, $value, \Closure $fail) {
+                        if (filled($value) && ($problem = \App\Support\Security\PublicUrl::check((string) $value)) !== null) {
+                            $fail($problem);
+                        }
+                    }),
                 Select::make('sms_http_method')->options(['POST' => 'POST', 'GET' => 'GET'])->visible($is('sms_provider', 'http')),
                 TextInput::make('sms_http_sender')->label('Sender ID / mask')->visible($is('sms_provider', 'http')),
                 TextInput::make('sms_http_api_key')->label('API key / password')->password()->revealable()

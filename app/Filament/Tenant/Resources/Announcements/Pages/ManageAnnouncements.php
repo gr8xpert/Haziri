@@ -21,7 +21,7 @@ class ManageAnnouncements extends ManageRecords
     {
         return [
             CreateAction::make()
-                ->mutateDataUsing(fn (array $data) => $data + ['created_by' => auth()->id()])
+                ->mutateDataUsing(fn (array $data) => array_merge($data, ['created_by' => auth()->id()]))
                 ->after(function (Announcement $record, Notifier $notifier) {
                     if (! $record->notify) {
                         return;
