@@ -44,6 +44,7 @@ final class IngestPunchAction
         $status = match (true) {
             $employee === null => PunchStatus::Unmapped,
             $this->isDoubleTap($employee->id, $data->punchedAt) => PunchStatus::Duplicate,
+            $data->requiresApproval => PunchStatus::Pending,
             default => PunchStatus::Valid,
         };
 
@@ -87,7 +88,11 @@ final class IngestPunchAction
             self::queueRecompute($employee->id, $localDate);
         }
 
-        return new IngestResult($status === PunchStatus::Valid ? IngestOutcome::Stored : IngestOutcome::DoubleTap, $punch);
+        return new IngestResult(match ($status) {
+            PunchStatus::Valid => IngestOutcome::Stored,
+            PunchStatus::Pending => IngestOutcome::PendingApproval,
+            default => IngestOutcome::DoubleTap,
+        }, $punch);
     }
 
     /** The punch's own day plus the previous one (a 06:00 punch may close last night's shift). */

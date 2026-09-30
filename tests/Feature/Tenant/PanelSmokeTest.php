@@ -15,12 +15,21 @@ beforeEach(function () {
     $host = 'pest.' . config('hazri.central_domain');
     $this->base = "http://{$host}";
     Filament::setCurrentPanel(Filament::getPanel('tenant'));
+    // Every optional module on, so every screen gets rendered.
+    foreach (config('hazri.feature_flags') as $flag) {
+        App\Models\Setting::updateOrCreate(['key' => "feature.{$flag}"], ['value' => true]);
+    }
+    app(App\Services\Settings\TenantSettings::class)->flush();
 });
 
 it('renders every tenant panel page for the owner', function () {
     $panel = Filament::getPanel('tenant');
+    $this->actingAs($this->owner);
     $urls = ['/admin'];
     foreach ($panel->getResources() as $resource) {
+        if (! $resource::canAccess()) {
+            continue; // e.g. kiosk screen while the kiosk feature is off
+        }
         if ($resource::hasPage('index')) {
             $urls[] = parse_url($resource::getUrl('index'), PHP_URL_PATH);
         }
@@ -29,7 +38,9 @@ it('renders every tenant panel page for the owner', function () {
         }
     }
     foreach ($panel->getPages() as $page) {
-        $urls[] = parse_url($page::getUrl(), PHP_URL_PATH);
+        if ($page::canAccess()) {
+            $urls[] = parse_url($page::getUrl(), PHP_URL_PATH);
+        }
     }
 
     foreach (array_unique($urls) as $path) {

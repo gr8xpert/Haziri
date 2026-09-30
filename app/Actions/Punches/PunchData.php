@@ -37,6 +37,8 @@ final readonly class PunchData
         public ?string $reason = null,
         public ?int $enteredByUserId = null,
         public array $meta = [],
+        /** Store as `pending` (e.g. out-of-geofence mobile punch) — not counted until HR approves. */
+        public bool $requiresApproval = false,
     ) {}
 
     /** sha1(device_serial|device_pin|punched_at) — spec §5.4. Non-device sources use source:employee as the "serial". */

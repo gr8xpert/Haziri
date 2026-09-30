@@ -1,0 +1,78 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Http\Controllers;
+
+use App\Actions\Punches\IngestOutcome;
+use App\Actions\SelfService\KioskPunch;
+use App\Models\Kiosk;
+use App\Services\Settings\TenantSettings;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
+use Illuminate\View\View;
+
+/** Tablet kiosk (spec §6.5, §13.2): no login — the token in the URL identifies the kiosk. */
+final class KioskController
+{
+    public function show(string $token, TenantSettings $settings): View
+    {
+        $kiosk = $this->kiosk($token, $settings);
+
+        return view('kiosk.show', ['kiosk' => $kiosk, 'token' => $token, 'company' => tenant('company_name')]);
+    }
+
+    public function config(string $token, TenantSettings $settings): JsonResponse
+    {
+        $kiosk = $this->kiosk($token, $settings);
+
+        return response()->json([
+            'company' => tenant('company_name'),
+            'modes' => $kiosk->allowed_modes ?? ['pin'],
+            'require_photo' => $kiosk->require_photo,
+            'branch' => $kiosk->branch?->name,
+            'server_time' => now()->toIso8601String(),
+        ]);
+    }
+
+    public function punch(Request $request, string $token, KioskPunch $punch, TenantSettings $settings): JsonResponse
+    {
+        $kiosk = $this->kiosk($token, $settings);
+        $data = $request->validate([
+            'mode' => ['required', Rule::in(['pin', 'qr'])],
+            'pin' => ['nullable', 'string', 'max:20'],
+            'kiosk_pin' => ['nullable', 'digits:4'],
+            'qr' => ['nullable', 'string', 'max:200'],
+            'direction' => ['nullable', Rule::in(['auto', 'in', 'out'])],
+            'photo' => ['nullable', 'string', 'max:2100000'],
+            'client_time' => ['nullable', 'date'],
+            'client_id' => ['nullable', 'uuid'],
+            'offline' => ['nullable', 'boolean'],
+        ]);
+
+        try {
+            $r = $punch($kiosk, $data);
+        } catch (ValidationException $e) {
+            return response()->json(['ok' => false, 'message' => collect($e->errors())->flatten()->first()], 422);
+        }
+
+        return response()->json([
+            'ok' => true,
+            'replay' => $r['result']->outcome === IngestOutcome::AlreadyStored,
+            'name' => $r['employee']->first_name,
+            'direction' => $r['direction']->value,
+            'time' => $r['at']->setTimezone(tenant('timezone'))->format('H:i'),
+        ]);
+    }
+
+    private function kiosk(string $token, TenantSettings $settings): Kiosk
+    {
+        abort_unless($settings->featureEnabled('kiosk'), 404);
+        $kiosk = Kiosk::query()->where('token', $token)->first();
+        abort_if($kiosk === null, 404);
+
+        return $kiosk;
+    }
+}

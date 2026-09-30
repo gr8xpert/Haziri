@@ -14,4 +14,6 @@ enum IngestOutcome: string
     case DoubleTap = 'double_tap';
     /** Stored as `unmapped`: no employee has this PIN yet. */
     case Unmapped = 'unmapped';
+    /** Stored as `pending`: waiting for HR approval (out-of-geofence mobile punch). */
+    case PendingApproval = 'pending_approval';
 }

@@ -1,5 +1,19 @@
 # Changelog
 
+## 2026-10-01 — Milestone 8: employee PWA, kiosk, mobile punch (§17 step 11)
+
+- `/me` installable PWA (Blade + Alpine + Tailwind via Vite, RTL for Urdu): login by email/password or phone OTP
+  (WhatsApp/SMS, rate-limited), today + punch button, month calendar, leave balances/requests, corrections,
+  announcements with acknowledgement, daily-rotating QR badge (signed, tenant-bound).
+- Mobile punch: GPS + accuracy + selfie; haversine geofence against the branch (field staff exempt, accuracy slack
+  ≤ 100 m); outside → `pending` punch with `geofence_fail`, HR approves in "Punch approvals"; 1 punch / 60 s.
+- Kiosk `/kiosk/{token}`: PIN keypad (+ optional hashed 4-digit kiosk PIN), QR scan (BarcodeDetector), selfie,
+  auto/in/out, branch lock, offline IndexedDB queue replayed with the original time + client id (idempotent),
+  spoken greeting. Kiosk admin: create (auto device), link, rotate token.
+- Selfies stored privately, served only via signed 30-minute URLs. Service worker caches the app shell.
+- Phase-3 schema: announcements (+acks), visitors, salary structures, advances, payroll runs, payslips.
+- Tests: 121 passing.
+
 ## 2026-10-01 — Milestone 7: notifications (§17 step 10)
 
 - `NotificationChannel` contract; drivers: mail, in-app (Filament database notifications + bell), log;

@@ -10,4 +10,6 @@ enum PunchStatus: string
     case Duplicate = 'duplicate';
     case Unmapped = 'unmapped';
     case Rejected = 'rejected';
+    /** Mobile punch outside the geofence, waiting for HR approval (spec §6.6). Not counted until approved. */
+    case Pending = 'pending';
 }

@@ -27,6 +27,9 @@ class User extends Authenticatable implements FilamentUser
     /** @use HasFactory<UserFactory> */
     use HasFactory, HasRoles, LogsActivity, Notifiable;
 
+    /** Mirror the DB defaults so freshly created models behave the same as loaded ones. */
+    protected $attributes = ['is_active' => true, 'locale' => 'en'];
+
     protected function casts(): array
     {
         return [
@@ -42,6 +45,11 @@ class User extends Authenticatable implements FilamentUser
         return $panel->getId() === 'tenant'
             && $this->is_active
             && $this->hasAnyRole(array_map(fn (Role $r) => $r->value, [Role::Owner, Role::Admin, Role::Hr, Role::Manager, Role::Receptionist]));
+    }
+
+    public function employee(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(Employee::class);
     }
 
     public function getActivitylogOptions(): LogOptions

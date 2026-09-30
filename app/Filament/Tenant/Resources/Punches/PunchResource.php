@@ -58,7 +58,7 @@ class PunchResource extends Resource
                 TextColumn::make('direction')->badge()->color('gray'),
                 TextColumn::make('status')->badge()->color(fn (PunchStatus $state) => match ($state) {
                     PunchStatus::Valid => 'success', PunchStatus::Duplicate => 'gray',
-                    PunchStatus::Unmapped => 'warning', PunchStatus::Rejected => 'danger',
+                    PunchStatus::Unmapped, PunchStatus::Pending => 'warning', PunchStatus::Rejected => 'danger',
                 }),
                 IconColumn::make('is_manual')->boolean()->label('Manual'),
                 TextColumn::make('reason')->limit(30)->toggleable(),

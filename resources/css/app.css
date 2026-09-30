@@ -1,9 +1,18 @@
 @import 'tailwindcss';
 
-@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../views/me/**/*.blade.php';
+@source '../views/kiosk/**/*.blade.php';
+@source '../js/**/*.js';
 @source '../../storage/framework/views/*.php';
 
 @theme {
     --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
 }
+
+/* Hazri PWA / kiosk */
+@theme {
+    --color-brand: #047857;
+    --color-brand-dark: #065f46;
+}
+[x-cloak] { display: none !important; }
