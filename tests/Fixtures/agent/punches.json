@@ -1,0 +1,7 @@
+{ "agent_version": "1.0.0",
+  "device_serial": "ZKAGENT01",
+  "punches": [
+    { "pin": "47", "timestamp": "2026-09-03T09:01:00+05:00", "status": 0, "verify": 1, "uid": 5812 },
+    { "pin": "47", "timestamp": "2026-09-03 18:00:30", "status": 1, "verify": 1, "uid": 5813 },
+    { "pin": "77", "timestamp": "2026-09-03T09:15:00+05:00", "status": 0, "verify": 1, "uid": 5814 }
+  ] }

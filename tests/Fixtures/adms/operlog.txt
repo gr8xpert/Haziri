@@ -1,0 +1,3 @@
+USER PIN=47	Name=Ali Khan	Pri=0	Passwd=	Card=	Grp=1
+USER PIN=99	Name=New Guard	Pri=0	Passwd=	Card=	Grp=1
+FP PIN=99	FID=6	Size=1024	Valid=1	TMP=AAAABBBBCCCC

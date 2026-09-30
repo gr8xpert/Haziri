@@ -28,3 +28,13 @@ Thumbs.db
 
 # Local agent instructions (private)
 CLAUDE.local.md
+
+# Python agent
+agent/.venv/
+agent/build/
+agent/dist/
+__pycache__/
+*.spec
+agent/*.sqlite
+agent/*.log
+agent/agent.yaml

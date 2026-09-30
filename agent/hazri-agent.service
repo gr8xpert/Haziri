@@ -1,0 +1,17 @@
+# systemd unit for Raspberry Pi / Linux. Install:
+#   sudo mkdir -p /opt/hazri-agent && sudo cp dist/hazri-agent agent.yaml /opt/hazri-agent/
+#   sudo cp hazri-agent.service /etc/systemd/system/ && sudo systemctl enable --now hazri-agent
+[Unit]
+Description=Hazri ZKTeco bridge agent
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+WorkingDirectory=/opt/hazri-agent
+ExecStart=/opt/hazri-agent/hazri-agent -c /opt/hazri-agent/agent.yaml --log /opt/hazri-agent/hazri-agent.log
+Restart=always
+RestartSec=30
+User=nobody
+
+[Install]
+WantedBy=multi-user.target

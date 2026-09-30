@@ -10,3 +10,7 @@ Artisan::command('inspire', function () {
 
 // Spec §7.1: nightly recompute of the last 3 days for every tenant (catches late USB imports).
 Schedule::command('tenants:run hazri:attendance:recompute-recent')->dailyAt('02:00')->withoutOverlapping();
+
+// Spec §6.1: devices silent for 15 min are marked offline (once per outage); daily time sync.
+Schedule::command('tenants:run hazri:devices:check')->everyFiveMinutes()->withoutOverlapping();
+Schedule::command('tenants:run hazri:devices:check --option="sync-time=1"')->dailyAt('03:00');

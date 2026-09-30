@@ -1,5 +1,19 @@
 # Changelog
 
+## 2026-10-01 — Milestones 3–5: ingestion, ADMS receiver, bridge agent (§17 steps 6–8)
+
+- USB import page: ZKTeco `*_attlog.dat` (tolerant parser) and Hazri CSV/XLSX template; preview with duplicates,
+  unmapped PINs (inline mapping) and date range; import history (`usb_imports`).
+- ADMS/iClock push via `tanemrahman/zkteco-adms`, tenant resolved per device serial (`ResolveAdmsTenant`);
+  punches → `IngestPunchAction`; USERINFO → unmapped PINs with device names; unknown serials recorded centrally and refused.
+- Device management: per-type setup guide, comm key, remote commands (sync time, push all employees, delete user,
+  reboot) through the package queue (ADMS) or `device_commands` (agent); agent keys (issue / revoke).
+- Agent API `/api/v1/agent/{punches,users,commands,commands/{id}/result,heartbeat}` with hashed bearer keys and rate limit.
+- `hazri:devices:check` every 5 min (offline after 15 min, `DeviceWentOffline` once per outage) + daily time sync.
+- `/agent`: Python bridge agent (pyzk, SQLite watermark, batching, commands, heartbeat), PyInstaller builds, NSSM +
+  systemd service files, unit tests with a fake device.
+- ADR 0003. Tests: 96 PHP + 5 Python passing.
+
 ## 2026-10-01 — Milestone 2: admin panel, manual entry, reports (§17 steps 4–5) + M1 follow-ups
 
 - Tenant panel: branches, departments, designations, employees (Excel import with preview + template,
