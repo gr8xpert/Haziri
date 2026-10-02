@@ -9,6 +9,7 @@ use App\Filament\Concerns\AuthorizesByPermission;
 use App\Filament\Tenant\NavigationGroup;
 use App\Models\Grade;
 use App\Models\LeaveType;
+use App\Services\Settings\TenantSettings;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\Repeater;
@@ -58,6 +59,9 @@ class LeaveTypeResource extends Resource
             CheckboxList::make('applies_to')->options(EmploymentType::class)->columns(3)->columnSpan(2)->helperText('None ticked = everyone'),
             Select::make('gender_restriction')->options(['female' => 'Female only', 'male' => 'Male only'])->placeholder('Everyone'),
             Toggle::make('is_active')->default(true),
+            Toggle::make('encashable')->label('Paid out on leaving')
+                ->helperText('The unused balance is paid in the final settlement')
+                ->visible(fn () => app(TenantSettings::class)->featureEnabled('payroll_settlement')),
             Toggle::make('allow_negative_balance')->label('Allow negative balance')
                 ->helperText('Leave can be approved beyond the balance; the overdraft carries into the next leave year'),
             Repeater::make('entitlements')->relationship()->columnSpanFull()->columns(3)->defaultItems(0)

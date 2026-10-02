@@ -13,6 +13,7 @@ use App\Reports\ReportExporter;
 use App\Reports\SalarySheetReport;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
+use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Support\Icons\Heroicon;
@@ -62,6 +63,11 @@ class PayrollRunResource extends Resource
                     Action::make('bank')->label('Bank transfer CSV')->icon(Heroicon::OutlinedArrowPath)
                         ->action(fn (PayrollRun $r, PayrollActions $a) => response()->streamDownload(
                             fn () => print ($a->bankCsv($r)), 'bank-transfer-' . str_replace(' ', '-', $r->label()) . '.csv', ['Content-Type' => 'text/csv'])),
+                    Action::make('bankLetter')->label('Bank letter (PDF)')->icon(Heroicon::OutlinedEnvelope)
+                        ->schema([TextInput::make('bank')->label('Bank / branch')->placeholder('HBL, Main Boulevard branch')])
+                        ->action(fn (PayrollRun $r, PayrollActions $a, array $data) => response()->streamDownload(
+                            fn () => print ($a->bankLetter($r, $data['bank'] ?? null)), 'bank-letter-' . str_replace(' ', '-', $r->label()) . '.pdf',
+                            ['Content-Type' => 'application/pdf'])),
                     Action::make('regenerate')->label('Recalculate')->icon(Heroicon::OutlinedArrowPath)
                         ->visible(fn (PayrollRun $r) => $r->status === 'draft')
                         ->action(fn (PayrollRun $r, PayrollActions $a) => self::run(fn () => $a->generate($r->period, auth()->user()), 'Recalculated')),

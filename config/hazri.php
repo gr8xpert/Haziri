@@ -40,6 +40,21 @@ return [
         'unpaid_leave_deduction_days' => 1,
         'overtime_enabled' => false,
         'overtime_rounding_min' => 15,
+        // Payroll Full (verify statutory figures each budget; all editable under Payroll → Payroll rules)
+        'tax_year_start_month' => 7,              // Pakistan: July – June
+        'tax_surcharge_threshold' => 10000000,    // annual income above which the surcharge applies
+        'tax_surcharge_percent' => 9,             // % of the tax
+        'eobi_wage_base' => 37000,                // contributions are on the minimum wage
+        'eobi_employee_percent' => 1,
+        'eobi_employer_percent' => 5,
+        'social_security_wage_base' => 37000,     // PESSI / SESSI
+        'social_security_percent' => 6,           // employer only
+        'pf_employee_percent' => 8.33,            // of basic
+        'pf_employer_percent' => 8.33,
+        'gratuity_basis' => 'basic',              // basic|gross
+        'gratuity_days_per_year' => 30,           // days' pay per year of service
+        'gratuity_min_years' => 1,
+        'gratuity_part_year_months' => 6,         // a part year of at least this many months counts as a year
         'punch_search_window_before_min' => 240,
         'punch_search_window_after_min' => 360,
         'auto_absent_after_days' => 1,

@@ -59,3 +59,21 @@ Set on the client's **Branding** page or by the super-admin (Companies → Brand
 Env `HAZRI_NEUTRAL_DOMAIN`: a domain without the platform name pointing at the same server; white-label clients are
 told to CNAME to it and to use `adms.<it>` / `api.<it>` for machines and the sync agent. White-label clients have no
 Billing page, are never invoiced by the app and are never suspended automatically.
+
+## Payroll Full (features payroll_tax, payroll_social, payroll_pf, payroll_gratuity, payroll_adjustments, payroll_settlement)
+
+Edited under Payroll → Payroll rules; tax slabs under Payroll → Tax slabs (pre-filled for tax year 2025-26 — verify with FBR).
+
+| Key | Default | Meaning |
+|---|---|---|
+| `payroll_day_divisor` | calendar | Per-day rate = monthly salary ÷ days in the pay month, 30 or 26 |
+| `tax_year_start_month` | 7 | Tax year July → June |
+| `tax_surcharge_threshold` / `tax_surcharge_percent` | 10,000,000 / 9 | Surcharge on the tax above this annual income |
+| `eobi_wage_base`, `eobi_employee_percent`, `eobi_employer_percent` | 37,000 / 1 / 5 | EOBI on the minimum wage, employees marked EOBI registered |
+| `social_security_wage_base`, `social_security_percent` | 37,000 / 6 | PESSI / SESSI, company only, employees marked registered |
+| `pf_employee_percent`, `pf_employer_percent` | 8.33 / 8.33 | Of basic, PF members; ledger written when payroll is finalised |
+| `gratuity_basis`, `gratuity_days_per_year`, `gratuity_min_years`, `gratuity_part_year_months` | basic / 30 / 1 / 6 | Gratuity = basis ÷ 30 × days × years |
+
+Monthly income tax = (annual tax on [taxable so far this tax year + this month × months left] − tax already deducted) ÷ months left.
+Taxable = earnings marked taxable (allowances can be exempt) minus attendance deductions. Employer contributions are listed on
+the payslip but not deducted.

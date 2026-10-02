@@ -16,7 +16,7 @@ class Payslip extends Model
 
     protected function casts(): array
     {
-        return ['lines' => 'array', 'sent_at' => 'immutable_datetime'];
+        return ['lines' => 'array', 'meta' => 'array', 'sent_at' => 'immutable_datetime'];
     }
 
     public function run(): BelongsTo

@@ -43,6 +43,24 @@
     </table>
 
     <h1 style="margin-top:16px">{{ __('Net pay') }}: Rs {{ number_format($slip->net) }}</h1>
+
+    @php($employer = array_values(array_filter($slip->lines, fn ($l) => $l['type'] === 'employer')))
+    @if ($employer)
+        <table>
+            <tr><th>{{ __('Paid by the company (not deducted from you)') }}</th><th class="amt">Rs</th></tr>
+            @foreach ($employer as $line)
+                <tr><td>{{ $line['label'] }}</td><td class="amt">{{ number_format($line['amount']) }}</td></tr>
+            @endforeach
+        </table>
+    @endif
+    @if (isset($slip->meta['ytd_tax']))
+        <table class="grid" style="margin-top:12px">
+            <tr><td class="muted">{{ __('Taxable income this month') }}</td><td>Rs {{ number_format($slip->meta['taxable']) }}</td>
+                <td class="muted">{{ __('Tax deducted this tax year') }}</td><td>Rs {{ number_format($slip->meta['ytd_tax']) }}</td></tr>
+            <tr><td class="muted">{{ __('Projected annual income') }}</td><td>Rs {{ number_format($slip->meta['projected_income']) }}</td>
+                <td class="muted">{{ __('Projected annual tax') }}</td><td>Rs {{ number_format($slip->meta['annual_tax']) }}</td></tr>
+        </table>
+    @endif
     <p class="muted" style="margin-top:24px">{{ __('Computer-generated payslip from :app. Attendance figures are from the locked month.', ['app' => \App\Support\Brand::name()]) }}</p>
 </body>
 </html>

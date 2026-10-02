@@ -22,6 +22,7 @@ class LeaveType extends Model
         'is_active' => true,
         'accrual' => 'yearly_upfront',
         'allow_negative_balance' => false,
+        'encashable' => false,
     ];
 
     protected function casts(): array
@@ -33,6 +34,7 @@ class LeaveType extends Model
             'counts_weekends' => 'boolean',
             'is_active' => 'boolean',
             'allow_negative_balance' => 'boolean',
+            'encashable' => 'boolean',
             'applies_to' => 'array',
         ];
     }

@@ -14,6 +14,7 @@ use App\Models\Employee;
 use App\Models\SeparationReason;
 use App\Models\Shift;
 use App\Models\ShiftAssignment;
+use App\Services\Settings\TenantSettings;
 use Filament\Actions\BulkAction;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\EditAction;
@@ -100,6 +101,17 @@ class EmployeeResource extends Resource
                 TextInput::make('office_ext')->label('Office ext.')->maxLength(10),
                 TextInput::make('official_mobile')->tel()->maxLength(20),
             ]),
+            Section::make(__('Payroll & statutory'))->columnSpan(2)->columns(3)
+                ->visible(fn () => collect(['payroll_tax', 'payroll_social', 'payroll_pf'])->contains(fn ($f) => app(TenantSettings::class)->featureEnabled($f)))
+                ->schema([
+                    TextInput::make('ntn')->label('NTN')->maxLength(20),
+                    Toggle::make('tax_exempt')->label('No income tax')->inline(false),
+                    Toggle::make('pf_member')->label('Provident fund member')->inline(false),
+                    Toggle::make('eobi_registered')->label('EOBI registered')->inline(false)->live(),
+                    TextInput::make('eobi_no')->label('EOBI number')->maxLength(30),
+                    Toggle::make('social_security_registered')->label('PESSI / SESSI registered')->inline(false),
+                    TextInput::make('social_security_no')->label('Social security number')->maxLength(30),
+                ]),
             Section::make(__('Attendance'))->columnSpan(1)->schema([
                 TextInput::make('device_pin')->label('Machine PIN')->maxLength(20)->unique(ignoreRecord: true)
                     ->helperText('The user ID enrolled on the fingerprint/face machine'),

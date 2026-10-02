@@ -13,11 +13,13 @@ use App\Models\AttendancePeriod;
 use App\Models\Employee;
 use App\Models\PayrollRun;
 use App\Models\Payslip;
+use App\Models\PfLedgerEntry;
 use App\Models\SalaryStructure;
 use App\Models\User;
 use App\Services\Notifications\Notifier;
 use App\Services\Notifications\Recipient;
 use App\Services\Payroll\PayslipCalculator;
+use App\Services\Payroll\StatutoryPayroll;
 use App\Services\Settings\TenantSettings;
 use App\Services\Webhooks\Webhooks;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -31,6 +33,7 @@ final class PayrollActions
 {
     public function __construct(
         private readonly PayslipCalculator $calculator,
+        private readonly StatutoryPayroll $statutory,
         private readonly TenantSettings $settings,
         private readonly Notifier $notifier,
     ) {}
@@ -68,11 +71,13 @@ final class PayrollActions
                 $advances = Advance::query()->where('employee_id', $employee->id)->where('status', 'active')
                     ->where('issued_on', '<=', $end->format('Y-m-d'))->where('remaining', '>', 0)->get()->all();
 
-                $slip = $this->calculator->calculate($structure, $summary, $employee->employment_type === EmploymentType::DailyWage,
+                $isDailyWage = $employee->employment_type === EmploymentType::DailyWage;
+                $slip = $this->calculator->calculate($structure, $summary, $isDailyWage,
                     (int) $start->diffInDays($end) + 1, $divisor, (int) $ot->sum('overtime_min') - $holidayOt, $holidayOt, $advances);
+                $slip = $this->statutory->apply($employee, $structure, $slip, $period->year, $period->month, $end->format('Y-m-d'), $isDailyWage);
 
                 Payslip::create(['payroll_run_id' => $run->id, 'employee_id' => $employee->id, 'lines' => $slip['lines'],
-                    'gross' => $slip['gross'], 'deductions' => $slip['deductions'], 'net' => $slip['net']]);
+                    'gross' => $slip['gross'], 'deductions' => $slip['deductions'], 'net' => $slip['net'], 'meta' => $slip['meta']]);
                 $totals['employees']++;
                 $totals['gross'] += $slip['gross'];
                 $totals['deductions'] += $slip['deductions'];
@@ -98,6 +103,11 @@ final class PayrollActions
                     $advance->update(['remaining' => $remaining, 'status' => $remaining <= 0 ? 'settled' : 'active']);
                 }
                 $slip->update(['pdf_path' => $this->pdf($slip)]);
+                if (($slip->meta['pf_ee'] ?? 0) > 0 || ($slip->meta['pf_er'] ?? 0) > 0) {
+                    PfLedgerEntry::create(['employee_id' => $slip->employee_id, 'payroll_run_id' => $run->id, 'entry_date' => $end,
+                        'type' => 'contribution', 'employee_amount' => (int) ($slip->meta['pf_ee'] ?? 0),
+                        'employer_amount' => (int) ($slip->meta['pf_er'] ?? 0), 'note' => $run->label()]);
+                }
             }
             $run->update(['status' => 'final']);
         });
@@ -147,6 +157,23 @@ final class PayrollActions
         rewind($out);
 
         return (string) stream_get_contents($out);
+    }
+
+    /** Letter to the company's bank asking it to transfer each net salary (PDF bytes). */
+    public function bankLetter(PayrollRun $run, ?string $bankName = null): string
+    {
+        $rows = [];
+        foreach ($run->payslips()->with('employee')->get()->sortBy('employee.code') as $slip) {
+            if ($slip->net <= 0) {
+                continue;
+            }
+            $structure = SalaryStructure::effectiveFor($slip->employee_id, now()->format('Y-m-d'));
+            $rows[] = ['name' => $slip->employee->fullName(), 'code' => $slip->employee->code, 'bank' => $structure?->bank_name,
+                'account' => $structure?->bank_account, 'amount' => $slip->net];
+        }
+
+        return Pdf::loadView('pdf.bank-letter', ['run' => $run, 'rows' => $rows, 'bank' => $bankName, 'company' => tenant('company_name'),
+            'total' => array_sum(array_column($rows, 'amount')), 'date' => now(tenant('timezone'))->format('d F Y')])->output();
     }
 
     private function assert(bool $ok, string $message): void

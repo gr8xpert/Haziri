@@ -25,7 +25,8 @@ class Employee extends Model
 
     protected $hidden = ['kiosk_pin'];
 
-    protected $attributes = ['leave_credit' => true, 'mobile_punch_allowed' => true];
+    protected $attributes = ['leave_credit' => true, 'mobile_punch_allowed' => true, 'tax_exempt' => false, 'eobi_registered' => false,
+        'social_security_registered' => false, 'pf_member' => false];
 
     protected function casts(): array
     {
@@ -42,6 +43,10 @@ class Employee extends Model
             'late_deduction_exempt' => 'boolean',
             'leave_credit' => 'boolean',
             'mobile_punch_allowed' => 'boolean',
+            'tax_exempt' => 'boolean',
+            'eobi_registered' => 'boolean',
+            'social_security_registered' => 'boolean',
+            'pf_member' => 'boolean',
             'custom_fields' => 'array',
             'kiosk_pin' => 'hashed',
         ];

@@ -14,6 +14,7 @@ use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
@@ -43,8 +44,9 @@ class SalaryStructureResource extends Resource
     public static function form(Schema $schema): Schema
     {
         $money = fn (string $n, string $label) => TextInput::make($n)->label($label)->numeric()->integer()->minValue(0)->prefix('Rs');
-        $lines = fn (string $n, string $label) => Repeater::make($n)->label($label)->columns(2)->defaultItems(0)->schema([
+        $lines = fn (string $n, string $label, bool $taxable = false) => Repeater::make($n)->label($label)->columns($taxable ? 3 : 2)->defaultItems(0)->schema([
             TextInput::make('name')->required(), TextInput::make('amount')->numeric()->integer()->minValue(0)->prefix('Rs')->required(),
+            ...($taxable ? [Toggle::make('taxable')->default(true)->inline(false)->helperText('Off for exempt allowances (e.g. medical)')] : []),
         ]);
 
         return $schema->columns(3)->components([
@@ -55,7 +57,7 @@ class SalaryStructureResource extends Resource
             $money('per_day_rate', 'Per-day rate (daily wage)'),
             $money('overtime_rate_normal', 'OT rate / hour'),
             $money('overtime_rate_holiday', 'Holiday OT rate / hour'),
-            $lines('allowances', 'Allowances')->columnSpan(3),
+            $lines('allowances', 'Allowances', true)->columnSpan(3),
             $lines('deductions_fixed', 'Fixed deductions (EOBI, loan…)')->columnSpan(3),
             TextInput::make('bank_name'),
             TextInput::make('bank_account')->label('Account / IBAN'),
