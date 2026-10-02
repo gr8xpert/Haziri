@@ -4,15 +4,18 @@ declare(strict_types=1);
 
 namespace App\Actions\SelfService;
 
+use App\Actions\Punches\IngestOutcome;
 use App\Actions\Punches\IngestPunchAction;
 use App\Actions\Punches\IngestResult;
 use App\Actions\Punches\PunchData;
 use App\Enums\EmployeeStatus;
 use App\Enums\PunchDirection;
 use App\Enums\PunchSource;
+use App\Enums\PunchStatus;
 use App\Enums\VerifyType;
 use App\Models\Employee;
 use App\Models\Kiosk;
+use App\Models\Punch;
 use App\Services\SelfService\PunchPhotoStore;
 use App\Services\SelfService\QrBadge;
 use Carbon\CarbonImmutable;
@@ -35,7 +38,7 @@ final class KioskPunch
     /**
      * @param  array{mode: string, pin?: ?string, kiosk_pin?: ?string, qr?: ?string, direction?: ?string, photo?: ?string,
      *               client_time?: ?string, client_id?: ?string, offline?: bool}  $input
-     * @return array{result: IngestResult, employee: Employee, direction: PunchDirection, at: CarbonImmutable}
+     * @return array{result: IngestResult, employee: Employee, direction: PunchDirection, at: CarbonImmutable, kept: ?Punch} kept = the earlier punch when this one was a double tap
      */
     public function __invoke(Kiosk $kiosk, array $input): array
     {
@@ -52,7 +55,7 @@ final class KioskPunch
             }
         }
 
-        $direction = PunchDirection::tryFrom((string) ($input['direction'] ?? '')) ?? SelfPunch::nextDirection($employee->id);
+        $direction = PunchDirection::tryFrom((string) ($input['direction'] ?? '')) ?? SelfPunch::nextDirection($employee->id, $at);
 
         $result = ($this->ingest)(new PunchData(
             punchedAt: $at,
@@ -71,7 +74,16 @@ final class KioskPunch
 
         $kiosk->device?->forceFill(['last_seen_at' => now(), 'status' => 'online', 'last_sync_at' => now()])->saveQuietly();
 
-        return ['result' => $result, 'employee' => $employee, 'direction' => $direction, 'at' => $at];
+        return ['result' => $result, 'employee' => $employee, 'direction' => $direction, 'at' => $at,
+            'kept' => $result->outcome === IngestOutcome::DoubleTap ? $this->keptPunch($employee, $at) : null];
+    }
+
+    /** The punch that made this one a double tap: the employee's valid punch closest before $at. */
+    private function keptPunch(Employee $employee, CarbonImmutable $at): ?Punch
+    {
+        return Punch::query()->where('employee_id', $employee->id)->where('status', PunchStatus::Valid)
+            ->where('punched_at', '<=', $at->addMinute()->format('Y-m-d H:i:s'))
+            ->orderByDesc('punched_at')->first();
     }
 
     private function identify(Kiosk $kiosk, array $input): Employee

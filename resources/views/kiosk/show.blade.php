@@ -156,11 +156,25 @@
                         <div class="kiosk-rise mt-10 text-4xl font-semibold tracking-tight text-balance" x-text="result.name ? `${result.direction === 'out' ? 'Goodbye' : greeting()}, ${result.name}` : 'Saved'"></div>
                         <div class="kiosk-rise mt-4 inline-flex items-center gap-3 text-2xl text-white/80 [animation-delay:80ms]">
                             <span class="tabular-nums" x-text="result.time"></span>
-                            <span x-show="result.direction" class="rounded-full bg-white/10 px-3 py-1 text-lg font-medium" x-text="result.direction === 'out' ? 'Out' : 'In'"></span>
+                            <span x-show="result.direction" class="rounded-full px-4 py-1 text-xl font-bold tracking-wide"
+                                  :class="result.direction === 'out' ? 'bg-amber-300 text-amber-950' : 'bg-emerald-300 text-emerald-950'"
+                                  x-text="result.direction === 'out' ? 'OUT' : 'IN'"></span>
                         </div>
                         <div x-show="result.queued" class="mt-6 inline-flex items-center gap-2 rounded-full bg-amber-400/15 px-4 py-2 text-amber-200 ring-1 ring-amber-300/30">
                             @svg('heroicon-m-wifi', 'size-5') Offline. It will sync automatically.
                         </div>
+                        <div class="mt-12 h-1 w-48 overflow-hidden rounded-full bg-white/10"><div class="kiosk-countdown h-full bg-white/50"></div></div>
+                    </div>
+                </template>
+
+                <template x-if="screen === 'notice'">
+                    <div class="flex flex-1 flex-col items-center justify-center text-center" role="status">
+                        <div class="kiosk-pop flex size-32 items-center justify-center rounded-full bg-amber-300 text-amber-950 shadow-[0_0_0_14px_rgb(252_211_77/0.14)]">
+                            @svg('heroicon-m-clock', 'size-20')
+                        </div>
+                        <div class="kiosk-rise mt-10 text-4xl font-semibold tracking-tight text-balance" x-text="result.name ? `${result.name}, you already punched` : 'Already punched'"></div>
+                        <div class="kiosk-rise mt-4 text-2xl text-white/80 [animation-delay:80ms]" x-text="result.message"></div>
+                        <div class="mt-3 text-lg text-white/60">Nothing new was saved. Wait a minute before punching again.</div>
                         <div class="mt-12 h-1 w-48 overflow-hidden rounded-full bg-white/10"><div class="kiosk-countdown h-full bg-white/50"></div></div>
                     </div>
                 </template>

@@ -151,6 +151,12 @@ Alpine.data('kiosk', ({ token, requirePhoto, modes }) => ({
 
     done(r) {
         this.result = r;
+        if (r.double_tap) {
+            // A second tap within the double-tap window: nothing new was saved.
+            this.screen = 'notice';
+            setTimeout(() => this.reset(), 3000);
+            return;
+        }
         this.screen = 'done';
         if (r.name && 'speechSynthesis' in window) {
             speechSynthesis.speak(new SpeechSynthesisUtterance(`${r.direction === 'out' ? 'Goodbye' : 'Welcome'} ${r.name}`));

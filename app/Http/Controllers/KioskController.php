@@ -6,6 +6,7 @@ namespace App\Http\Controllers;
 
 use App\Actions\Punches\IngestOutcome;
 use App\Actions\SelfService\KioskPunch;
+use App\Enums\PunchDirection;
 use App\Models\Kiosk;
 use App\Services\Settings\TenantSettings;
 use Illuminate\Http\JsonResponse;
@@ -58,12 +59,31 @@ final class KioskController
             return response()->json(['ok' => false, 'message' => collect($e->errors())->flatten()->first()], 422);
         }
 
+        $tz = tenant('timezone') ?? config('hazri.default_timezone');
+        if ($r['result']->outcome === IngestOutcome::DoubleTap) {
+            // Nothing new was saved: say what is on record instead of pretending this tap counted.
+            $kept = $r['kept'];
+            $direction = in_array($kept?->direction, [PunchDirection::In, PunchDirection::Out], true) ? $kept->direction->value : null;
+            $time = ($kept?->punched_at ?? $r['at'])->setTimezone($tz)->format('H:i');
+
+            return response()->json([
+                'ok' => true,
+                'double_tap' => true,
+                'name' => $r['employee']->first_name,
+                'direction' => $direction,
+                'time' => $time,
+                'message' => $direction !== null
+                    ? __('Already punched :dir at :time', ['dir' => strtoupper($direction), 'time' => $time])
+                    : __('Already punched at :time', ['time' => $time]),
+            ]);
+        }
+
         return response()->json([
             'ok' => true,
             'replay' => $r['result']->outcome === IngestOutcome::AlreadyStored,
             'name' => $r['employee']->first_name,
             'direction' => $r['direction']->value,
-            'time' => $r['at']->setTimezone(tenant('timezone'))->format('H:i'),
+            'time' => $r['at']->setTimezone($tz)->format('H:i'),
         ]);
     }
 

@@ -65,13 +65,27 @@ final class SelfPunch
         return ['result' => $result, 'direction' => $direction, 'geofence' => $geo];
     }
 
-    /** "auto" direction: odd number of valid punches today → this one is an out. */
-    public static function nextDirection(int $employeeId): PunchDirection
-    {
-        $today = CarbonImmutable::now(tenant('timezone') ?? config('hazri.default_timezone'))->format('Y-m-d');
-        $count = Punch::query()->where('employee_id', $employeeId)->where('local_date', $today)
-            ->whereIn('status', [PunchStatus::Valid, PunchStatus::Pending])->count();
+    /** An "in" older than this no longer counts as open, so a forgotten punch-out never makes the next arrival an "out". */
+    public const SESSION_HOURS = 16;
 
-        return $count % 2 === 1 ? PunchDirection::Out : PunchDirection::In;
+    /**
+     * "Auto" direction: the opposite of the employee's last punch in the past SESSION_HOURS (crosses midnight, so night
+     * shifts work). Machine punches without a direction fall back to alternating within that window. No recent punch = in.
+     */
+    public static function nextDirection(int $employeeId, ?CarbonImmutable $at = null): PunchDirection
+    {
+        $at = ($at ?? CarbonImmutable::now('UTC'))->utc();
+        $recent = Punch::query()->where('employee_id', $employeeId)
+            ->whereIn('status', [PunchStatus::Valid, PunchStatus::Pending])
+            ->whereBetween('punched_at', [$at->subHours(self::SESSION_HOURS)->format('Y-m-d H:i:s'), $at->format('Y-m-d H:i:s')])
+            ->orderByDesc('punched_at')->orderByDesc('id')
+            ->pluck('direction');
+
+        return match ($recent->first()) {
+            null => PunchDirection::In,
+            PunchDirection::In => PunchDirection::Out,
+            PunchDirection::Out => PunchDirection::In,
+            default => $recent->count() % 2 === 1 ? PunchDirection::Out : PunchDirection::In,
+        };
     }
 }
