@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Enums\DevicePunchSourceType;
 use App\Enums\PunchStatus;
+use App\Models\Central\DeviceRegistry;
 use App\Models\Device;
 use App\Models\Employee;
 use App\Models\Kiosk;
@@ -27,6 +28,8 @@ beforeEach(function () {
         return $this->postJson($url, ['mode' => 'pin', 'pin' => '701', 'direction' => $direction])->assertOk()->json();
     };
 });
+
+afterEach(fn () => DeviceRegistry::where('serial_number', 'KIOSK-AUTO')->delete());
 
 it('toggles in and out through a day with a lunch break, and starts the next day with in', function () {
     $directions = array_map(fn (string $t) => ($this->punchAt)($t)['direction'],

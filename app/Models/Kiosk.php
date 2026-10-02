@@ -6,6 +6,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
 use Spatie\Activitylog\Models\Concerns\LogsActivity;
 use Spatie\Activitylog\Support\LogOptions;
@@ -21,12 +22,12 @@ class Kiosk extends Model
 
     protected function casts(): array
     {
-        return ['allowed_modes' => 'array', 'require_photo' => 'boolean'];
+        return ['allowed_modes' => 'array', 'require_photo' => 'boolean', 'lock_to_device' => 'boolean', 'allowed_ips' => 'array'];
     }
 
     public function getActivitylogOptions(): LogOptions
     {
-        return LogOptions::defaults()->logOnly(['allowed_modes', 'require_photo', 'branch_id'])->logOnlyDirty();
+        return LogOptions::defaults()->logOnly(['allowed_modes', 'require_photo', 'branch_id', 'lock_to_device', 'allowed_ips'])->logOnlyDirty();
     }
 
     public static function newToken(): string
@@ -42,6 +43,11 @@ class Kiosk extends Model
     public function device(): BelongsTo
     {
         return $this->belongsTo(Device::class);
+    }
+
+    public function tablets(): HasMany
+    {
+        return $this->hasMany(KioskDevice::class);
     }
 
     public function branch(): BelongsTo

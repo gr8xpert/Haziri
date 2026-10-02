@@ -21,6 +21,7 @@ class Branch extends Model
     {
         return [
             'weekly_off_days' => 'array',
+            'allowed_ips' => 'array',
             'lat' => 'float',
             'lng' => 'float',
         ];

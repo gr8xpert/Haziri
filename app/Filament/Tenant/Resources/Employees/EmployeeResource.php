@@ -107,6 +107,8 @@ class EmployeeResource extends Resource
                 TextInput::make('kiosk_pin')->password()->revealable()->regex('/^\d{4}$/')->label('Kiosk PIN (4 digits)')
                     ->dehydrated(fn (?string $s) => filled($s)),
                 Select::make('work_mode')->options(WorkMode::class)->default(WorkMode::Office)->required(),
+                Toggle::make('mobile_punch_allowed')->label('Can punch from phone')->default(true)
+                    ->helperText('Off = must punch on the shop machine or kiosk'),
                 Toggle::make('overtime_eligible'),
                 Toggle::make('late_deduction_exempt')->helperText('No late roll-up or late adjustment for this employee'),
                 Toggle::make('leave_credit')->label('Earns leave')->default(true)->helperText('Off = no leave accrues (e.g. daily wagers)'),

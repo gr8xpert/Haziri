@@ -8,6 +8,7 @@ use App\Actions\Punches\IngestOutcome;
 use App\Actions\SelfService\KioskPunch;
 use App\Enums\PunchDirection;
 use App\Models\Kiosk;
+use App\Services\SelfService\KioskDeviceGuard;
 use App\Services\Settings\TenantSettings;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -25,11 +26,13 @@ final class KioskController
         return view('kiosk.show', ['kiosk' => $kiosk, 'token' => $token, 'company' => tenant('company_name')]);
     }
 
-    public function config(string $token, TenantSettings $settings): JsonResponse
+    public function config(Request $request, string $token, TenantSettings $settings, KioskDeviceGuard $guard): JsonResponse
     {
         $kiosk = $this->kiosk($token, $settings);
+        $access = $guard->check($kiosk, $request->query('device_key'), $request->ip(), $request->userAgent());
 
         return response()->json([
+            'access' => $access,
             'company' => tenant('company_name'),
             'modes' => $kiosk->allowed_modes ?? ['pin'],
             'require_photo' => $kiosk->require_photo,
@@ -38,9 +41,13 @@ final class KioskController
         ]);
     }
 
-    public function punch(Request $request, string $token, KioskPunch $punch, TenantSettings $settings): JsonResponse
+    public function punch(Request $request, string $token, KioskPunch $punch, TenantSettings $settings, KioskDeviceGuard $guard): JsonResponse
     {
         $kiosk = $this->kiosk($token, $settings);
+        $access = $guard->check($kiosk, $request->input('device_key'), $request->ip(), $request->userAgent());
+        if (! $access['ok']) {
+            return response()->json(['ok' => false, 'access' => $access, 'message' => $access['message']], 403);
+        }
         $data = $request->validate([
             'mode' => ['required', Rule::in(['pin', 'qr'])],
             'pin' => ['nullable', 'string', 'max:20'],
@@ -51,6 +58,7 @@ final class KioskController
             'client_time' => ['nullable', 'date'],
             'client_id' => ['nullable', 'uuid'],
             'offline' => ['nullable', 'boolean'],
+            'device_key' => ['nullable', 'string', 'max:128'],
         ]);
 
         try {

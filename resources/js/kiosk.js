@@ -17,6 +17,17 @@ function idb() {
     });
 }
 
+/** This tablet's identity for locked kiosks: a random key kept in the browser, approved once by HR. */
+function deviceKey() {
+    let key = localStorage.getItem('kiosk-device-key');
+    if (!key) {
+        const bytes = crypto.getRandomValues(new Uint8Array(32));
+        key = Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
+        localStorage.setItem('kiosk-device-key', key);
+    }
+    return key;
+}
+
 async function queueOp(mode, fn) {
     const db = await idb();
     return new Promise((resolve, reject) => {
@@ -36,7 +47,8 @@ Alpine.data('kiosk', ({ token, requirePhoto, modes }) => ({
     kioskPin: '',
     askKioskPin: false,
     direction: 'auto',
-    screen: 'input', // input | done | error
+    screen: 'input', // input | done | notice | error | locked
+    access: { ok: true },
     result: {},
     pending: 0,
     clock: '',
@@ -49,6 +61,8 @@ Alpine.data('kiosk', ({ token, requirePhoto, modes }) => ({
     async init() {
         this.tick();
         setInterval(() => this.tick(), 1000);
+        await this.checkAccess();
+        setInterval(() => this.screen === 'locked' && this.checkAccess(), 10000);
         this.cameraOn = await startCamera(this.$refs.video, 'user').then(() => true).catch(() => false);
         this.refreshPending();
         setInterval(() => this.flush(), 15000);
@@ -58,6 +72,22 @@ Alpine.data('kiosk', ({ token, requirePhoto, modes }) => ({
         });
         window.addEventListener('offline', () => (this.online = false));
         if (this.mode === 'qr') this.scanLoop();
+    },
+
+    /** Is this tablet allowed to punch (approved tablet / office internet)? */
+    async checkAccess() {
+        try {
+            const cfg = await fetch(`/kiosk/${this.token}/config?device_key=${encodeURIComponent(deviceKey())}`, { headers: { Accept: 'application/json' } }).then((r) => r.json());
+            this.lock(cfg.access);
+        } catch (e) {
+            /* offline: keep the current state; punches queue as usual */
+        }
+    },
+
+    lock(access) {
+        this.access = access ?? { ok: true };
+        if (!this.access.ok) this.screen = 'locked';
+        else if (this.screen === 'locked') this.screen = 'input';
     },
 
     tick() {
@@ -109,6 +139,7 @@ Alpine.data('kiosk', ({ token, requirePhoto, modes }) => ({
             photo: this.$refs.video?.srcObject ? captureSelfie(this.$refs.video) : null,
             client_time: new Date().toISOString(),
             client_id: crypto.randomUUID(),
+            device_key: deviceKey(),
             ...extra,
         };
         if (this.requirePhoto && !payload.photo) {
@@ -122,6 +153,7 @@ Alpine.data('kiosk', ({ token, requirePhoto, modes }) => ({
                 this.askKioskPin = true; // maybe this employee has a kiosk PIN
                 return;
             }
+            if (e.status === 403) return this.checkAccess();
             if (e.status && e.status < 500) return this.fail(e.message);
             // Network / server down: keep it and show a friendly confirmation anyway.
             await queueOp('readwrite', (s) => s.put({ ...payload, offline: true }));
@@ -138,6 +170,7 @@ Alpine.data('kiosk', ({ token, requirePhoto, modes }) => ({
                 await api(`/kiosk/${this.token}/punch`, item);
                 await queueOp('readwrite', (s) => s.delete(item.client_id));
             } catch (e) {
+                if (e.status === 403) break; // tablet not approved (yet): keep the queue until it is
                 if (e.status && e.status < 500) await queueOp('readwrite', (s) => s.delete(item.client_id)); // rejected: don't retry forever
                 else break;
             }

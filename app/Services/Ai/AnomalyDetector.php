@@ -11,6 +11,7 @@ use App\Models\AttendanceDay;
 use App\Models\Employee;
 use App\Models\Punch;
 use App\Models\SalaryStructure;
+use App\Services\SelfService\GeoFence;
 use Carbon\CarbonImmutable;
 
 /**
@@ -27,7 +28,8 @@ final class AnomalyDetector
 
     public function run(CarbonImmutable $today): int
     {
-        $found = [...$this->buddyPunching($today), ...$this->ghostEmployees($today), ...$this->patternShifts($today), ...$this->impossibleSequences($today)];
+        $found = [...$this->buddyPunching($today), ...$this->ghostEmployees($today), ...$this->patternShifts($today), ...$this->impossibleSequences($today),
+            ...$this->impossibleTravel($today)];
         $new = [];
         foreach ($found as $f) {
             $anomaly = Anomaly::query()->firstOrCreate(['dedupe_key' => $f['key']], [
@@ -132,6 +134,39 @@ final class AnomalyDetector
                 $out[] = ['type' => 'impossible_sequence', 'employee_id' => $p->employee_id, 'key' => "impossible:{$prev->id}:{$p->id}",
                     'evidence' => ['punches' => [$prev->id, $p->id], 'devices' => [$prev->device->name, $p->device->name]],
                     'template' => "{$name} punched at {$prev->device->name} and {$p->device->name} (different branches) within 20 minutes."];
+            }
+            $prev = $p;
+        }
+
+        return $out;
+    }
+
+    /** Faster than a car could go between two consecutive punch locations (phone GPS or the device's branch). */
+    private function impossibleTravel(CarbonImmutable $today): array
+    {
+        $punches = Punch::query()->with('device.branch')->whereIn('status', [PunchStatus::Valid, PunchStatus::Pending])
+            ->where('local_date', '>=', $today->subDays(7)->format('Y-m-d'))->orderBy('employee_id')->orderBy('punched_at')->get();
+        $where = function (Punch $p): ?array {
+            if ($p->lat !== null && $p->lng !== null) {
+                return [(float) $p->lat, (float) $p->lng];
+            }
+            $branch = $p->device?->branch;
+
+            return $branch && $branch->lat !== null && $branch->lng !== null ? [(float) $branch->lat, (float) $branch->lng] : null;
+        };
+        $out = [];
+        $prev = null;
+        foreach ($punches as $p) {
+            if ($prev && $prev->employee_id === $p->employee_id && ($a = $where($prev)) && ($b = $where($p))) {
+                $km = GeoFence::metres($a[0], $a[1], $b[0], $b[1]) / 1000;
+                $hours = max(1, $p->punched_at->getTimestamp() - $prev->punched_at->getTimestamp()) / 3600;
+                if ($km >= 5 && $km / $hours > 120) {
+                    $name = Employee::find($p->employee_id)?->fullName();
+                    $minutes = (int) round($hours * 60);
+                    $out[] = ['type' => 'impossible_travel', 'employee_id' => $p->employee_id, 'key' => "travel:{$prev->id}:{$p->id}",
+                        'evidence' => ['punches' => [$prev->id, $p->id], 'km' => round($km, 1), 'minutes' => $minutes],
+                        'template' => sprintf('%s punched %.0f km apart within %d minutes — faster than possible; check for fake GPS or a shared PIN.', $name, $km, $minutes)];
+                }
             }
             $prev = $p;
         }

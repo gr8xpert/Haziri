@@ -24,6 +24,8 @@ read through `App\Services\Settings\TenantSettings`. Feature flags are stored as
 | `store_punch_photos` | true | Keep ADMS / kiosk punch photos |
 | `photo_retention_days` | 90 | Photo retention |
 | `geofence_default_radius_m` | 150 | Mobile punch geofence when the branch has none |
+| `mobile_max_accuracy_m` | 0 | Reject mobile punches whose GPS accuracy is worse than this (0 = off) |
+| `mobile_require_selfie` | false | Mobile punch needs a selfie |
 | `allow_future_manual_punch` | false | |
 | `employee_can_see_others` | false | |
 | `leave_approval_chain` | `["manager","hr"]` | Approval steps; a missing manager is skipped |

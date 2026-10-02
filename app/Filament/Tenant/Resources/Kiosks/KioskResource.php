@@ -7,11 +7,14 @@ namespace App\Filament\Tenant\Resources\Kiosks;
 use App\Filament\Concerns\AuthorizesByPermission;
 use App\Filament\Tenant\NavigationGroup;
 use App\Models\Kiosk;
+use App\Rules\IpOrCidr;
+use App\Services\Settings\TenantSettings;
 use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\Select;
+use Filament\Forms\Components\TagsInput;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Notifications\Notification;
@@ -21,6 +24,7 @@ use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Illuminate\Support\HtmlString;
 
 /** Reception tablets (spec §6.5). Open the kiosk URL in Chrome kiosk mode on the tablet. */
 class KioskResource extends Resource
@@ -41,7 +45,7 @@ class KioskResource extends Resource
 
     public static function canViewAny(): bool
     {
-        return app(\App\Services\Settings\TenantSettings::class)->featureEnabled('kiosk') && parent::canViewAny();
+        return app(TenantSettings::class)->featureEnabled('kiosk') && parent::canViewAny();
     }
 
     public static function form(Schema $schema): Schema
@@ -52,6 +56,11 @@ class KioskResource extends Resource
             CheckboxList::make('allowed_modes')->options(['pin' => 'Employee PIN (+ optional 4-digit kiosk PIN)', 'qr' => 'QR badge from the phone'])
                 ->default(['pin', 'qr'])->required(),
             Toggle::make('require_photo')->default(true)->helperText('Take a selfie with every punch'),
+            Toggle::make('lock_to_device')->label('Only approved tablets')->default(true)
+                ->helperText('The kiosk link works only on tablets you approve under Kiosk tablets, so it cannot be used from home'),
+            TagsInput::make('allowed_ips')->label('Only from these internet addresses')->placeholder('e.g. 39.45.10.22 or 39.45.10.0/24')
+                ->helperText('Optional: the office internet IP. Leave empty to allow any connection.')
+                ->nestedRecursiveRules([new IpOrCidr]),
         ]);
     }
 
@@ -68,11 +77,14 @@ class KioskResource extends Resource
                 TextColumn::make('branch.name')->placeholder('Any branch'),
                 TextColumn::make('allowed_modes')->badge(),
                 IconColumn::make('require_photo')->boolean()->label('Photo'),
+                IconColumn::make('lock_to_device')->boolean()->label('Locked'),
+                TextColumn::make('tablets_count')->counts(['tablets' => fn ($q) => $q->where('status', 'pending')])->label('Waiting tablets')
+                    ->badge()->color(fn (int $state) => $state > 0 ? 'warning' : 'gray'),
                 TextColumn::make('device.last_seen_at')->since()->label('Last punch')->placeholder('never'),
             ])
             ->recordActions([
                 Action::make('open')->label('Kiosk link')->icon(Heroicon::OutlinedIdentification)
-                    ->modalContent(fn (Kiosk $r) => new \Illuminate\Support\HtmlString(
+                    ->modalContent(fn (Kiosk $r) => new HtmlString(
                         '<p class="text-sm">Open this address on the tablet (Chrome → Add to home screen):</p>'
                         . '<p class="mt-2 break-all font-mono text-sm">' . e(self::url($r)) . '</p>'))
                     ->modalSubmitAction(false),

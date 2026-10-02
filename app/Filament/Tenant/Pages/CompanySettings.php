@@ -44,7 +44,7 @@ class CompanySettings extends Page
         'punch_search_window_after_min', 'auto_absent_after_days', 'store_punch_photos', 'photo_retention_days',
         'geofence_default_radius_m', 'allow_future_manual_punch', 'employee_can_see_others', 'daily_wage_paid_holidays',
         'leave_approval_chain', 'correction_approval_chain', 'daily_summary_at', 'absent_alert_at', 'quiet_hours', 'notify_employee_late',
-        'pay_cycle_start_day', 'leave_year_start_month', 'late_adjustment_mode', 'late_adjustment_leave_type',
+        'mobile_max_accuracy_m', 'mobile_require_selfie', 'pay_cycle_start_day', 'leave_year_start_month', 'late_adjustment_mode', 'late_adjustment_leave_type',
     ];
 
     /** @var array<string, mixed> */
@@ -88,6 +88,8 @@ class CompanySettings extends Page
                 Toggle::make('store_punch_photos')->inline(false),
                 $int('photo_retention_days', 'Keep photos', 'days'),
                 $int('geofence_default_radius_m', 'Default geofence', 'm'),
+                $int('mobile_max_accuracy_m', 'Reject mobile GPS worse than (0 = off)', 'm'),
+                Toggle::make('mobile_require_selfie')->label('Selfie required for mobile punch')->inline(false),
                 Toggle::make('allow_future_manual_punch')->inline(false),
                 Toggle::make('employee_can_see_others')->label('Employees can see colleagues')->inline(false),
             ]),

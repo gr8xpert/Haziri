@@ -40,6 +40,8 @@ return [
         'store_punch_photos' => true,
         'photo_retention_days' => 90,
         'geofence_default_radius_m' => 150,
+        'mobile_max_accuracy_m' => 0,         // reject mobile punches with a worse GPS fix (0 = off)
+        'mobile_require_selfie' => false,
         'allow_future_manual_punch' => false,
         'employee_can_see_others' => false,
         'leave_approval_chain' => ['manager', 'hr'],

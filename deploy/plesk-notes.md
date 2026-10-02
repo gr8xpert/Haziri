@@ -18,3 +18,8 @@
    `MAIL_*` (Plesk SMTP), `ANTHROPIC_API_KEY`, `AI_DB_READONLY_*`, `HAZRI_PAYMENT_INSTRUCTIONS`.
 9. **Dedicated instance**: same steps on the client's VPS, `.env` `HAZRI_MODE=dedicated`, `HAZRI_DEDICATED_TENANT={slug}`,
    restore the tenant DB dump + one central tenant row. No code differences.
+
+## Real visitor IP (kiosk / mobile office-internet rules)
+
+Plesk puts nginx in front of PHP. Set `TRUSTED_PROXIES=127.0.0.1` in `.env` so the app sees the visitor's real IP;
+otherwise every request looks like it comes from 127.0.0.1 and the "office internet only" kiosk and branch rules misfire.

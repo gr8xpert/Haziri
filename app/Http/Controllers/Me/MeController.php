@@ -39,7 +39,7 @@ final class MeController
         return view('me.app', [
             'employee' => $employee,
             'company' => tenant('company_name'),
-            'canPunch' => $settings->featureEnabled('mobile_punch'),
+            'canPunch' => $settings->featureEnabled('mobile_punch') && (bool) $employee?->mobile_punch_allowed,
             'rtl' => app()->getLocale() === 'ur',
             'leaveTypes' => LeaveType::where('is_active', true)->get(['id', 'name', 'code', 'allow_half_day']),
         ]);
@@ -102,13 +102,14 @@ final class MeController
             'direction' => ['nullable', Rule::enum(PunchDirection::class)],
         ]);
         $r = $punch($request->user()->employee, (float) $data['lat'], (float) $data['lng'], isset($data['accuracy']) ? (int) $data['accuracy'] : null,
-            $data['photo'] ?? null, isset($data['direction']) ? PunchDirection::from($data['direction']) : null);
+            $data['photo'] ?? null, isset($data['direction']) ? PunchDirection::from($data['direction']) : null, $request->ip());
 
         return response()->json([
             'outcome' => $r['result']->outcome->value,
             'direction' => $r['direction']->value,
             'time' => now(tenant('timezone'))->format('H:i'),
             'inside_geofence' => $r['geofence']['inside'],
+            'office_network' => $r['geofence']['office_network'],
             'distance_m' => $r['geofence']['distance_m'],
         ]);
     }

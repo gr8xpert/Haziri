@@ -7,10 +7,12 @@ namespace App\Filament\Tenant\Resources\Branches;
 use App\Filament\Concerns\AuthorizesByPermission;
 use App\Filament\Tenant\NavigationGroup;
 use App\Models\Branch;
+use App\Rules\IpOrCidr;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\Select;
+use Filament\Forms\Components\TagsInput;
 use Filament\Forms\Components\TextInput;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
@@ -45,6 +47,9 @@ class BranchResource extends Resource
             TextInput::make('lat')->numeric()->minValue(-90)->maxValue(90)->label('Latitude'),
             TextInput::make('lng')->numeric()->minValue(-180)->maxValue(180)->label('Longitude'),
             TextInput::make('geofence_radius_m')->numeric()->integer()->minValue(20)->maxValue(5000)->default(150)->suffix('m'),
+            TagsInput::make('allowed_ips')->label('Office internet addresses')->placeholder('e.g. 39.45.10.22')
+                ->nestedRecursiveRules([new IpOrCidr])->columnSpanFull()
+                ->helperText('Optional. Mobile punches from any other connection go to Pending punches for approval, even inside the geofence.'),
             Select::make('timezone')->options(fn () => array_combine(timezone_identifiers_list(), timezone_identifiers_list()))
                 ->searchable()->placeholder('Company timezone'),
             CheckboxList::make('weekly_off_days')->options(self::WEEKDAYS)->columns(4)->columnSpanFull()

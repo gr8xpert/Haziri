@@ -169,10 +169,12 @@ Alpine.data('meApp', ({ canPunch, leaveTypes, locale }) => ({
                 accuracy: Math.round(position.coords.accuracy),
                 photo,
             });
-            this.messageOk = r.inside_geofence;
-            this.message = r.inside_geofence
+            this.messageOk = r.outcome === 'stored';
+            this.message = r.outcome === 'stored'
                 ? `Punched ${r.direction === 'in' ? 'in' : 'out'} at ${r.time}.`
-                : `Saved at ${r.time}, but you are ${r.distance_m ?? '?'} m from the office. HR will review it.`;
+                : !r.inside_geofence
+                  ? `Saved at ${r.time}, but you are ${r.distance_m ?? '?'} m from the office. HR will review it.`
+                  : `Saved at ${r.time}, but not from the office internet. HR will review it.`;
             await this.load();
         } catch (e) {
             this.messageOk = false;

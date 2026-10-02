@@ -167,6 +167,17 @@
                     </div>
                 </template>
 
+                <template x-if="screen === 'locked'">
+                    <div class="flex flex-1 flex-col items-center justify-center text-center" role="alert">
+                        <div class="flex size-32 items-center justify-center rounded-full bg-white/10 text-white ring-1 ring-white/20">
+                            @svg('heroicon-m-lock-closed', 'size-16')
+                        </div>
+                        <div class="mt-10 max-w-md text-3xl font-semibold tracking-tight text-balance" x-text="access.message"></div>
+                        <div x-show="access.code" class="mt-6 rounded-2xl bg-white/10 px-6 py-3 font-mono text-5xl font-bold tracking-[0.3em] ring-1 ring-white/20" x-text="access.code"></div>
+                        <div class="mt-4 text-lg text-white/60">This screen opens by itself once the tablet is approved.</div>
+                    </div>
+                </template>
+
                 <template x-if="screen === 'notice'">
                     <div class="flex flex-1 flex-col items-center justify-center text-center" role="status">
                         <div class="kiosk-pop flex size-32 items-center justify-center rounded-full bg-amber-300 text-amber-950 shadow-[0_0_0_14px_rgb(252_211_77/0.14)]">

@@ -23,7 +23,7 @@ class Employee extends Model
 
     protected $hidden = ['kiosk_pin'];
 
-    protected $attributes = ['leave_credit' => true];
+    protected $attributes = ['leave_credit' => true, 'mobile_punch_allowed' => true];
 
     protected function casts(): array
     {
@@ -39,6 +39,7 @@ class Employee extends Model
             'overtime_eligible' => 'boolean',
             'late_deduction_exempt' => 'boolean',
             'leave_credit' => 'boolean',
+            'mobile_punch_allowed' => 'boolean',
             'custom_fields' => 'array',
             'kiosk_pin' => 'hashed',
         ];
