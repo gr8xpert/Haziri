@@ -40,3 +40,9 @@ agent/*.log
 agent/agent.yaml
 /storage/tenant*/
 /public/models/human
+
+# Client material with real employee data: never commit
+/docs/images/
+/docs/*.pdf
+/docs/*.DMP
+/docs/*.dmp
