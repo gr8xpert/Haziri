@@ -31,6 +31,7 @@ use App\Models\ShiftAssignment;
 use App\Models\User;
 use App\Reports\AttendanceSummaryReport;
 use App\Reports\EmployeeInformationReport;
+use App\Reports\ExemptionReport;
 use App\Reports\MonthlyLeaveSummaryReport;
 use App\Reports\YesterdayTodayReport;
 use App\Services\Attendance\AttendanceRecomputer;
@@ -303,4 +304,25 @@ it('imports the extra employee master fields and creates missing grades', functi
     expect($preview['errors'])->toBe([])
         ->and($e->father_name)->toBe('Abdul Hafeez')->and($e->city)->toBe('Karachi')->and($e->payroll_id)->toBe('320005')
         ->and($e->grade?->name)->toBe('Officer');
+});
+
+it('narrows any report to one employee', function () {
+    parityStaff('ONE1');
+    $two = parityStaff('ONE2');
+
+    expect(collect((new EmployeeInformationReport)->rows(['employee_id' => $two->id]))->pluck('code')->all())->toBe(['ONE2']);
+});
+
+it('lists exemptions with who they apply to', function () {
+    $ops = Department::create(['name' => 'Operations', 'code' => 'OPX']);
+    AttendanceExemption::create(['date' => '2026-07-20', 'type' => ExemptionType::Late, 'reason' => 'Heavy rain', 'created_by' => $this->owner->id]);
+    AttendanceExemption::create(['date' => '2026-07-21', 'type' => ExemptionType::Absent, 'reason' => 'Strike',
+        'scope' => ShiftOverrideScope::Department, 'scope_id' => $ops->id]);
+    AttendanceExemption::create(['date' => '2026-09-01', 'type' => ExemptionType::Late, 'reason' => 'Outside range']);
+
+    $rows = (new ExemptionReport)->rows(['from' => '2026-07-01', 'to' => '2026-07-31']);
+
+    expect(array_column($rows, 'reason'))->toBe(['Heavy rain', 'Strike'])
+        ->and($rows[0])->toMatchArray(['date' => '20-07-2026', 'day' => 'Monday', 'scope' => 'Whole company', 'by' => $this->owner->name])
+        ->and($rows[1]['scope'])->toBe('Department: Operations');
 });

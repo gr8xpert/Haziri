@@ -91,6 +91,11 @@ abstract class Report
             Select::make('contractor_id')->label(__('Contractor'))->options(fn () => Contractor::orderBy('name')->pluck('name', 'id'))
                 ->placeholder(__('All'))->visible(fn () => Contractor::query()->exists()),
             Select::make('employee_status')->label(__('Employee status'))->options(EmployeeStatus::class)->placeholder(__('All')),
+            Select::make('employee_id')->label(__('Employee'))->placeholder(__('All'))->searchable()
+                ->getSearchResultsUsing(fn (string $search) => Employee::query()
+                    ->where(fn ($q) => $q->where('code', 'like', "{$search}%")->orWhere('first_name', 'like', "%{$search}%")->orWhere('last_name', 'like', "%{$search}%"))
+                    ->orderBy('code')->limit(30)->get()->mapWithKeys(fn (Employee $e) => [$e->id => "{$e->code} — {$e->fullName()}"]))
+                ->getOptionLabelUsing(fn ($value) => ($e = Employee::find($value)) ? "{$e->code} — {$e->fullName()}" : null),
         ];
     }
 
@@ -112,6 +117,7 @@ abstract class Report
             ->when($filters['designation_id'] ?? null, fn ($q, $v) => $q->where('designation_id', $v))
             ->when($filters['employment_type'] ?? null, fn ($q, $v) => $q->where('employment_type', $v instanceof EmploymentType ? $v->value : $v))
             ->when($filters['contractor_id'] ?? null, fn ($q, $v) => $q->where('contractor_id', $v))
+            ->when($filters['employee_id'] ?? null, fn ($q, $v) => $q->whereKey($v))
             ->when($filters['employee_status'] ?? null, fn ($q, $v) => $q->where('status', $v instanceof EmployeeStatus ? $v->value : $v))
             ->when($filters['shift_id'] ?? null, fn ($q, $v) => $q->whereIn('id', $this->employeesOnShift((int) $v)))
             ->when($user && ! $user->can('attendance.view_all'), fn ($q) => $q->where('manager_employee_id', $user->employee_id ?? 0))
