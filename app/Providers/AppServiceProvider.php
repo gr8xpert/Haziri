@@ -4,7 +4,21 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Contracts\AiModel;
+use App\Listeners\NotificationSubscriber;
+use App\Models\Employee;
+use App\Services\Ai\AnthropicAiModel;
+use App\Services\Billing\BillingService;
+use App\Services\Notifications\ChannelRegistry;
+use App\Services\Notifications\Channels\HttpSmsChannel;
+use App\Services\Notifications\Channels\MetaWhatsAppChannel;
 use App\Services\Settings\TenantSettings;
+use App\Support\BranchAccess;
+use Illuminate\Queue\Events\JobExceptionOccurred;
+use Illuminate\Queue\Events\JobFailed;
+use Illuminate\Queue\Events\JobProcessed;
+use Illuminate\Queue\Events\JobProcessing;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -16,11 +30,11 @@ class AppServiceProvider extends ServiceProvider
     {
         // Per request / per job; also forgotten whenever tenancy switches (TenancyServiceProvider).
         $this->app->scoped(TenantSettings::class);
-        $this->app->bind(\App\Contracts\AiModel::class, \App\Services\Ai\AnthropicAiModel::class);
-        $this->app->singleton(\App\Services\Notifications\ChannelRegistry::class, function () {
-            $registry = new \App\Services\Notifications\ChannelRegistry;
-            $registry->extend('whatsapp', 'meta', \App\Services\Notifications\Channels\MetaWhatsAppChannel::class);
-            $registry->extend('sms', 'http', \App\Services\Notifications\Channels\HttpSmsChannel::class);
+        $this->app->bind(AiModel::class, AnthropicAiModel::class);
+        $this->app->singleton(ChannelRegistry::class, function () {
+            $registry = new ChannelRegistry;
+            $registry->extend('whatsapp', 'meta', MetaWhatsAppChannel::class);
+            $registry->extend('sms', 'http', HttpSmsChannel::class);
 
             return $registry;
         });
@@ -31,8 +45,14 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        \Illuminate\Support\Facades\Event::subscribe(\App\Listeners\NotificationSubscriber::class);
+        Event::subscribe(NotificationSubscriber::class);
+
+        // Queued work (also when the queue runs synchronously inside a branch manager's request) sees every branch.
+        Event::listen(JobProcessing::class, fn () => BranchAccess::suspend());
+        foreach ([JobProcessed::class, JobFailed::class, JobExceptionOccurred::class] as $done) {
+            Event::listen($done, fn () => BranchAccess::resume());
+        }
         // Plan limit on active employees (spec §9 phase 4: usage enforcement).
-        \App\Models\Employee::creating(fn () => \App\Services\Billing\BillingService::assertEmployeeCapacity());
+        Employee::creating(fn () => BillingService::assertEmployeeCapacity());
     }
 }

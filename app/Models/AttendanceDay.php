@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Enums\AttendanceFlag;
 use App\Enums\AttendanceStatus;
+use App\Models\Concerns\ScopedToUserBranches;
+use App\Services\Attendance\Engine\DayResult;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -13,6 +16,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 class AttendanceDay extends Model
 {
+    use ScopedToUserBranches;
+
     protected $guarded = ['id'];
 
     protected function casts(): array
@@ -41,12 +46,12 @@ class AttendanceDay extends Model
     }
 
     /** Back to the engine's value object, for PeriodCalculator rollups. */
-    public function toResult(): \App\Services\Attendance\Engine\DayResult
+    public function toResult(): DayResult
     {
-        return new \App\Services\Attendance\Engine\DayResult(
+        return new DayResult(
             status: $this->status,
             flags: array_values(array_filter(array_map(
-                fn (string $f) => \App\Enums\AttendanceFlag::tryFrom($f),
+                fn (string $f) => AttendanceFlag::tryFrom($f),
                 $this->flags ?? [],
             ))),
             workedMin: (int) $this->worked_min,

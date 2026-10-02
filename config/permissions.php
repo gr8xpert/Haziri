@@ -37,6 +37,12 @@ return [
             'attendance.view_team', 'attendance.view_own', 'employees.view', 'leave.request', 'leave.approve_first',
             'corrections.request', 'corrections.approve_first', 'od_wfh.request_team', 'reports.view_team',
         ],
+        // Shop / branch manager: HR-like for their own branches (limit them under Users → Branches).
+        'branch_manager' => [
+            'attendance.view_all', 'attendance.manual_entry', 'attendance.manual_edit', 'attendance.override_status',
+            'employees.view', 'leave.request', 'leave.request_on_behalf', 'leave.approve_final', 'corrections.request',
+            'corrections.approve_final', 'od_wfh.request_team', 'reports.view', 'reports.export', 'usb.import',
+        ],
         'receptionist' => [
             'attendance.view_all', 'attendance.manual_entry', 'employees.view', 'usb.import', 'visitors.manage',
             'kiosk.manage',

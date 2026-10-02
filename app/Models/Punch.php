@@ -8,6 +8,7 @@ use App\Enums\PunchDirection;
 use App\Enums\PunchSource;
 use App\Enums\PunchStatus;
 use App\Enums\VerifyType;
+use App\Models\Concerns\ScopedToUserBranches;
 use App\Services\Attendance\Engine\PunchInput;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Model;
@@ -21,6 +22,7 @@ class Punch extends Model
     use LogsActivity {
         shouldLogEvent as baseShouldLogEvent;
     }
+    use ScopedToUserBranches;
     use SoftDeletes;
 
     protected $guarded = ['id'];

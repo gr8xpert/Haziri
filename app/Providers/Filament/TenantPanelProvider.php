@@ -3,15 +3,16 @@
 namespace App\Providers\Filament;
 
 use App\Filament\AvatarProviders\InitialsAvatarProvider;
+use App\Filament\Tenant\Pages\Dashboard;
 use App\Filament\Tenant\Pages\SwitchCompany;
 use App\Http\Middleware\ApplyTenantBranding;
 use App\Http\Middleware\IdentifyTenant;
+use App\Http\Middleware\ScopeToUserBranches;
 use Filament\Actions\Action;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
-use Filament\Pages\Dashboard;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
@@ -105,6 +106,8 @@ class TenantPanelProvider extends PanelProvider
             ])
             ->authMiddleware([
                 Authenticate::class,
-            ]);
+                // Branch managers only see their branches (feature multi_branch); persistent so Livewire updates are scoped too.
+                ScopeToUserBranches::class,
+            ], isPersistent: true);
     }
 }

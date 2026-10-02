@@ -12,7 +12,7 @@ use Spatie\Permission\Models\Role;
 it('provisions a tenant DB with defaults and an owner', function () {
     expect($this->tenant->database()->getName())->toBe('hazri_t_pest')
         ->and($this->tenant->domains()->pluck('domain')->all())->toBe(['pest'])
-        ->and(Role::pluck('name')->sort()->values()->all())->toBe(['admin', 'employee', 'hr', 'manager', 'owner', 'receptionist'])
+        ->and(Role::pluck('name')->sort()->values()->all())->toBe(['admin', 'branch_manager', 'employee', 'hr', 'manager', 'owner', 'receptionist'])
         ->and(Shift::where('is_default', true)->count())->toBe(1)
         ->and(LeaveType::pluck('code')->sort()->values()->all())->toBe(['AL', 'CL', 'SL'])
         ->and(Holiday::count())->toBeGreaterThanOrEqual(7)

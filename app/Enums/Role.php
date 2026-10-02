@@ -11,6 +11,7 @@ enum Role: string
     case Admin = 'admin';
     case Hr = 'hr';
     case Manager = 'manager';
+    case BranchManager = 'branch_manager';
     case Receptionist = 'receptionist';
     case Employee = 'employee';
 }

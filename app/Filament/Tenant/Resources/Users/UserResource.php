@@ -9,6 +9,7 @@ use App\Filament\Concerns\AuthorizesByPermission;
 use App\Filament\Tenant\NavigationGroup;
 use App\Models\Employee;
 use App\Models\User;
+use App\Services\Settings\TenantSettings;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -54,6 +55,10 @@ class UserResource extends Resource
                 ->relationship('roles', 'name', modifyQueryUsing: fn ($query) => auth()->user()->hasRole(Role::Owner->value)
                     ? $query
                     : $query->where('name', '!=', Role::Owner->value)),
+            Select::make('branches')->multiple()->preload()->relationship('branches', 'name')
+                ->label('Limit to branches')->placeholder('All branches')
+                ->helperText('A shop/branch manager sees only these branches. Leave empty for all branches. Owners and admins always see everything.')
+                ->visible(fn () => app(TenantSettings::class)->featureEnabled('multi_branch')),
             Select::make('employee_id')->label('Linked employee')->searchable()
                 ->options(fn () => Employee::orderBy('code')->get()->mapWithKeys(fn (Employee $e) => [$e->id => "{$e->code} — {$e->fullName()}"])),
             Select::make('locale')->options(['en' => 'English', 'ur' => 'اردو'])->default('en'),
@@ -68,6 +73,8 @@ class UserResource extends Resource
                 TextColumn::make('name')->searchable(),
                 TextColumn::make('email')->searchable(),
                 TextColumn::make('roles.name')->badge(),
+                TextColumn::make('branches.name')->badge()->color('gray')->placeholder('All branches')
+                    ->visible(fn () => app(TenantSettings::class)->featureEnabled('multi_branch')),
                 IconColumn::make('is_active')->boolean(),
             ])
             ->recordActions([EditAction::make()]);

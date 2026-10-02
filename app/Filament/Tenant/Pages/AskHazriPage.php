@@ -8,6 +8,8 @@ use App\Filament\Tenant\NavigationGroup;
 use App\Models\AiQuery;
 use App\Services\Ai\AiGateway;
 use App\Services\Ai\AskHazri;
+use App\Services\Settings\TenantSettings;
+use App\Support\BranchAccess;
 use App\Support\Excel\Spreadsheet;
 use Filament\Pages\Page;
 use Filament\Support\Icons\Heroicon;
@@ -35,8 +37,9 @@ class AskHazriPage extends Page
 
     public static function canAccess(): bool
     {
-        return app(\App\Services\Settings\TenantSettings::class)->featureEnabled('ai_reports')
-            && (bool) auth()->user()?->can('reports.view');
+        // The assistant answers from all company data, so branch-limited users don't get it.
+        return app(TenantSettings::class)->featureEnabled('ai_reports')
+            && (bool) auth()->user()?->can('reports.view') && ! BranchAccess::restricted();
     }
 
     public function ask(AskHazri $ask): void

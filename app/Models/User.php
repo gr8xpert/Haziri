@@ -11,6 +11,8 @@ use Filament\Panel;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Spatie\Activitylog\Models\Concerns\LogsActivity;
@@ -44,10 +46,16 @@ class User extends Authenticatable implements FilamentUser
         // Plain employees use the /me PWA, not the admin panel.
         return $panel->getId() === 'tenant'
             && $this->is_active
-            && $this->hasAnyRole(array_map(fn (Role $r) => $r->value, [Role::Owner, Role::Admin, Role::Hr, Role::Manager, Role::Receptionist]));
+            && $this->hasAnyRole(array_map(fn (Role $r) => $r->value, [Role::Owner, Role::Admin, Role::Hr, Role::Manager, Role::BranchManager, Role::Receptionist]));
     }
 
-    public function employee(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    /** Branches this user is limited to (feature multi_branch); none = all branches. */
+    public function branches(): BelongsToMany
+    {
+        return $this->belongsToMany(Branch::class);
+    }
+
+    public function employee(): BelongsTo
     {
         return $this->belongsTo(Employee::class);
     }

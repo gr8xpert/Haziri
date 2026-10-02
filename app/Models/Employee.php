@@ -7,6 +7,7 @@ namespace App\Models;
 use App\Enums\EmployeeStatus;
 use App\Enums\EmploymentType;
 use App\Enums\WorkMode;
+use App\Models\Concerns\ScopedToUserBranches;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -18,6 +19,7 @@ use Spatie\Activitylog\Support\LogOptions;
 class Employee extends Model
 {
     use HasFactory, LogsActivity, SoftDeletes;
+    use ScopedToUserBranches;
 
     protected $guarded = ['id'];
 

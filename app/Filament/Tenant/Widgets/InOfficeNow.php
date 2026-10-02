@@ -4,19 +4,23 @@ declare(strict_types=1);
 
 namespace App\Filament\Tenant\Widgets;
 
+use App\Filament\Tenant\Pages\Dashboard;
 use App\Models\AttendanceDay;
 use Carbon\CarbonImmutable;
 use Filament\Support\Enums\FontWeight;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Filament\Widgets\Concerns\InteractsWithPageFilters;
 use Filament\Widgets\TableWidget;
 use Illuminate\Database\Eloquent\Builder;
 
 /** Live "in office now": punched in today, no punch-out yet. */
 class InOfficeNow extends TableWidget
 {
-    protected static ?int $sort = 2;
+    use InteractsWithPageFilters;
+
+    protected static ?int $sort = 3;
 
     protected int | string | array $columnSpan = 'full';
 
@@ -35,7 +39,8 @@ class InOfficeNow extends TableWidget
         return $table
             ->heading(__('In office now'))
             ->query(fn (): Builder => AttendanceDay::query()->with('employee.department')
-                ->whereDate('date', $today)->whereNotNull('first_in')->whereJsonContains('flags', 'missing_out'))
+                ->whereDate('date', $today)->whereNotNull('first_in')->whereJsonContains('flags', 'missing_out')
+                ->when(Dashboard::selectedBranch($this->pageFilters), fn ($q, $branch) => $q->whereHas('employee', fn ($e) => $e->where('branch_id', $branch))))
             ->defaultSort('first_in')
             ->paginated([10, 25, 50])
             ->emptyStateIcon(Heroicon::OutlinedBuildingOffice)

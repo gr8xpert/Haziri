@@ -8,6 +8,7 @@ use App\Enums\EmployeeStatus;
 use App\Jobs\RecomputeAttendanceDay;
 use App\Jobs\RecomputeAttendanceRange;
 use App\Models\Employee;
+use App\Models\Scopes\BranchScope;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonPeriod;
 
@@ -34,7 +35,7 @@ final class AttendanceImpact
             return;
         }
 
-        $ids = $employeeIds ?? Employee::query()
+        $ids = $employeeIds ?? Employee::query()->withoutGlobalScope(BranchScope::class)
             ->where('status', '!=', EmployeeStatus::Left)
             ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
             ->pluck('id')->all();

@@ -16,6 +16,7 @@ use App\Models\Shift;
 use App\Models\ShiftAssignment;
 use App\Models\ShiftOverride;
 use App\Services\Attendance\AttendanceImpact;
+use App\Support\BranchAccess;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\ServiceProvider;
@@ -102,8 +103,17 @@ final class AttendanceImpactServiceProvider extends ServiceProvider
      */
     private function on(string $model, callable $handler): void
     {
-        $model::saved($handler);
-        $model::deleted($handler);
+        // Work out who is affected across all branches, even when a branch manager made the change.
+        $unscoped = function (Model $record) use ($handler): void {
+            BranchAccess::suspend();
+            try {
+                $handler($record);
+            } finally {
+                BranchAccess::resume();
+            }
+        };
+        $model::saved($unscoped);
+        $model::deleted($unscoped);
     }
 
     private function punchChanged(Punch $p): void

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Models\Concerns\ScopedToUserBranches;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Spatie\Activitylog\Models\Concerns\LogsActivity;
@@ -12,6 +13,7 @@ use Spatie\Activitylog\Support\LogOptions;
 class LeaveAdjustment extends Model
 {
     use LogsActivity;
+    use ScopedToUserBranches;
 
     protected $guarded = ['id'];
 

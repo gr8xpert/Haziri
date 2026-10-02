@@ -6,6 +6,7 @@ namespace App\Models;
 
 use App\Enums\LeaveDayPart;
 use App\Enums\RequestStatus;
+use App\Models\Concerns\ScopedToUserBranches;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Spatie\Activitylog\Models\Concerns\LogsActivity;
@@ -14,6 +15,7 @@ use Spatie\Activitylog\Support\LogOptions;
 class LeaveRequest extends Model
 {
     use LogsActivity;
+    use ScopedToUserBranches;
 
     protected $guarded = ['id'];
 
