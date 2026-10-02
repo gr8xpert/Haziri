@@ -1,5 +1,27 @@
 # Changelog
 
+## 2026-10-03 — Review round: feature switches, kiosk, anti-fraud, multi-branch, white-label, full payroll, face recognition
+
+- **Feature switches** (super-admin): 19 features under Attendance / Payroll Lite / Payroll Full / Add-ons, per plan and per
+  company; connected features turn on/off together (config/features.php, FeatureCatalog). Fixed: saving a company's
+  features crashed.
+- **Kiosk Auto in/out** decided from the last punch in 16 h (night shifts, mixed presses); double taps say
+  "Already punched IN at 09:00" instead of a fake success.
+- **Reports**: employee filter everywhere; exemption report; branch summary; tax register; EOBI / social security
+  challan; PF statement; gratuity liability.
+- **Anti remote-punching**: kiosk locked to approved tablets (pairing code), optional office-IP lists for kiosks and
+  branches, per-employee "can punch from phone", minimum GPS accuracy, required selfie, "impossible travel" anomaly,
+  `TRUSTED_PROXIES`.
+- **Multi-branch**: users limited to branches (global scope in the admin panel), Branch manager role, dashboard branch
+  switcher and "Branches today" comparison.
+- **White-label 100%**: Brand helper; app name, AI assistant name, logo, app icon, colour, email name; super-admin can set
+  and lock; `HAZRI_NEUTRAL_DOMAIN`; no billing for white-label clients; guard test for any visible "Hazri".
+- **Payroll Full**: income tax (editable slabs, 2025-26 pre-filled — verify), EOBI / PESSI-SESSI, provident fund ledger,
+  gratuity, bonuses / one-off items, final settlement with PDF, bank letter, payroll rules page.
+- **Face recognition** on the kiosk (@vladmandic/human): enrolment page, head-turn + anti-spoof liveness on the tablet,
+  server-side matching of descriptors only.
+- Tests: 260 PHP passing.
+
 ## 2026-10-02 — Legacy TMS parity (client screenshots)
 
 - **Pay cycle** (`pay_cycle_start_day`, e.g. 21st → 20th) used by month lock, payroll, monthly sheet, statement,
