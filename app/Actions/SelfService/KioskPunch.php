@@ -100,6 +100,15 @@ final class KioskPunch
         if (! $this->settings->featureEnabled('kiosk_face')) {
             throw ValidationException::withMessages(['mode' => __('Face recognition is not enabled for your company.')]);
         }
+        // Liveness (head turn, anti-spoof) runs on the tablet and cannot be proven to the server, so a face punch is only
+        // accepted from a tablet HR approved (KioskDeviceGuard already checked the device key) and always with a photo
+        // for audit. Otherwise anyone with the kiosk link could replay a descriptor computed from someone's picture.
+        if (! $kiosk->lock_to_device) {
+            throw ValidationException::withMessages(['mode' => __('Face punching needs a kiosk locked to approved tablets.')]);
+        }
+        if (empty($input['photo'])) {
+            throw ValidationException::withMessages(['photo' => __('A photo is required for face punching.')]);
+        }
         $descriptor = FaceMatcher::clean($input['face'] ?? null);
         if ($descriptor === null || empty($input['liveness_passed'])) {
             throw ValidationException::withMessages(['face' => __('Face not captured. Look at the camera and try again.')]);

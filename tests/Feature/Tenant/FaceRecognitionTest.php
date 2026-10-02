@@ -5,12 +5,14 @@ declare(strict_types=1);
 use App\Enums\DevicePunchSourceType;
 use App\Enums\VerifyType;
 use App\Filament\Tenant\Pages\FaceEnrollment;
+use App\Filament\Tenant\Resources\Kiosks\Pages\ManageKiosks;
 use App\Models\Branch;
 use App\Models\Central\DeviceRegistry;
 use App\Models\Device;
 use App\Models\Employee;
 use App\Models\FaceTemplate;
 use App\Models\Kiosk;
+use App\Models\KioskDevice;
 use App\Models\Punch;
 use App\Models\Setting;
 use App\Models\User;
@@ -42,7 +44,12 @@ beforeEach(function () {
         }
     }
     $device = Device::create(['name' => 'Tab', 'serial_number' => 'KIOSK-FACE', 'type' => DevicePunchSourceType::Kiosk]);
-    $this->kiosk = Kiosk::create(['device_id' => $device->id, 'token' => Kiosk::newToken(), 'allowed_modes' => ['pin', 'face'], 'require_photo' => false]);
+    $this->kiosk = Kiosk::create(['device_id' => $device->id, 'token' => Kiosk::newToken(), 'allowed_modes' => ['pin', 'face'], 'require_photo' => false,
+        'lock_to_device' => true]);
+    $this->tablet = str_repeat('fa', 32);
+    KioskDevice::create(['kiosk_id' => $this->kiosk->id, 'key_hash' => hash('sha256', $this->tablet), 'pairing_code' => 'FACE',
+        'status' => KioskDevice::APPROVED]);
+    $this->photo = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
     $this->url = 'http://pest.' . config('hazri.central_domain') . "/kiosk/{$this->kiosk->token}";
 });
 
@@ -75,7 +82,7 @@ it('only matches employees of the kiosk branch', function () {
 });
 
 it('punches on the kiosk by face after the liveness check', function () {
-    $punch = fn (array $body) => $this->postJson("{$this->url}/punch", ['mode' => 'face'] + $body);
+    $punch = fn (array $body) => $this->postJson("{$this->url}/punch", ['mode' => 'face', 'device_key' => $this->tablet, 'photo' => $this->photo] + $body);
 
     $punch(['face' => faceOf(1, 0.1, 9)])->assertStatus(422);                                   // no liveness
     $punch(['face' => faceOf(7), 'liveness_passed' => true])->assertStatus(422)
@@ -92,7 +99,23 @@ it('switches face punching off with the feature', function () {
     app(TenantSettings::class)->flush();
 
     $this->getJson("{$this->url}/config")->assertJsonPath('modes', ['pin']);
-    $this->postJson("{$this->url}/punch", ['mode' => 'face', 'face' => faceOf(1), 'liveness_passed' => true])->assertStatus(422);
+    $this->postJson("{$this->url}/punch", ['mode' => 'face', 'face' => faceOf(1), 'liveness_passed' => true, 'device_key' => $this->tablet, 'photo' => $this->photo])
+        ->assertStatus(422);
+});
+
+it('refuses a forged face punch that does not come from an approved tablet', function () {
+    $forged = ['mode' => 'face', 'face' => faceOf(1, 0.1, 9), 'liveness_passed' => true, 'photo' => $this->photo];
+
+    // Same kiosk link, but from another browser (e.g. a script at home): no approved device key.
+    $this->postJson("{$this->url}/punch", $forged + ['device_key' => str_repeat('0b', 32)])->assertForbidden();
+    // A kiosk that is not locked to tablets never accepts face punches at all.
+    $this->kiosk->update(['lock_to_device' => false]);
+    $this->postJson("{$this->url}/punch", $forged)->assertStatus(422)->assertJsonPath('message', 'Face punching needs a kiosk locked to approved tablets.');
+    // And an approved tablet still has to send a photo.
+    $this->kiosk->update(['lock_to_device' => true]);
+    $this->postJson("{$this->url}/punch", array_diff_key($forged, ['photo' => 1]) + ['device_key' => $this->tablet])->assertStatus(422);
+
+    expect(Punch::where('employee_id', $this->asma->id)->exists())->toBeFalse();
 });
 
 it('enrols and deletes an employee\'s face from the admin panel', function () {
@@ -106,4 +129,13 @@ it('enrols and deletes an employee\'s face from the admin panel', function () {
 
     Livewire::test(FaceEnrollment::class)->call('forget', $carl->id);
     expect(FaceTemplate::where('employee_id', $carl->id)->count())->toBe(0);
+});
+
+it('will not save a kiosk with face mode unless it is locked to approved tablets', function () {
+    Filament::setCurrentPanel(Filament::getPanel('tenant'));
+    $this->actingAs(User::where('email', 'owner@pest.test')->firstOrFail());
+
+    Livewire::test(ManageKiosks::class)
+        ->callAction('create', data: ['name' => 'Gate tablet', 'allowed_modes' => ['pin', 'face'], 'require_photo' => true, 'lock_to_device' => false])
+        ->assertHasActionErrors(['lock_to_device']);
 });

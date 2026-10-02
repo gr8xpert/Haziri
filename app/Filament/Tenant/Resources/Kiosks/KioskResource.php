@@ -19,6 +19,7 @@ use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\IconColumn;
@@ -58,6 +59,11 @@ class KioskResource extends Resource
                 ->default(['pin', 'qr'])->required(),
             Toggle::make('require_photo')->default(true)->helperText('Take a selfie with every punch'),
             Toggle::make('lock_to_device')->label('Only approved tablets')->default(true)
+                ->rule(fn (Get $get) => function (string $attribute, $value, \Closure $fail) use ($get) {
+                    if (! $value && in_array('face', (array) $get('allowed_modes'), true)) {
+                        $fail(__('Face recognition needs this on: face punches are only trusted from approved tablets.'));
+                    }
+                })
                 ->helperText('The kiosk link works only on tablets you approve under Kiosk tablets, so it cannot be used from home'),
             TagsInput::make('allowed_ips')->label('Only from these internet addresses')->placeholder('e.g. 39.45.10.22 or 39.45.10.0/24')
                 ->helperText('Optional: the office internet IP. Leave empty to allow any connection.')
