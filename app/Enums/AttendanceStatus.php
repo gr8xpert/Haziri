@@ -21,6 +21,8 @@ enum AttendanceStatus: string
     case Present = 'present';
     case HalfDay = 'half_day';
     case Absent = 'absent';
+    /** Absent on a company-wide exempted day (strike, flood…) — excused and paid. */
+    case Exempted = 'exempted';
 
     /** Short code used in monthly grids (spec §10). Late-present ("L") and leave-type codes are decided by the report layer. */
     public function code(): string
@@ -37,6 +39,7 @@ enum AttendanceStatus: string
             self::Present => 'P',
             self::HalfDay => 'HD',
             self::Absent => 'A',
+            self::Exempted => 'EX',
         };
     }
 }

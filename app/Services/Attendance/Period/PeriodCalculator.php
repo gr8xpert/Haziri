@@ -48,16 +48,18 @@ final class PeriodCalculator
             ? intdiv($lates, $rules->latesPerAbsent)
             : 0;
 
+        $lateAndHalfDays = $c(AttendanceStatus::HalfDay) * $rules->halfDayCountsAs + $lateRollup;
+        $leaveAdjusted = $rules->isDailyWage ? 0.0 : min(floor(max(0.0, $rules->leaveAdjustAvailable) * 2) / 2, $lateAndHalfDays);
+
         $deduction = $c(AttendanceStatus::Absent) * $rules->absentDeductionDays
             + $c(AttendanceStatus::LeaveUnpaid) * $rules->unpaidLeaveDeductionDays
-            + $c(AttendanceStatus::HalfDay) * $rules->halfDayCountsAs
             + $halfLeaveUnworked * 0.5
-            + $lateRollup;
+            + $lateAndHalfDays - $leaveAdjusted;
 
         $calendarDays = array_sum($count) - $c(AttendanceStatus::NotJoined) - $c(AttendanceStatus::Left);
 
         if ($rules->isDailyWage) {
-            $payable = $c(AttendanceStatus::Present) + $c(AttendanceStatus::OfficialDuty) + $c(AttendanceStatus::Wfh)
+            $payable = $c(AttendanceStatus::Present) + $c(AttendanceStatus::OfficialDuty) + $c(AttendanceStatus::Wfh) + $c(AttendanceStatus::Exempted)
                 + $c(AttendanceStatus::HalfDay) * (1 - $rules->halfDayCountsAs)
                 + ($c(AttendanceStatus::HalfDayLeave) - $halfLeaveUnworked) * 0.5
                 + ($rules->dailyWagePaidHolidays ? $c(AttendanceStatus::Holiday) : 0);
@@ -77,12 +79,14 @@ final class PeriodCalculator
             weeklyOffs: $c(AttendanceStatus::WeeklyOff),
             officialDutyDays: $c(AttendanceStatus::OfficialDuty),
             wfhDays: $c(AttendanceStatus::Wfh),
+            exemptedDays: $c(AttendanceStatus::Exempted),
             pendingDays: $pending,
             lateCount: $lates,
             earlyOutCount: $earlyOuts,
             workedMinutes: $worked,
             overtimeMinutes: $overtime,
             lateRollupDays: $lateRollup,
+            leaveAdjustedDays: round($leaveAdjusted, 2),
             deductionDays: round($deduction, 2),
             payableDays: round(max(0.0, $payable), 2),
         );

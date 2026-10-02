@@ -6,6 +6,7 @@ namespace App\Services\Attendance\Engine;
 
 use App\Enums\AttendanceFlag;
 use App\Enums\AttendanceStatus;
+use App\Enums\ExemptionType;
 use App\Enums\LeaveDayPart;
 use App\Enums\MultiPunchMode;
 use App\Enums\PunchDirection;
@@ -86,7 +87,10 @@ final class StatusEngine
         $lateMin = 0;
         $earlyOutMin = 0;
         if ($shift !== null && $isWorkingDay) {
-            if ($firstIn !== null && $leave?->dayPart !== LeaveDayPart::FirstHalf) {
+            if ($ctx->exemption !== null) {
+                $flags[AttendanceFlag::Exempted->value] = AttendanceFlag::Exempted;
+            }
+            if ($firstIn !== null && $leave?->dayPart !== LeaveDayPart::FirstHalf && $ctx->exemption === null) {
                 $afterStart = $this->minutes($start, $firstIn);
                 if ($afterStart > $shift->lateThresholdMin()) {
                     $lateMin = max(0, $afterStart - $shift->graceInMin);
@@ -173,7 +177,11 @@ final class StatusEngine
                 return null;
             }
 
-            return $leave?->dayPart->isHalf() ? AttendanceStatus::HalfDayLeave : AttendanceStatus::Absent;
+            if ($leave?->dayPart->isHalf()) {
+                return AttendanceStatus::HalfDayLeave;
+            }
+
+            return $ctx->exemption === ExemptionType::Absent ? AttendanceStatus::Exempted : AttendanceStatus::Absent;
         }
 
         if ($leave?->dayPart->isHalf()) {
@@ -182,7 +190,8 @@ final class StatusEngine
         if ($shift?->halfDayIfLateAfterMin !== null && $lateMin > $shift->halfDayIfLateAfterMin) {
             return AttendanceStatus::HalfDay;
         }
-        if ($shift?->halfDayIfWorkedLessThanMin !== null && ! $incompletePair && $workedMin < $shift->halfDayIfWorkedLessThanMin) {
+        if ($shift?->halfDayIfWorkedLessThanMin !== null && ! $incompletePair && $workedMin < $shift->halfDayIfWorkedLessThanMin
+            && $ctx->exemption !== ExemptionType::Absent) {
             return AttendanceStatus::HalfDay;
         }
 

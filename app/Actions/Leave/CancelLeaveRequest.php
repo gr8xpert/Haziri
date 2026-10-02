@@ -10,13 +10,17 @@ use App\Models\AttendancePeriod;
 use App\Models\LeaveRequest;
 use App\Models\User;
 use App\Services\Leave\LeaveBalanceService;
+use App\Services\Leave\LeaveYear;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 /** Employee cancels own pending leave; HR (leave.approve_final) may cancel approved leave in an open month. */
 final class CancelLeaveRequest
 {
-    public function __construct(private readonly LeaveBalanceService $balances) {}
+    public function __construct(
+        private readonly LeaveBalanceService $balances,
+        private readonly LeaveYear $leaveYear,
+    ) {}
 
     public function __invoke(LeaveRequest $request, User $by, ?string $reason = null): LeaveRequest
     {
@@ -33,7 +37,7 @@ final class CancelLeaveRequest
         }
 
         return DB::transaction(function () use ($request, $by, $reason) {
-            $balance = $this->balances->balance($request->employee, $request->leaveType, (int) $request->from_date->format('Y'));
+            $balance = $this->balances->balance($request->employee, $request->leaveType, $this->leaveYear->yearFor($request->from_date->format('Y-m-d')));
             if ($request->status === RequestStatus::Pending) {
                 $balance->decrement('pending', $request->days);
             } else {

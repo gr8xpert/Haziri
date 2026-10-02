@@ -38,3 +38,4 @@ __pycache__/
 agent/*.sqlite
 agent/*.log
 agent/agent.yaml
+/storage/tenant*/

@@ -34,16 +34,16 @@ final class GenerateMonthlyNarrative implements ShouldQueue
 
         $facts = json_encode([
             'company' => tenant('company_name'),
-            'month' => date('F Y', mktime(0, 0, 0, $period->month, 1, $period->year)),
+            'month' => $period->label(),
             'this_month' => self::compact($period->summary ?? []),
             'previous_month' => $previous ? self::compact($previous) : null,
         ], JSON_UNESCAPED_UNICODE);
 
         $result = $ai->ask('narrative', 'monthly narrative ' . $period->year . '-' . $period->month,
-            "You write a monthly attendance summary for a company owner in Pakistan. Use only the numbers given. "
-            . "200–300 words, plain language, no headings or bullet lists. Cover the attendance rate, the most frequent late arrivals, "
-            . "absence patterns, leave usage, overtime, and the change from the previous month when it is given. "
-            . "Also give a faithful Urdu version.",
+            'You write a monthly attendance summary for a company owner in Pakistan. Use only the numbers given. '
+            . '200–300 words, plain language, no headings or bullet lists. Cover the attendance rate, the most frequent late arrivals, '
+            . 'absence patterns, leave usage, overtime, and the change from the previous month when it is given. '
+            . 'Also give a faithful Urdu version.',
             [['type' => 'text', 'text' => $facts]],
             ['type' => 'object', 'properties' => ['en' => ['type' => 'string'], 'ur' => ['type' => 'string']],
                 'required' => ['en', 'ur'], 'additionalProperties' => false],

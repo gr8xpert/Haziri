@@ -23,6 +23,8 @@ class Employee extends Model
 
     protected $hidden = ['kiosk_pin'];
 
+    protected $attributes = ['leave_credit' => true];
+
     protected function casts(): array
     {
         return [
@@ -36,6 +38,7 @@ class Employee extends Model
             'dob' => 'date:Y-m-d',
             'overtime_eligible' => 'boolean',
             'late_deduction_exempt' => 'boolean',
+            'leave_credit' => 'boolean',
             'custom_fields' => 'array',
             'kiosk_pin' => 'hashed',
         ];
@@ -64,6 +67,21 @@ class Employee extends Model
     public function designation(): BelongsTo
     {
         return $this->belongsTo(Designation::class);
+    }
+
+    public function grade(): BelongsTo
+    {
+        return $this->belongsTo(Grade::class);
+    }
+
+    public function contractor(): BelongsTo
+    {
+        return $this->belongsTo(Contractor::class);
+    }
+
+    public function separationReason(): BelongsTo
+    {
+        return $this->belongsTo(SeparationReason::class);
     }
 
     public function manager(): BelongsTo

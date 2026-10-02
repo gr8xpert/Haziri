@@ -7,17 +7,20 @@ namespace App\Filament\Tenant\Pages;
 use App\Filament\Tenant\NavigationGroup;
 use App\Jobs\RecomputeAttendanceRange;
 use App\Models\Employee;
+use App\Models\LeaveType;
 use App\Models\Setting;
+use App\Services\Attendance\Period\PayCycle;
 use App\Services\Settings\TenantSettings;
+use Carbon\CarbonImmutable;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Select;
-use Filament\Forms\Components\TagsInput;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\TimePicker;
 use Filament\Forms\Components\Toggle;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 
@@ -41,6 +44,7 @@ class CompanySettings extends Page
         'punch_search_window_after_min', 'auto_absent_after_days', 'store_punch_photos', 'photo_retention_days',
         'geofence_default_radius_m', 'allow_future_manual_punch', 'employee_can_see_others', 'daily_wage_paid_holidays',
         'leave_approval_chain', 'correction_approval_chain', 'daily_summary_at', 'absent_alert_at', 'quiet_hours', 'notify_employee_late',
+        'pay_cycle_start_day', 'leave_year_start_month', 'late_adjustment_mode', 'late_adjustment_leave_type',
     ];
 
     /** @var array<string, mixed> */
@@ -69,6 +73,13 @@ class CompanySettings extends Page
             ->dehydrateStateUsing(fn ($state) => explode(',', (string) $state));
 
         return $schema->statePath('data')->components([
+            Section::make(__('Pay month & leave year'))->columns(3)->schema([
+                TextInput::make('pay_cycle_start_day')->label('Attendance month starts on day')->numeric()->integer()->minValue(1)->maxValue(28)
+                    ->required()->helperText('1 = calendar month. 21 = the June month runs 21 May → 20 June.'),
+                Select::make('leave_year_start_month')->label('Leave year starts in')->required()
+                    ->options(collect(range(1, 12))->mapWithKeys(fn (int $m) => [$m => date('F', mktime(0, 0, 0, $m, 1))])->all())
+                    ->helperText('October = leave year Oct → Sep (financial year).'),
+            ]),
             Section::make(__('Punches'))->columns(3)->schema([
                 $int('dedupe_window_sec', 'Double-tap window', 'sec'),
                 Toggle::make('trust_device_direction')->label('Trust In/Out keys on machines')->inline(false),
@@ -87,6 +98,12 @@ class CompanySettings extends Page
                 TextInput::make('unpaid_leave_deduction_days')->numeric()->minValue(0)->label('Unpaid leave deducts (days)'),
                 $int('auto_absent_after_days', 'Mark absent after (days)'),
                 Toggle::make('daily_wage_paid_holidays')->label('Pay daily-wage staff for holidays')->inline(false),
+                Select::make('late_adjustment_mode')->label('Late roll-ups & half days are deducted from')->required()
+                    ->options(['salary' => 'Salary', 'leave' => 'Leave balance (then salary when it runs out)'])->live(),
+                Select::make('late_adjustment_leave_type')->label('Leave type charged')
+                    ->options(fn () => LeaveType::query()->where('is_active', true)->where('is_paid', true)->pluck('name', 'code')->all())
+                    ->visible(fn (Get $get) => $get('late_adjustment_mode') === 'leave')
+                    ->required(fn (Get $get) => $get('late_adjustment_mode') === 'leave'),
                 Toggle::make('overtime_enabled')->inline(false),
                 $int('overtime_rounding_min', 'Round overtime down to', 'min'),
             ]),
@@ -124,7 +141,9 @@ class CompanySettings extends Page
                 ->visible(fn () => auth()->user()->can('attendance.recompute'))
                 ->requiresConfirmation()
                 ->action(function () {
-                    RecomputeAttendanceRange::dispatchChunked(Employee::pluck('id')->all(), now()->startOfMonth()->format('Y-m-d'), now()->format('Y-m-d'));
+                    $today = CarbonImmutable::now(tenant('timezone') ?? config('hazri.default_timezone'))->format('Y-m-d');
+                    [$y, $m] = app(PayCycle::class)->periodFor($today);
+                    RecomputeAttendanceRange::dispatchChunked(Employee::pluck('id')->all(), app(PayCycle::class)->dates($y, $m)[0], $today);
                     Notification::make()->success()->title(__('Recompute queued'))->send();
                 }),
         ];

@@ -4,14 +4,10 @@ declare(strict_types=1);
 
 namespace App\Reports;
 
-use App\Enums\AttendanceStatus;
-use App\Enums\EmploymentType;
 use App\Models\AttendanceDay;
 use App\Models\LeaveRequest;
 use App\Services\Attendance\Period\PeriodCalculator;
-use App\Services\Attendance\Period\PeriodRules;
-use App\Services\Settings\TenantSettings;
-use Carbon\CarbonImmutable;
+use App\Services\Attendance\Period\PeriodRulesFactory;
 use Carbon\CarbonPeriod;
 use Filament\Forms\Components\TextInput;
 
@@ -30,12 +26,12 @@ final class MonthlySheetReport extends Report
 
     public function defaults(): array
     {
-        return ['month' => CarbonImmutable::now($this->tz())->format('Y-m')];
+        return ['month' => $this->currentCycleMonth()];
     }
 
     public function subtitle(array $filters): string
     {
-        return CarbonImmutable::parse($filters['month'] . '-01')->format('F Y');
+        return $this->cycleLabel($filters['month']);
     }
 
     public function paper(): string
@@ -50,7 +46,8 @@ final class MonthlySheetReport extends Report
             $cols['d' . $d->format('j')] = $d->format('j');
         }
 
-        return $cols + ['P' => 'P', 'A' => 'A', 'HD' => 'HD', 'LV' => 'LV', 'UL' => 'UL', 'L' => 'Late', 'ded' => 'Ded.', 'pay' => 'Payable'];
+        return $cols + ['P' => 'P', 'A' => 'A', 'HD' => 'HD', 'LV' => 'LV', 'UL' => 'UL', 'EX' => 'EX', 'L' => 'Late',
+            'adj' => 'Leave adj.', 'ded' => 'Ded.', 'pay' => 'Payable'];
     }
 
     public function rows(array $filters): array
@@ -64,7 +61,7 @@ final class MonthlySheetReport extends Report
             ->whereBetween('date', [$from, $to])->get()->groupBy('employee_id');
         $leaveCodes = LeaveRequest::query()->with('leaveType')->whereIn('id', $days->flatten()->pluck('leave_request_id')->filter()->unique())
             ->get()->mapWithKeys(fn (LeaveRequest $l) => [$l->id => $l->leaveType?->code ?? 'LV'])->all();
-        $settings = app(TenantSettings::class)->all();
+        $rules = app(PeriodRulesFactory::class);
         $calculator = new PeriodCalculator;
 
         $rows = [];
@@ -76,7 +73,7 @@ final class MonthlySheetReport extends Report
             }
             $summary = $calculator->summarise(
                 $own->map(fn (AttendanceDay $d) => $d->toResult())->values(),
-                PeriodRules::fromSettings($settings, $e->late_deduction_exempt, $e->employment_type === EmploymentType::DailyWage),
+                $rules->forEmployee($e, $to),
             );
             $rows[] = $row + [
                 'P' => $summary->presentDays + $summary->officialDutyDays + $summary->wfhDays,
@@ -84,7 +81,9 @@ final class MonthlySheetReport extends Report
                 'HD' => $summary->halfDays,
                 'LV' => $summary->paidLeaveDays,
                 'UL' => $summary->unpaidLeaveDays,
+                'EX' => $summary->exemptedDays,
                 'L' => $summary->lateCount,
+                'adj' => $summary->leaveAdjustedDays ?: null,
                 'ded' => $summary->deductionDays,
                 'pay' => $summary->payableDays,
             ];
@@ -100,8 +99,8 @@ final class MonthlySheetReport extends Report
 
     private function period(array $filters): CarbonPeriod
     {
-        $start = CarbonImmutable::parse(($filters['month'] ?? now()->format('Y-m')) . '-01');
+        [$start, $end] = $this->cycleRange($filters['month'] ?? $this->currentCycleMonth());
 
-        return CarbonPeriod::create($start, $start->endOfMonth()->startOfDay());
+        return CarbonPeriod::create($start, $end);
     }
 }

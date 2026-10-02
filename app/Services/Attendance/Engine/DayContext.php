@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Attendance\Engine;
 
 use App\Enums\AttendanceStatus;
+use App\Enums\ExemptionType;
 use Carbon\CarbonImmutable;
 
 /**
@@ -33,5 +34,7 @@ final readonly class DayContext
         public ?AttendanceStatus $manualOverride = null,
         public bool $overtimeEligible = false,
         public EngineSettings $settings = new EngineSettings,
+        /** Company-wide exemption covering this employee on this date. */
+        public ?ExemptionType $exemption = null,
     ) {}
 }

@@ -24,7 +24,7 @@ class ListPayrollRuns extends ListRecords
                 ->schema([
                     Select::make('period_id')->label(__('Locked month'))->required()
                         ->options(fn () => AttendancePeriod::where('status', PeriodStatus::Locked)->orderByDesc('year')->orderByDesc('month')->get()
-                            ->mapWithKeys(fn (AttendancePeriod $p) => [$p->id => date('F Y', mktime(0, 0, 0, $p->month, 1, $p->year))])),
+                            ->mapWithKeys(fn (AttendancePeriod $p) => [$p->id => $p->label()])),
                 ])
                 ->action(fn (array $data, PayrollActions $a) => PayrollRunResource::run(
                     fn () => $a->generate(AttendancePeriod::findOrFail($data['period_id']), auth()->user()), 'Payroll calculated (draft)')),

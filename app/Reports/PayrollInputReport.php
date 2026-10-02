@@ -4,13 +4,11 @@ declare(strict_types=1);
 
 namespace App\Reports;
 
-use App\Enums\EmploymentType;
 use App\Enums\PeriodStatus;
 use App\Models\AttendanceDay;
 use App\Models\AttendancePeriod;
 use App\Services\Attendance\Period\PeriodCalculator;
-use App\Services\Attendance\Period\PeriodRules;
-use App\Services\Settings\TenantSettings;
+use App\Services\Attendance\Period\PeriodRulesFactory;
 use Carbon\CarbonImmutable;
 use Filament\Forms\Components\TextInput;
 
@@ -32,7 +30,7 @@ final class PayrollInputReport extends Report
 
     public function defaults(): array
     {
-        return ['month' => CarbonImmutable::now($this->tz())->subMonth()->format('Y-m')];
+        return ['month' => CarbonImmutable::parse($this->currentCycleMonth() . '-01')->subMonth()->format('Y-m')];
     }
 
     public function subtitle(array $filters): string
@@ -40,7 +38,7 @@ final class PayrollInputReport extends Report
         [$y, $m] = array_map('intval', explode('-', $filters['month']));
         $locked = AttendancePeriod::where(['year' => $y, 'month' => $m, 'status' => PeriodStatus::Locked])->exists();
 
-        return CarbonImmutable::create($y, $m, 1)->format('F Y') . ($locked ? ' · ' . __('locked') : ' · ' . __('NOT locked — provisional'));
+        return $this->cycleLabel($filters['month']) . ($locked ? ' · ' . __('locked') : ' · ' . __('NOT locked — provisional'));
     }
 
     public function paper(): string
@@ -52,7 +50,7 @@ final class PayrollInputReport extends Report
     {
         return ['code' => 'Code', 'name' => 'Name', 'calendar' => 'Calendar days', 'present' => 'Present', 'absent' => 'Absent',
             'half' => 'Half days', 'unpaid' => 'Unpaid leave', 'lates' => 'Lates', 'late_rollup' => 'Late deduction',
-            'deduction' => 'Deduction days', 'payable' => 'Payable days', 'ot_hours' => 'OT hours'];
+            'leave_adjusted' => 'Charged to leave', 'deduction' => 'Deduction days', 'payable' => 'Payable days', 'ot_hours' => 'OT hours'];
     }
 
     public function rows(array $filters): array
@@ -61,10 +59,10 @@ final class PayrollInputReport extends Report
         $employees = $this->employees($filters)->get();
         $snapshot = AttendancePeriod::where(['year' => $y, 'month' => $m, 'status' => PeriodStatus::Locked])->value('summary');
 
-        $start = CarbonImmutable::create($y, $m, 1);
+        [$start, $end] = $this->cycleRange($filters['month']);
         $days = $snapshot ? collect() : AttendanceDay::query()->whereIn('employee_id', $employees->pluck('id'))
-            ->whereBetween('date', [$start->format('Y-m-d'), $start->endOfMonth()->format('Y-m-d')])->get()->groupBy('employee_id');
-        $settings = app(TenantSettings::class)->all();
+            ->whereBetween('date', [$start->format('Y-m-d'), $end->format('Y-m-d')])->get()->groupBy('employee_id');
+        $rules = app(PeriodRulesFactory::class);
 
         $rows = [];
         foreach ($employees as $e) {
@@ -72,7 +70,7 @@ final class PayrollInputReport extends Report
             if ($s === null && ! $snapshot) {
                 $s = (new PeriodCalculator)->summarise(
                     $days->get($e->id, collect())->map(fn (AttendanceDay $d) => $d->toResult()),
-                    PeriodRules::fromSettings($settings, $e->late_deduction_exempt, $e->employment_type === EmploymentType::DailyWage),
+                    $rules->forEmployee($e, $end->format('Y-m-d')),
                 )->toArray();
             }
             if ($s === null) {
@@ -81,7 +79,7 @@ final class PayrollInputReport extends Report
             $rows[] = [
                 'code' => $e->code, 'name' => $e->fullName(), 'calendar' => $s['calendarDays'], 'present' => $s['presentDays'],
                 'absent' => $s['absentDays'], 'half' => $s['halfDays'], 'unpaid' => $s['unpaidLeaveDays'], 'lates' => $s['lateCount'],
-                'late_rollup' => $s['lateRollupDays'], 'deduction' => $s['deductionDays'], 'payable' => $s['payableDays'],
+                'late_rollup' => $s['lateRollupDays'], 'leave_adjusted' => $s['leaveAdjustedDays'] ?? 0, 'deduction' => $s['deductionDays'], 'payable' => $s['payableDays'],
                 'ot_hours' => round($s['overtimeMinutes'] / 60, 1),
             ];
         }

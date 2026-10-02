@@ -31,11 +31,17 @@ Each rule is covered by a test in `tests/Unit/StatusEngine/`.
 | Half-day leave | First-half leave skips the late check; second-half leave skips the early-out check. With no punches → `HALF_DAY_LEAVE` + `missing_in`, and the period rollup deducts 0.5. |
 | Late / early on non-working days | Not computed (holiday, weekly off, full leave). |
 | Manual override | Replaces the status and adds the flag `manual_override`; the computed numbers are kept. |
+| Exemptions | A company / branch / department exemption for a date (`attendance_exemptions`). **Late**: no late flag, no late minutes, so no half day by lateness. **Absent** (whole day): also no half day by short hours, and a working day with no punches becomes `EXEMPTED` (paid) instead of `ABSENT`. Both add the flag `exempted`. Holidays, weekly offs and leave still win. |
 
 ## Period rollup (`PeriodCalculator`)
 
 - Calendar days exclude `NOT_JOINED`, `LEFT` and pending days.
 - Deduction days = absent × `absent_deduction_days` + unpaid leave × `unpaid_leave_deduction_days`
   + half days × `half_day_counts_as` + unworked half-day leave × 0.5 + ⌊lates ÷ `lates_per_absent`⌋.
-- Daily wage payable = present + OD + WFH + half days × (1 − `half_day_counts_as`) + worked half-day leaves × 0.5
+- Daily wage payable = present + OD + WFH + exempted + half days × (1 − `half_day_counts_as`) + worked half-day leaves × 0.5
   (+ holidays when `daily_wage_paid_holidays`). The late rollup is not applied to daily wage.
+- "Leave adjustment" mode (`late_adjustment_mode` = `leave`): the late roll-up and half-day days are charged to the
+  `late_adjustment_leave_type` balance (rounded down to 0.5) instead of salary; whatever the balance cannot cover stays a
+  salary deduction (unlimited when the type allows a negative balance). Not for daily wage or late-exempt staff. Locking
+  the month writes the charge as a leave adjustment; unlocking reverses it.
+- The "month" is the pay cycle: with `pay_cycle_start_day` = 21, period June runs 21 May → 20 June.

@@ -4,17 +4,25 @@ declare(strict_types=1);
 
 namespace App\Filament\Tenant\Pages;
 
+use App\Actions\Rosters\GenerateMonthlyRoster;
 use App\Enums\EmployeeStatus;
 use App\Filament\Tenant\NavigationGroup;
 use App\Models\Branch;
+use App\Models\Department;
 use App\Models\Employee;
 use App\Models\Shift;
 use App\Models\ShiftAssignment;
+use App\Services\Attendance\Period\PayCycle;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonPeriod;
+use Filament\Actions\Action;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Support\Icons\Heroicon;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -67,8 +75,8 @@ class Roster extends Page
         return array_map(fn ($d) => $d->format('Y-m-d'), iterator_to_array(CarbonPeriod::create($this->weekStart, 7)));
     }
 
-    /** @return \Illuminate\Support\Collection<int, Employee> */
-    public function getEmployees(): \Illuminate\Support\Collection
+    /** @return Collection<int, Employee> */
+    public function getEmployees(): Collection
     {
         return Employee::query()->where('status', '!=', EmployeeStatus::Left)
             ->when($this->branchId, fn ($q) => $q->where('branch_id', $this->branchId))->orderBy('code')->get();
@@ -132,7 +140,42 @@ class Roster extends Page
         Notification::make()->info()->title(__('Copied — review and publish'))->send();
     }
 
-    private function dayAssignments(string $from, string $to): \Illuminate\Support\Collection
+    protected function getHeaderActions(): array
+    {
+        return [
+            Action::make('generateMonth')->label(__('Generate monthly roster'))->icon(Heroicon::OutlinedCalendarDays)
+                ->modalDescription(__('Puts the chosen employees on one shift for the whole month. Day cells below still win.'))
+                ->schema([
+                    TextInput::make('month')->type('month')->required()->default(function () {
+                        [$y, $m] = app(PayCycle::class)->periodFor(CarbonImmutable::now(tenant('timezone'))->format('Y-m-d'));
+
+                        return sprintf('%04d-%02d', $y, $m);
+                    }),
+                    Select::make('shift_id')->label(__('Shift'))->required()
+                        ->options(fn () => Shift::query()->orderBy('start_time')->get()->mapWithKeys(fn (Shift $s) => [$s->id => "{$s->code} — {$s->name}"])),
+                    Select::make('scope')->label(__('Roster for'))->required()->default('all')->live()
+                        ->options(['all' => __('All employees'), 'branch' => __('A branch'), 'department' => __('A department'), 'shift' => __('Everyone now on a shift')]),
+                    Select::make('scope_id')->label(__('Which one'))
+                        ->options(fn (Get $get) => match ($get('scope')) {
+                            'branch' => Branch::pluck('name', 'id'),
+                            'department' => Department::pluck('name', 'id'),
+                            'shift' => Shift::pluck('name', 'id'),
+                            default => [],
+                        })
+                        ->hidden(fn (Get $get) => $get('scope') === 'all')
+                        ->required(fn (Get $get) => $get('scope') !== 'all'),
+                ])
+                ->action(function (array $data, GenerateMonthlyRoster $generate) {
+                    [$y, $m] = array_map('intval', explode('-', (string) $data['month']));
+                    $n = $generate($y, $m, Shift::findOrFail($data['shift_id']), (string) $data['scope'],
+                        isset($data['scope_id']) ? (int) $data['scope_id'] : null, auth()->user());
+                    Notification::make()->success()->title(__(':n employees rostered for :month', ['n' => $n, 'month' => app(PayCycle::class)->label($y, $m)]))->send();
+                    $this->load();
+                }),
+        ];
+    }
+
+    private function dayAssignments(string $from, string $to): Collection
     {
         return ShiftAssignment::query()->whereColumn('effective_from', 'effective_to')
             ->whereBetween('effective_from', [$from, $to])->get();

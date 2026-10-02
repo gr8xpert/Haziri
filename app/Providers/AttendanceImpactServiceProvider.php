@@ -6,6 +6,7 @@ namespace App\Providers;
 
 use App\Enums\ShiftOverrideScope;
 use App\Models\AttendanceDay;
+use App\Models\AttendanceExemption;
 use App\Models\AttendanceMarker;
 use App\Models\Employee;
 use App\Models\Holiday;
@@ -65,6 +66,14 @@ final class AttendanceImpactServiceProvider extends ServiceProvider
         Punch::updated(fn (Punch $p) => $this->punchChanged($p));
         Punch::deleted(fn (Punch $p) => $this->punchChanged($p));
         Punch::restored(fn (Punch $p) => $this->punchChanged($p));
+
+        $this->on(AttendanceExemption::class, function (AttendanceExemption $x) {
+            // A moved scope affects the old group too, so recompute everyone then.
+            $ids = $x->wasChanged(['scope', 'scope_id']) ? null : $x->employeeIds();
+            foreach ($this->dates($x, 'date') as $date) {
+                AttendanceImpact::dispatch($ids, $date, $date);
+            }
+        });
 
         $this->on(AttendanceMarker::class, fn (AttendanceMarker $m) => AttendanceImpact::dispatch(
             [$m->employee_id], min($this->dates($m, 'date')), max($this->dates($m, 'date')),

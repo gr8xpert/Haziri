@@ -19,6 +19,7 @@ use App\Services\Notifications\Notifier;
 use App\Services\Notifications\Recipient;
 use App\Services\Payroll\PayslipCalculator;
 use App\Services\Settings\TenantSettings;
+use App\Services\Webhooks\Webhooks;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
@@ -42,8 +43,7 @@ final class PayrollActions
         $existing = PayrollRun::query()->where('period_id', $period->id)->first();
         $this->assert($existing?->status !== 'final', __('Payroll for this month is already final.'));
 
-        $start = CarbonImmutable::create($period->year, $period->month, 1);
-        $end = $start->endOfMonth();
+        [$start, $end] = array_map(fn (string $d) => CarbonImmutable::parse($d), $period->dates());
         $summaries = $period->summary['employees'] ?? [];
         $divisor = $this->settings->get('payroll_day_divisor', 'calendar');
 
@@ -69,7 +69,7 @@ final class PayrollActions
                     ->where('issued_on', '<=', $end->format('Y-m-d'))->where('remaining', '>', 0)->get()->all();
 
                 $slip = $this->calculator->calculate($structure, $summary, $employee->employment_type === EmploymentType::DailyWage,
-                    $start->daysInMonth, $divisor, (int) $ot->sum('overtime_min') - $holidayOt, $holidayOt, $advances);
+                    (int) $start->diffInDays($end) + 1, $divisor, (int) $ot->sum('overtime_min') - $holidayOt, $holidayOt, $advances);
 
                 Payslip::create(['payroll_run_id' => $run->id, 'employee_id' => $employee->id, 'lines' => $slip['lines'],
                     'gross' => $slip['gross'], 'deductions' => $slip['deductions'], 'net' => $slip['net']]);
@@ -90,7 +90,7 @@ final class PayrollActions
         $this->assert($run->status === 'draft', __('This payroll run is already final.'));
 
         DB::transaction(function () use ($run) {
-            $end = CarbonImmutable::create($run->period->year, $run->period->month, 1)->endOfMonth()->format('Y-m-d');
+            $end = $run->period->dates()[1];
             foreach ($run->payslips()->with('employee')->get() as $slip) {
                 foreach (Advance::query()->where('employee_id', $slip->employee_id)->where('status', 'active')
                     ->where('issued_on', '<=', $end)->where('remaining', '>', 0)->get() as $advance) {
@@ -101,7 +101,7 @@ final class PayrollActions
             }
             $run->update(['status' => 'final']);
         });
-        \App\Services\Webhooks\Webhooks::dispatch('payroll.generated', ['month' => $run->label(), 'totals' => $run->fresh()->totals]);
+        Webhooks::dispatch('payroll.generated', ['month' => $run->label(), 'totals' => $run->fresh()->totals]);
 
         foreach ($run->payslips()->with('employee')->get() as $slip) {
             $this->notifier->send('payslip_ready', [Recipient::fromEmployee($slip->employee)],

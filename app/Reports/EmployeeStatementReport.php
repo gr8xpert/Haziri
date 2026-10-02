@@ -4,14 +4,11 @@ declare(strict_types=1);
 
 namespace App\Reports;
 
-use App\Enums\EmploymentType;
 use App\Models\AttendanceDay;
 use App\Models\Employee;
 use App\Models\LeaveRequest;
 use App\Services\Attendance\Period\PeriodCalculator;
-use App\Services\Attendance\Period\PeriodRules;
-use App\Services\Settings\TenantSettings;
-use Carbon\CarbonImmutable;
+use App\Services\Attendance\Period\PeriodRulesFactory;
 use Carbon\CarbonPeriod;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -35,7 +32,7 @@ final class EmployeeStatementReport extends Report
 
     public function defaults(): array
     {
-        return ['month' => CarbonImmutable::now($this->tz())->format('Y-m')];
+        return ['month' => $this->currentCycleMonth()];
     }
 
     public function ready(array $filters): bool
@@ -47,12 +44,12 @@ final class EmployeeStatementReport extends Report
     {
         $e = isset($filters['employee_id']) ? Employee::find($filters['employee_id']) : null;
 
-        return trim(($e ? "{$e->code} — {$e->fullName()} · " : '') . CarbonImmutable::parse(($filters['month'] ?? now()->format('Y-m')) . '-01')->format('F Y'));
+        return trim(($e ? "{$e->code} — {$e->fullName()} · " : '') . $this->cycleLabel($filters['month'] ?? $this->currentCycleMonth()));
     }
 
     public function columns(array $filters): array
     {
-        return ['date' => 'Date', 'day' => 'Day', 'code' => 'Code', 'in' => 'In', 'out' => 'Out', 'worked' => 'Worked',
+        return ['date' => 'Date', 'day' => 'Day', 'shift' => 'Shift', 'code' => 'Code', 'in' => 'In', 'out' => 'Out', 'worked' => 'Worked',
             'late' => 'Late', 'early' => 'Early', 'ot' => 'OT', 'flags' => 'Notes'];
     }
 
@@ -65,20 +62,21 @@ final class EmployeeStatementReport extends Report
         if ($employee === null) {
             return [];
         }
-        $start = CarbonImmutable::parse($filters['month'] . '-01');
-        $days = AttendanceDay::query()->where('employee_id', $employee->id)
-            ->whereBetween('date', [$start->format('Y-m-d'), $start->endOfMonth()->format('Y-m-d')])->get()
+        [$start, $end] = $this->cycleRange($filters['month']);
+        $days = AttendanceDay::query()->with('shift')->where('employee_id', $employee->id)
+            ->whereBetween('date', [$start->format('Y-m-d'), $end->format('Y-m-d')])->get()
             ->keyBy(fn (AttendanceDay $d) => $d->date->format('Y-m-d'));
         $leaveCodes = LeaveRequest::with('leaveType')->whereIn('id', $days->pluck('leave_request_id')->filter())->get()
             ->mapWithKeys(fn ($l) => [$l->id => $l->leaveType?->code ?? 'LV'])->all();
         $tz = $this->tz();
 
         $rows = [];
-        foreach (CarbonPeriod::create($start, $start->endOfMonth()->startOfDay()) as $date) {
+        foreach (CarbonPeriod::create($start, $end) as $date) {
             $d = $days->get($date->format('Y-m-d'));
             $rows[] = [
                 'date' => $date->format('d M'),
                 'day' => $date->format('D'),
+                'shift' => $d?->shift ? $d->shift->code . ' ' . substr((string) $d->shift->start_time, 0, 5) . '–' . substr((string) $d->shift->end_time, 0, 5) : null,
                 'code' => StatusCodes::for($d, $leaveCodes),
                 'in' => $d?->first_in?->setTimezone($tz)->format('H:i'),
                 'out' => $d?->last_out?->setTimezone($tz)->format('H:i'),
@@ -99,19 +97,20 @@ final class EmployeeStatementReport extends Report
             return [];
         }
         $employee = Employee::find($filters['employee_id']);
-        $start = CarbonImmutable::parse($filters['month'] . '-01');
+        [$start, $end] = $this->cycleRange($filters['month']);
         $days = AttendanceDay::query()->where('employee_id', $employee->id)
-            ->whereBetween('date', [$start->format('Y-m-d'), $start->endOfMonth()->format('Y-m-d')])->get();
+            ->whereBetween('date', [$start->format('Y-m-d'), $end->format('Y-m-d')])->get();
         $s = (new PeriodCalculator)->summarise(
             $days->map(fn (AttendanceDay $d) => $d->toResult()),
-            PeriodRules::fromSettings(app(TenantSettings::class)->all(), $employee->late_deduction_exempt, $employee->employment_type === EmploymentType::DailyWage),
+            app(PeriodRulesFactory::class)->forEmployee($employee, $end->format('Y-m-d')),
         );
 
         return [
             'Present' => $s->presentDays, 'Half days' => $s->halfDays, 'Absent' => $s->absentDays, 'Paid leave' => $s->paidLeaveDays,
             'Unpaid leave' => $s->unpaidLeaveDays, 'Holidays' => $s->holidays, 'Weekly offs' => $s->weeklyOffs,
             'OD / WFH' => $s->officialDutyDays + $s->wfhDays, 'Lates' => $s->lateCount, 'Worked hours' => round($s->workedMinutes / 60, 1),
-            'Overtime hours' => round($s->overtimeMinutes / 60, 1), 'Deduction days' => $s->deductionDays, 'Payable days' => $s->payableDays,
+            'Overtime hours' => round($s->overtimeMinutes / 60, 1), 'Exempted' => $s->exemptedDays,
+            'Charged to leave' => $s->leaveAdjustedDays, 'Deduction days' => $s->deductionDays, 'Payable days' => $s->payableDays,
         ];
     }
 }

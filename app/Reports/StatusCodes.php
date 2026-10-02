@@ -35,7 +35,7 @@ final class StatusCodes
         return [
             'P' => 'Present', 'L' => 'Late', 'HD' => 'Half day', 'A' => 'Absent', 'WO' => 'Weekly off', 'H' => 'Holiday',
             'OD' => 'Official duty', 'WFH' => 'Work from home', 'LV/CL/SL/AL' => 'Paid leave', 'UL' => 'Unpaid leave',
-            'MO' => 'Missing out', '–' => 'Not joined / left',
+            'MO' => 'Missing out', 'EX' => 'Exempted', '–' => 'Not joined / left',
         ];
     }
 }

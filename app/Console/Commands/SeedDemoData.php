@@ -9,6 +9,7 @@ use App\Actions\Periods\PeriodActions;
 use App\Actions\Tenants\SetTenantFeatureFlags;
 use App\Enums\DevicePunchSourceType;
 use App\Enums\EmploymentType;
+use App\Enums\ExemptionType;
 use App\Enums\LeaveDayPart;
 use App\Enums\PunchSource;
 use App\Enums\PunchStatus;
@@ -16,13 +17,17 @@ use App\Enums\RequestStatus;
 use App\Enums\Role;
 use App\Models\Announcement;
 use App\Models\AttendanceCorrection;
+use App\Models\AttendanceExemption;
 use App\Models\Branch;
 use App\Models\Central\Tenant;
+use App\Models\Contractor;
 use App\Models\Department;
 use App\Models\Designation;
 use App\Models\Device;
 use App\Models\Employee;
+use App\Models\Grade;
 use App\Models\Kiosk;
+use App\Models\LeaveEntitlement;
 use App\Models\LeaveRequest;
 use App\Models\LeaveType;
 use App\Models\Punch;
@@ -32,6 +37,7 @@ use App\Models\UnmappedPin;
 use App\Models\User;
 use App\Services\Attendance\AttendanceRecomputer;
 use App\Services\Leave\LeaveBalanceService;
+use App\Services\Leave\LeaveYear;
 use App\Services\Settings\TenantSettings;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonPeriod;
@@ -81,6 +87,9 @@ final class SeedDemoData extends Command
         $depts = collect(['SAL' => 'Sales', 'ACC' => 'Accounts', 'OPS' => 'Operations', 'HRD' => 'HR'])
             ->map(fn ($name, $code) => Department::firstOrCreate(['code' => $code], ['name' => $name]))->values();
         $designations = collect(['Manager', 'Officer', 'Executive', 'Assistant'])->map(fn ($n) => Designation::firstOrCreate(['name' => $n]));
+        $officer = Grade::firstOrCreate(['code' => 'OFF'], ['name' => 'Officer']);
+        $worker = Grade::firstOrCreate(['code' => 'WRK'], ['name' => 'Worker']);
+        $contractor = Contractor::firstOrCreate(['code' => 'ANM'], ['name' => 'Al-Noor Manpower', 'phone' => '0321-5550101']);
 
         // 20 employees; the first of each department is its manager.
         $employees = collect();
@@ -91,9 +100,15 @@ final class SeedDemoData extends Command
                 'phone' => sprintf('0300%07d', 1000000 + $i), 'email' => strtolower($first) . '@demo.test',
                 'branch_id' => $i < 15 ? $lhr->id : $khi->id, 'department_id' => $dept->id,
                 'designation_id' => $designations[$i < 4 ? 0 : 1 + $i % 3]->id,
-                'employment_type' => $i === 19 ? EmploymentType::DailyWage : EmploymentType::Permanent,
+                'employment_type' => match (true) {
+                    $i === 19 => EmploymentType::DailyWage, $i >= 17 => EmploymentType::Contract, default => EmploymentType::Permanent
+                },
                 'joined_on' => '2025-01-15', 'overtime_eligible' => $i % 3 === 0, 'gender' => $i % 2 ? 'female' : 'male',
                 'dob' => sprintf('199%d-%02d-%02d', $i % 10, 1 + $i % 12, 1 + $i % 27),
+                'father_name' => self::FIRST[($i + 7) % count(self::FIRST)] . ' ' . self::LAST[$i % 10],
+                'address' => sprintf('House %d, Street %d', 10 + $i, 1 + $i % 9), 'city' => $i < 15 ? 'Lahore' : 'Karachi',
+                'payroll_id' => (string) (320001 + $i), 'grade_id' => $i < 12 ? $officer->id : $worker->id,
+                'contractor_id' => $i >= 17 && $i < 19 ? $contractor->id : null,
             ]));
         }
         foreach ($employees->slice(4) as $i => $e) {
@@ -153,12 +168,17 @@ final class SeedDemoData extends Command
 
         $cl = LeaveType::where('code', 'CL')->first();
         $sl = LeaveType::where('code', 'SL')->first();
+        LeaveEntitlement::firstOrCreate(['leave_type_id' => $cl->id, 'grade_id' => $officer->id, 'employment_type' => null], ['days_per_year' => 12]);
         $balances = app(LeaveBalanceService::class);
         foreach ($employees as $e) {
             foreach ([$cl, $sl] as $t) {
-                $balances->balance($e, $t, $today->year);
+                $balances->balance($e, $t, app(LeaveYear::class)->current());
             }
         }
+        // A rainy morning last month: nobody is marked late that day.
+        $rainy = $start->addDays(6)->dayOfWeek === 0 ? $start->addDays(7) : $start->addDays(6);
+        AttendanceExemption::firstOrCreate(['date' => $rainy->format('Y-m-d'), 'type' => ExemptionType::Late],
+            ['reason' => 'Heavy rain — roads flooded', 'scope' => 'tenant']);
         $leaveDay = $today->subMonthNoOverflow()->startOfMonth()->addDays(9);
         LeaveRequest::firstOrCreate(['employee_id' => $employees[5]->id, 'from_date' => $leaveDay->format('Y-m-d')], [
             'leave_type_id' => $cl->id, 'to_date' => $leaveDay->format('Y-m-d'), 'days' => 1, 'status' => RequestStatus::Approved,

@@ -11,11 +11,13 @@ use App\Events\DeviceWentOffline;
 use App\Events\LeaveDecided;
 use App\Events\LeaveRequested;
 use App\Events\PeriodLocked;
+use App\Jobs\GenerateMonthlyNarrative;
 use App\Models\AttendanceCorrection;
 use App\Models\LeaveRequest;
 use App\Services\Notifications\Notifier;
 use App\Services\Notifications\Recipient;
 use App\Services\Notifications\Recipients;
+use App\Services\Webhooks\Webhooks;
 use Illuminate\Events\Dispatcher;
 
 /** Domain events → notifications (spec §11). */
@@ -36,7 +38,7 @@ final class NotificationSubscriber
 
             return;
         }
-        \App\Services\Webhooks\Webhooks::dispatch('leave.decided', [
+        Webhooks::dispatch('leave.decided', [
             'id' => $r->id, 'employee' => $r->employee?->code, 'type' => $r->leaveType?->code, 'status' => $r->status->value,
             'from' => $r->from_date->format('Y-m-d'), 'to' => $r->to_date->format('Y-m-d'), 'days' => $r->days,
         ]);
@@ -72,13 +74,13 @@ final class NotificationSubscriber
 
     public function periodLocked(PeriodLocked $e): void
     {
-        \App\Jobs\GenerateMonthlyNarrative::dispatch($e->period->id); // spec §12.2 (no-op when AI is off)
-        \App\Services\Webhooks\Webhooks::dispatch('period.locked', [
+        GenerateMonthlyNarrative::dispatch($e->period->id); // spec §12.2 (no-op when AI is off)
+        Webhooks::dispatch('period.locked', [
             'year' => $e->period->year, 'month' => $e->period->month, 'totals' => $e->period->summary['totals'] ?? [],
         ]);
         $p = $e->period;
         $this->notifier->send('period_locked', Recipients::withRoles(Role::Owner), [
-            'month' => date('F Y', mktime(0, 0, 0, $p->month, 1, $p->year)),
+            'month' => $p->label(),
             'by' => $e->by->name,
             'deduction_days' => $p->summary['totals']['deduction_days'] ?? 0,
         ]);

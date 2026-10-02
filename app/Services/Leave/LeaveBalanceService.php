@@ -7,15 +7,19 @@ namespace App\Services\Leave;
 use App\Enums\EmployeeStatus;
 use App\Models\Employee;
 use App\Models\LeaveBalance;
+use App\Models\LeaveEntitlement;
 use App\Models\LeaveType;
 use Carbon\CarbonImmutable;
 
 /**
  * Leave balances (spec §5.6, §9 phase 2): yearly_upfront (prorated for joiners in that year) or monthly accrual,
- * carry-forward capped by carry_forward_max at year start.
+ * carry-forward capped by carry_forward_max at year start. "Year" is the tenant's leave year (see LeaveYear);
+ * the yearly quota comes from a grade / employment-type entitlement when one matches.
  */
 final class LeaveBalanceService
 {
+    public function __construct(private readonly LeaveYear $leaveYear) {}
+
     public function balance(Employee $employee, LeaveType $type, int $year): LeaveBalance
     {
         $balance = LeaveBalance::query()->firstOrNew([
@@ -30,32 +34,48 @@ final class LeaveBalanceService
         return $balance;
     }
 
-    /** Entitlement earned so far in $year. */
+    /** Entitlement earned so far in leave year $year. */
     public function accrued(Employee $employee, LeaveType $type, int $year, ?CarbonImmutable $asOf = null): float
     {
-        $quota = (float) $type->annual_quota_days;
-        if ($quota <= 0) {
+        $quota = $this->entitlement($employee, $type);
+        if ($quota <= 0 || ! $employee->leave_credit) {
             return 0.0;
         }
-        $joined = $employee->joined_on ? CarbonImmutable::parse($employee->joined_on->format('Y-m-d')) : null;
-        $firstMonth = ($joined && $joined->year === $year) ? $joined->month : ($joined && $joined->year > $year ? 13 : 1);
+        // Month index inside the leave year (0 = first month) from which the employee earns leave.
+        $firstMonth = $employee->joined_on ? max(0, $this->leaveYear->monthIndex($year, $employee->joined_on->format('Y-m-d'))) : 0;
+        if ($firstMonth > 11) {
+            return 0.0;
+        }
 
         if ($type->accrual === 'monthly') {
             $asOf ??= CarbonImmutable::now(tenant('timezone') ?? config('hazri.default_timezone'));
-            $lastMonth = $asOf->year > $year ? 12 : ($asOf->year < $year ? 0 : $asOf->month);
+            $lastMonth = min(11, $this->leaveYear->monthIndex($year, $asOf->format('Y-m-d')));
             $months = max(0, $lastMonth - $firstMonth + 1);
         } else {
-            $months = max(0, 12 - $firstMonth + 1);
+            $months = 12 - $firstMonth;
         }
 
         return self::roundHalf($quota * $months / 12);
     }
 
-    /** Monthly job: refresh accrued for monthly-accrual types (idempotent). */
+    /** Days per leave year: the most specific grade / employment-type entitlement, else the leave type's quota. */
+    public function entitlement(Employee $employee, LeaveType $type): float
+    {
+        $match = LeaveEntitlement::query()->where('leave_type_id', $type->id)
+            ->where(fn ($q) => $q->whereNull('grade_id')->orWhere('grade_id', $employee->grade_id))
+            ->where(fn ($q) => $q->whereNull('employment_type')->orWhere('employment_type', $employee->employment_type?->value))
+            ->get()
+            ->sortByDesc(fn (LeaveEntitlement $e) => ($e->grade_id !== null ? 2 : 0) + ($e->employment_type !== null ? 1 : 0))
+            ->first();
+
+        return $match !== null ? $match->days_per_year : (float) $type->annual_quota_days;
+    }
+
+    /** Monthly job: refresh accrued for every active type (idempotent; also applies entitlement changes). */
     public function accrueAll(int $year): int
     {
         $n = 0;
-        foreach (LeaveType::query()->where('is_active', true)->where('accrual', 'monthly')->get() as $type) {
+        foreach (LeaveType::query()->where('is_active', true)->get() as $type) {
             foreach (Employee::query()->where('status', '!=', EmployeeStatus::Left)->get() as $employee) {
                 $balance = $this->balance($employee, $type, $year);
                 $balance->update(['accrued' => $this->accrued($employee, $type, $year)]);
@@ -73,7 +93,9 @@ final class LeaveBalanceService
         foreach (LeaveType::query()->where('is_active', true)->get() as $type) {
             foreach (Employee::query()->where('status', '!=', EmployeeStatus::Left)->get() as $employee) {
                 $previous = LeaveBalance::query()->where(['employee_id' => $employee->id, 'leave_type_id' => $type->id, 'year' => $year - 1])->first();
-                $carry = $previous ? min(max(0.0, $previous->remaining()), (float) $type->carry_forward_max) : 0.0;
+                $carry = $previous ? min($previous->remaining(), (float) $type->carry_forward_max) : 0.0;
+                // An overdrawn balance follows the employee into the new year only where negatives are allowed.
+                $carry = $type->allow_negative_balance ? $carry : max(0.0, $carry);
                 $balance = $this->balance($employee, $type, $year);
                 $balance->update(['opening' => $carry]);
                 $n++;

@@ -7,7 +7,7 @@ namespace App\Reports;
 use Carbon\CarbonImmutable;
 use Filament\Forms\Components\DatePicker;
 
-/** Base for reports filtered by from/to (+ branch/department). Defaults to month-to-date. */
+/** Base for reports filtered by from/to (+ branch/department). Defaults to the pay-cycle month to date. */
 abstract class DateRangeReport extends Report
 {
     public function filterSchema(): array
@@ -19,7 +19,7 @@ abstract class DateRangeReport extends Report
     {
         $now = CarbonImmutable::now($this->tz());
 
-        return ['from' => $now->startOfMonth()->format('Y-m-d'), 'to' => $now->format('Y-m-d')];
+        return ['from' => $this->cycleRange($this->currentCycleMonth())[0]->format('Y-m-d'), 'to' => $now->format('Y-m-d')];
     }
 
     public function subtitle(array $filters): string

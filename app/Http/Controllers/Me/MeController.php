@@ -12,12 +12,13 @@ use App\Enums\LeaveDayPart;
 use App\Enums\PunchDirection;
 use App\Enums\RequestStatus;
 use App\Models\Announcement;
+use App\Models\AnnouncementAck;
 use App\Models\AttendanceDay;
-use App\Models\LeaveBalance;
 use App\Models\LeaveRequest;
 use App\Models\LeaveType;
 use App\Reports\StatusCodes;
 use App\Services\Leave\LeaveBalanceService;
+use App\Services\Leave\LeaveYear;
 use App\Services\SelfService\QrBadge;
 use App\Services\Settings\TenantSettings;
 use Carbon\CarbonImmutable;
@@ -67,7 +68,7 @@ final class MeController
         }
         $today = $days->get(CarbonImmutable::now($tz)->format('Y-m-d'));
 
-        $year = (int) $start->format('Y');
+        $year = app(LeaveYear::class)->current();
         $leaveBalances = LeaveType::where('is_active', true)->get()->map(fn (LeaveType $t) => [
             'code' => $t->code, 'name' => $t->name, 'remaining' => $balances->balance($employee, $t, $year)->remaining(),
         ]);
@@ -149,7 +150,7 @@ final class MeController
     {
         $employee = $request->user()->employee;
         abort_unless($announcement->isFor($employee), 404);
-        \App\Models\AnnouncementAck::query()->firstOrCreate(
+        AnnouncementAck::query()->firstOrCreate(
             ['announcement_id' => $announcement->id, 'employee_id' => $employee->id], ['acked_at' => now()],
         );
 

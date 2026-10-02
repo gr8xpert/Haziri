@@ -29,7 +29,11 @@ return [
     'settings_defaults' => [
         'dedupe_window_sec' => 60,
         'trust_device_direction' => false,
+        'pay_cycle_start_day' => 1,          // 21 → the month runs 21st → 20th
+        'leave_year_start_month' => 1,       // 10 → leave year Oct → Sep
         'lates_per_absent' => 3,
+        'late_adjustment_mode' => 'salary',  // salary|leave — where late roll-ups and half days are deducted
+        'late_adjustment_leave_type' => null, // leave type code charged in "leave" mode
         'late_count_resets' => 'monthly',
         'half_day_counts_as' => 0.5,
         'absent_deduction_days' => 1,

@@ -11,6 +11,7 @@ use App\Filament\Concerns\AuthorizesByPermission;
 use App\Filament\Tenant\NavigationGroup;
 use App\Models\Branch;
 use App\Models\Employee;
+use App\Models\SeparationReason;
 use App\Models\Shift;
 use App\Models\ShiftAssignment;
 use Filament\Actions\BulkAction;
@@ -19,11 +20,13 @@ use Filament\Actions\EditAction;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
@@ -57,29 +60,45 @@ class EmployeeResource extends Resource
         return $schema->columns(3)->components([
             Section::make(__('Personal'))->columnSpan(2)->columns(2)->schema([
                 TextInput::make('code')->required()->maxLength(30)->unique(ignoreRecord: true),
+                TextInput::make('payroll_id')->label('Payroll ID')->maxLength(30),
                 TextInput::make('first_name')->required()->maxLength(100),
                 TextInput::make('last_name')->maxLength(100),
+                TextInput::make('father_name')->label("Father's / husband's name")->maxLength(255),
                 TextInput::make('cnic')->label('CNIC')->regex('/^\d{13}$/')->helperText('13 digits, no dashes')
                     ->unique(ignoreRecord: true)->dehydrateStateUsing(fn (?string $s) => $s ? preg_replace('/\D/', '', $s) : null),
-                TextInput::make('phone')->tel()->maxLength(20),
-                TextInput::make('email')->email()->maxLength(255),
                 Select::make('gender')->options(['male' => 'Male', 'female' => 'Female', 'other' => 'Other']),
                 DatePicker::make('dob')->label('Date of birth')->maxDate(now()),
+                Textarea::make('address')->rows(2)->maxLength(1000),
+                TextInput::make('city')->maxLength(100),
             ]),
             Section::make(__('Photo'))->columnSpan(1)->schema([
                 FileUpload::make('photo_path')->image()->avatar()->directory('employee-photos')->label(''),
             ]),
+            Section::make(__('Contact'))->columnSpan(1)->schema([
+                TextInput::make('phone')->label('Cell phone')->tel()->maxLength(20),
+                TextInput::make('home_phone')->tel()->maxLength(20),
+                TextInput::make('email')->email()->maxLength(255),
+                TextInput::make('emergency_contact')->maxLength(255)->placeholder('Name, relation, phone'),
+            ]),
             Section::make(__('Employment'))->columnSpan(2)->columns(2)->schema([
-                Select::make('branch_id')->relationship('branch', 'name')->searchable()->preload(),
+                Select::make('branch_id')->label('Location / branch')->relationship('branch', 'name')->searchable()->preload(),
                 Select::make('department_id')->relationship('department', 'name')->searchable()->preload(),
                 Select::make('designation_id')->relationship('designation', 'name')->searchable()->preload(),
+                Select::make('grade_id')->relationship('grade', 'name')->searchable()->preload(),
+                Select::make('contractor_id')->relationship('contractor', 'name')->searchable()->preload()
+                    ->helperText('For contract staff supplied by a contractor'),
                 Select::make('manager_employee_id')->relationship('manager', 'first_name')->searchable()->label('Manager'),
                 Select::make('employment_type')->options(EmploymentType::class)->default(EmploymentType::Permanent)->required(),
                 Select::make('status')->options(EmployeeStatus::class)->default(EmployeeStatus::Active)->required(),
                 DatePicker::make('joined_on')->required(),
                 DatePicker::make('probation_ends_on'),
                 DatePicker::make('contract_ends_on'),
-                DatePicker::make('left_on')->afterOrEqual('joined_on'),
+                DatePicker::make('left_on')->afterOrEqual('joined_on')->live(),
+                Select::make('separation_reason_id')->label('Leaving reason')->relationship('separationReason', 'name')
+                    ->visible(fn (Get $get) => filled($get('left_on'))),
+                TextInput::make('office_phone')->tel()->maxLength(20),
+                TextInput::make('office_ext')->label('Office ext.')->maxLength(10),
+                TextInput::make('official_mobile')->tel()->maxLength(20),
             ]),
             Section::make(__('Attendance'))->columnSpan(1)->schema([
                 TextInput::make('device_pin')->label('Machine PIN')->maxLength(20)->unique(ignoreRecord: true)
@@ -89,7 +108,8 @@ class EmployeeResource extends Resource
                     ->dehydrated(fn (?string $s) => filled($s)),
                 Select::make('work_mode')->options(WorkMode::class)->default(WorkMode::Office)->required(),
                 Toggle::make('overtime_eligible'),
-                Toggle::make('late_deduction_exempt'),
+                Toggle::make('late_deduction_exempt')->helperText('No late roll-up or late adjustment for this employee'),
+                Toggle::make('leave_credit')->label('Earns leave')->default(true)->helperText('Off = no leave accrues (e.g. daily wagers)'),
             ]),
         ]);
     }
@@ -105,6 +125,8 @@ class EmployeeResource extends Resource
                 TextColumn::make('branch.name')->sortable()->toggleable(),
                 TextColumn::make('department.name')->sortable()->toggleable(),
                 TextColumn::make('designation.name')->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('grade.name')->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('payroll_id')->label('Payroll ID')->searchable()->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('employment_type')->badge()->toggleable(),
                 TextColumn::make('status')->badge()->color(fn (EmployeeStatus $state) => match ($state) {
                     EmployeeStatus::Active => 'success', EmployeeStatus::OnLeave => 'warning', EmployeeStatus::Left => 'gray',
@@ -114,6 +136,9 @@ class EmployeeResource extends Resource
             ->filters([
                 SelectFilter::make('branch_id')->relationship('branch', 'name')->label('Branch'),
                 SelectFilter::make('department_id')->relationship('department', 'name')->label('Department'),
+                SelectFilter::make('designation_id')->relationship('designation', 'name')->label('Designation')->searchable(),
+                SelectFilter::make('grade_id')->relationship('grade', 'name')->label('Grade'),
+                SelectFilter::make('contractor_id')->relationship('contractor', 'name')->label('Contractor'),
                 SelectFilter::make('status')->options(EmployeeStatus::class)->default(EmployeeStatus::Active->value),
                 SelectFilter::make('employment_type')->options(EmploymentType::class),
                 TrashedFilter::make(),
@@ -125,6 +150,7 @@ class EmployeeResource extends Resource
                         ->schema([
                             Select::make('shift_id')->options(fn () => Shift::pluck('name', 'id'))->required(),
                             DatePicker::make('effective_from')->required()->default(now()),
+                            DatePicker::make('effective_to')->afterOrEqual('effective_from')->helperText('Blank = until changed'),
                         ])
                         ->action(function (Collection $records, array $data) {
                             foreach ($records as $employee) {
@@ -139,9 +165,14 @@ class EmployeeResource extends Resource
                         ->deselectRecordsAfterCompletion(),
                     BulkAction::make('deactivate')->label('Mark as left')->icon(Heroicon::OutlinedArrowPath)->color('danger')
                         ->requiresConfirmation()
-                        ->schema([DatePicker::make('left_on')->required()->default(now())])
+                        ->schema([
+                            DatePicker::make('left_on')->required()->default(now()),
+                            Select::make('separation_reason_id')->label('Reason')
+                                ->options(fn () => SeparationReason::where('is_active', true)->pluck('name', 'id')),
+                        ])
                         ->action(fn (Collection $records, array $data) => $records->each->update([
                             'left_on' => $data['left_on'], 'status' => EmployeeStatus::Left,
+                            'separation_reason_id' => $data['separation_reason_id'] ?? null,
                         ]))
                         ->deselectRecordsAfterCompletion(),
                 ]),

@@ -4,27 +4,37 @@ declare(strict_types=1);
 
 namespace App\Actions\Periods;
 
-use App\Enums\EmploymentType;
 use App\Enums\PeriodStatus;
+use App\Events\PeriodLocked;
 use App\Models\AttendanceDay;
 use App\Models\AttendancePeriod;
 use App\Models\Employee;
+use App\Models\LeaveAdjustment;
+use App\Models\LeaveBalance;
 use App\Models\User;
+use App\Services\Attendance\Period\PayCycle;
 use App\Services\Attendance\Period\PeriodCalculator;
-use App\Services\Attendance\Period\PeriodRules;
-use App\Services\Settings\TenantSettings;
+use App\Services\Attendance\Period\PeriodRulesFactory;
+use App\Services\Leave\LeaveBalanceService;
+use App\Services\Leave\LeaveYear;
 use Carbon\CarbonImmutable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 /**
  * Month lifecycle (spec §5.7): open → review → locked (snapshot, rows frozen) → unlock (owner/admin + reason, audited).
+ * A "month" is the tenant's pay cycle (see PayCycle). In "leave adjustment" mode, locking charges each employee's
+ * late / half-day days to leave; unlocking reverses those charges.
  */
 final class PeriodActions
 {
     public function __construct(
         private readonly PeriodCalculator $calculator,
-        private readonly TenantSettings $settings,
+        private readonly PeriodRulesFactory $rules,
+        private readonly PayCycle $cycle,
+        private readonly LeaveBalanceService $balances,
+        private readonly LeaveYear $leaveYear,
     ) {}
 
     public function period(int $year, int $month): AttendancePeriod
@@ -44,17 +54,19 @@ final class PeriodActions
     {
         $this->assert($by->can('periods.lock'), __('You cannot lock months.'));
         $this->assert($period->status !== PeriodStatus::Locked, __('This month is already locked.'));
-        $end = CarbonImmutable::create($period->year, $period->month, 1)->endOfMonth();
-        $this->assert($end->format('Y-m-d') < CarbonImmutable::now(tenant('timezone') ?? config('hazri.default_timezone'))->format('Y-m-d'),
+        [, $end] = $this->cycle->dates($period->year, $period->month);
+        $this->assert($end < CarbonImmutable::now(tenant('timezone') ?? config('hazri.default_timezone'))->format('Y-m-d'),
             __('A month can only be locked after it has ended.'));
 
         return DB::transaction(function () use ($period, $by) {
+            $summary = $this->snapshot($period);
             $period->update([
                 'status' => PeriodStatus::Locked, 'locked_by' => $by->id, 'locked_at' => now(),
-                'summary' => $this->snapshot($period),
+                'summary' => $summary,
             ]);
             $this->rows($period)->update(['is_locked' => true, 'locked_by_period_id' => $period->id]);
-            \App\Events\PeriodLocked::dispatch($period, $by);
+            $this->chargeLeaveAdjustments($period, $summary, $by);
+            PeriodLocked::dispatch($period, $by);
 
             return $period;
         });
@@ -68,6 +80,7 @@ final class PeriodActions
 
         return DB::transaction(function () use ($period, $by, $reason) {
             $this->rows($period)->update(['is_locked' => false, 'locked_by_period_id' => null]);
+            $this->reverseLeaveAdjustments($period);
             $period->update(['status' => PeriodStatus::Review, 'locked_by' => null, 'locked_at' => null]);
             activity()->causedBy($by)->performedOn($period)->event('unlocked')->withProperties(['reason' => $reason])
                 ->log("Unlocked {$period->year}-{$period->month}: {$reason}");
@@ -79,7 +92,7 @@ final class PeriodActions
     /** @return array<string, mixed> per-employee PeriodSummary + totals */
     public function snapshot(AttendancePeriod $period): array
     {
-        $settings = $this->settings->all();
+        [, $end] = $this->cycle->dates($period->year, $period->month);
         $days = $this->rows($period)->get()->groupBy('employee_id');
         $employees = Employee::withTrashed()->whereIn('id', $days->keys())->get()->keyBy('id');
 
@@ -88,7 +101,7 @@ final class PeriodActions
             $e = $employees[$employeeId];
             $rows[$employeeId] = ['code' => $e->code, 'name' => $e->fullName()] + $this->calculator->summarise(
                 $list->map(fn (AttendanceDay $d) => $d->toResult()),
-                PeriodRules::fromSettings($settings, $e->late_deduction_exempt, $e->employment_type === EmploymentType::DailyWage),
+                $this->rules->forEmployee($e, $end),
             )->toArray();
         }
 
@@ -100,16 +113,50 @@ final class PeriodActions
                 'absent_days' => array_sum(array_column($rows, 'absentDays')),
                 'late_count' => array_sum(array_column($rows, 'lateCount')),
                 'deduction_days' => array_sum(array_column($rows, 'deductionDays')),
+                'leave_adjusted_days' => array_sum(array_column($rows, 'leaveAdjustedDays')),
                 'overtime_minutes' => array_sum(array_column($rows, 'overtimeMinutes')),
             ],
         ];
     }
 
-    private function rows(AttendancePeriod $period): \Illuminate\Database\Eloquent\Builder
+    private function rows(AttendancePeriod $period): Builder
     {
-        $start = CarbonImmutable::create($period->year, $period->month, 1);
+        return AttendanceDay::query()->whereBetween('date', $this->cycle->dates($period->year, $period->month));
+    }
 
-        return AttendanceDay::query()->whereBetween('date', [$start->format('Y-m-d'), $start->endOfMonth()->format('Y-m-d')]);
+    /** @param array<string, mixed> $summary snapshot from snapshot() */
+    private function chargeLeaveAdjustments(AttendancePeriod $period, array $summary, User $by): void
+    {
+        $type = $this->rules->adjustmentLeaveType();
+        if ($type === null) {
+            return;
+        }
+        [, $end] = $this->cycle->dates($period->year, $period->month);
+        $year = $this->leaveYear->yearFor($end);
+        $label = $this->cycle->label($period->year, $period->month);
+        foreach ($summary['employees'] ?? [] as $employeeId => $row) {
+            $days = (float) ($row['leaveAdjustedDays'] ?? 0);
+            $employee = $days > 0 ? Employee::withTrashed()->find($employeeId) : null;
+            if ($employee === null) {
+                continue;
+            }
+            LeaveAdjustment::create([
+                'employee_id' => $employee->id, 'leave_type_id' => $type->id, 'year' => $year, 'days' => -$days,
+                'effective_on' => $end, 'attendance_period_id' => $period->id, 'created_by' => $by->id,
+                'reason' => __('Late / half-day adjustment — :month', ['month' => $label]),
+            ]);
+            $this->balances->balance($employee, $type, $year)->decrement('adjusted', $days);
+        }
+    }
+
+    private function reverseLeaveAdjustments(AttendancePeriod $period): void
+    {
+        foreach (LeaveAdjustment::query()->where('attendance_period_id', $period->id)->get() as $adjustment) {
+            LeaveBalance::query()->where([
+                'employee_id' => $adjustment->employee_id, 'leave_type_id' => $adjustment->leave_type_id, 'year' => $adjustment->year,
+            ])->decrement('adjusted', $adjustment->days);
+            $adjustment->delete();
+        }
     }
 
     private function assert(bool $ok, string $message): void

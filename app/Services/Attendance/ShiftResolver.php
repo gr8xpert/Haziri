@@ -11,6 +11,7 @@ use App\Models\ShiftAssignment;
 use App\Models\ShiftOverride;
 use App\Services\Attendance\Engine\ResolvedShift;
 use App\Services\Attendance\Engine\ShiftOverrideApplier;
+use App\Services\Settings\TenantSettings;
 use Illuminate\Database\Eloquent\Builder;
 
 /**
@@ -59,12 +60,34 @@ final class ShiftResolver
     }
 
     /**
+     * Employees whose assigned shift on $date is $shiftId: their latest covering assignment, or the default shift when
+     * they have none. Auto-detection and overrides are ignored — this filters lists, it does not compute a day.
+     *
+     * @return list<int>
+     */
+    public function employeeIdsOnShift(int $shiftId, string $date): array
+    {
+        $current = ShiftAssignment::query()
+            ->where('effective_from', '<=', $date)
+            ->where(fn (Builder $q) => $q->whereNull('effective_to')->orWhere('effective_to', '>=', $date))
+            ->orderByDesc('effective_from')->orderByDesc('id')
+            ->get(['employee_id', 'shift_id'])
+            ->unique('employee_id');
+        $ids = $current->where('shift_id', $shiftId)->pluck('employee_id')->all();
+        if (Shift::query()->whereKey($shiftId)->where('is_default', true)->exists()) {
+            $ids = array_merge($ids, Employee::query()->whereNotIn('id', $current->pluck('employee_id'))->pluck('id')->all());
+        }
+
+        return array_values(array_unique($ids));
+    }
+
+    /**
      * Spec §9 phase 4: with `auto_shift_detection` on, an employee without an assignment gets the shift whose start
      * is nearest to their first punch, if within ±3 h (circular, so a 23:50 punch matches a 00:00 shift).
      */
     private function detect(?string $firstPunchLocal): ?Shift
     {
-        if ($firstPunchLocal === null || ! app(\App\Services\Settings\TenantSettings::class)->get('auto_shift_detection')) {
+        if ($firstPunchLocal === null || ! app(TenantSettings::class)->get('auto_shift_detection')) {
             return null;
         }
         [$h, $m] = array_map('intval', explode(':', $firstPunchLocal));

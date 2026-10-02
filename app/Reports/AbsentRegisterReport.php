@@ -29,7 +29,7 @@ final class AbsentRegisterReport extends Report
     {
         $now = CarbonImmutable::now($this->tz());
 
-        return ['from' => $now->startOfMonth()->format('Y-m-d'), 'to' => $now->format('Y-m-d')];
+        return ['from' => $this->cycleRange($this->currentCycleMonth())[0]->format('Y-m-d'), 'to' => $now->format('Y-m-d')];
     }
 
     public function subtitle(array $filters): string

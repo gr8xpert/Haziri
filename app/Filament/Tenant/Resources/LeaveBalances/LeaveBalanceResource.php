@@ -9,6 +9,7 @@ use App\Filament\Concerns\ScopesToTeam;
 use App\Filament\Tenant\NavigationGroup;
 use App\Models\LeaveAdjustment;
 use App\Models\LeaveBalance;
+use App\Services\Leave\LeaveYear;
 use Filament\Actions\Action;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
@@ -50,7 +51,7 @@ class LeaveBalanceResource extends Resource
                 TextColumn::make('employee.code')->label('Code')->searchable(),
                 TextColumn::make('employee.first_name')->label('Employee')->formatStateUsing(fn (LeaveBalance $r) => $r->employee?->fullName()),
                 TextColumn::make('leaveType.code')->label('Type')->badge(),
-                TextColumn::make('year'),
+                TextColumn::make('year')->label('Leave year')->formatStateUsing(fn (int $state) => app(LeaveYear::class)->label($state)),
                 TextColumn::make('opening'),
                 TextColumn::make('accrued'),
                 TextColumn::make('adjusted'),
@@ -59,8 +60,8 @@ class LeaveBalanceResource extends Resource
                 TextColumn::make('remaining')->state(fn (LeaveBalance $r) => $r->remaining())->weight('bold'),
             ])
             ->filters([
-                SelectFilter::make('year')->options(fn () => collect(range(now()->year - 1, now()->year + 1))->mapWithKeys(fn ($y) => [$y => $y]))
-                    ->default((string) now()->year),
+                SelectFilter::make('year')->label('Leave year')->options(fn () => app(LeaveYear::class)->options())
+                    ->default(fn () => (string) app(LeaveYear::class)->current()),
                 SelectFilter::make('leave_type_id')->relationship('leaveType', 'name')->label('Type'),
             ])
             ->recordActions([
@@ -75,6 +76,7 @@ class LeaveBalanceResource extends Resource
                             LeaveAdjustment::create([
                                 'employee_id' => $record->employee_id, 'leave_type_id' => $record->leave_type_id, 'year' => $record->year,
                                 'days' => (float) $data['days'], 'reason' => $data['reason'], 'created_by' => auth()->id(),
+                                'effective_on' => now(tenant('timezone'))->format('Y-m-d'),
                             ]);
                             $record->increment('adjusted', (float) $data['days']);
                         });

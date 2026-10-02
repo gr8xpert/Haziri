@@ -1,5 +1,27 @@
 # Changelog
 
+## 2026-10-02 — Legacy TMS parity (client screenshots)
+
+- **Pay cycle** (`pay_cycle_start_day`, e.g. 21st → 20th) used by month lock, payroll, monthly sheet, statement,
+  payroll input, analytics and report defaults. **Leave year** (`leave_year_start_month`, e.g. October) used by
+  balances, accruals, carry-forward (the open-year job now runs on the 1st of the start month) and the leave screens.
+- **Exemptions** (Time rules → Exemptions): excuse lates, or the whole day (`EXEMPTED`, paid), for the company, a branch
+  or a department on a date. New status code `EX`.
+- **Late / half-day leave adjustment**: optionally charge the late roll-up and half days to a leave type instead of
+  salary; written as leave adjustments on month lock, reversed on unlock.
+- Leave types: **grade / category entitlements** (repeater on the leave type) and **allow negative balance**
+  (overdraft carries into the next leave year). Employees: **earns leave** switch.
+- Masters: **grades**, **contractors**, **leaving reasons** (seeded: resigned, terminated, lay-off, retired, contract
+  ended). Employee master: father/husband name, address, city, payroll ID, phones, office ext., emergency contact,
+  grade, contractor, leaving reason; Excel import takes the new columns (grades created on the fly).
+- **Manual attendance over a date range** and **remove manual punches over a range** (Punches → Bulk manual).
+- **Monthly roster generator** (Roster → Generate monthly roster: whole pay month on one shift for all / a branch / a
+  department / everyone on a shift). Bulk "Assign shift" takes an end date. **Holiday ranges** (Eid 10–13 Apr in one go).
+- Reports: new **Attendance summary**, **Yesterday & today time**, **Employee information**, **Monthly leave
+  summary**; every report gains designation, shift, category, contractor and employee-status filters; daily muster
+  gains an attendance-status filter; leave register a leave-type filter; the statement shows the scheduled shift.
+- Dev: Laravel Boost installed; `pint.json` pins the existing code style. Tests: 210 PHP passing.
+
 ## 2026-10-01 — Milestone 10d: billing, custom domains, white-label, photo gallery, deploy kit
 
 - Billing (central): monthly invoices (active employees × plan price + fixed fee, due in 10 days), payment references

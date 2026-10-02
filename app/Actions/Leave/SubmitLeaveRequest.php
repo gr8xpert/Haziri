@@ -15,6 +15,7 @@ use App\Models\User;
 use App\Services\Approvals\ApprovalChain;
 use App\Services\Attendance\WorkingDayCalendar;
 use App\Services\Leave\LeaveBalanceService;
+use App\Services\Leave\LeaveYear;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -26,6 +27,7 @@ final class SubmitLeaveRequest
         private readonly WorkingDayCalendar $calendar,
         private readonly LeaveBalanceService $balances,
         private readonly ApprovalChain $chains,
+        private readonly LeaveYear $leaveYear,
     ) {}
 
     public function __invoke(
@@ -59,7 +61,7 @@ final class SubmitLeaveRequest
                 'current_step' => 0,
                 'created_by' => $by->id,
             ]);
-            $balance = $this->balances->balance($employee, $type, (int) substr($from, 0, 4));
+            $balance = $this->balances->balance($employee, $type, $this->leaveYear->yearFor($from));
             $balance->increment('pending', $days);
 
             LeaveRequested::dispatch($request);
@@ -85,8 +87,8 @@ final class SubmitLeaveRequest
         if ($to < $from) {
             $fail('to_date', __('The end date must be on or after the start date.'));
         }
-        if (substr($from, 0, 4) !== substr($to, 0, 4)) {
-            $fail('to_date', __('Split leave that crosses a year end into two requests.'));
+        if ($this->leaveYear->yearFor($from) !== $this->leaveYear->yearFor($to)) {
+            $fail('to_date', __('Split leave that crosses the leave-year end into two requests.'));
         }
         if (AttendancePeriod::isLocked($from) || AttendancePeriod::isLocked($to)) {
             $fail('from_date', __('That month is locked.'));
@@ -129,8 +131,8 @@ final class SubmitLeaveRequest
             $fail('from_date', __('There is already a leave request for these dates.'));
         }
 
-        if ($type->is_paid && $days > 0) {
-            $remaining = $this->balances->balance($employee, $type, (int) substr($from, 0, 4))->remaining();
+        if ($type->is_paid && $days > 0 && ! $type->allow_negative_balance) {
+            $remaining = $this->balances->balance($employee, $type, $this->leaveYear->yearFor($from))->remaining();
             if ($days > $remaining) {
                 $fail('leave_type_id', __('Not enough balance: :r day(s) left, :d requested.', ['r' => $remaining, 'd' => $days]));
             }

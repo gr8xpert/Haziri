@@ -6,7 +6,8 @@ namespace App\Reports;
 
 use App\Models\LeaveBalance;
 use App\Models\LeaveType;
-use Filament\Forms\Components\TextInput;
+use App\Services\Leave\LeaveYear;
+use Filament\Forms\Components\Select;
 
 /** R8 — Leave balance: employee × leave types (quota/used/pending/remaining). */
 final class LeaveBalanceReport extends Report
@@ -18,17 +19,17 @@ final class LeaveBalanceReport extends Report
 
     public function filterSchema(): array
     {
-        return [TextInput::make('year')->numeric()->required(), ...$this->orgFilters()];
+        return [Select::make('year')->label(__('Leave year'))->options(fn () => app(LeaveYear::class)->options())->required(), ...$this->orgFilters()];
     }
 
     public function defaults(): array
     {
-        return ['year' => (int) date('Y')];
+        return ['year' => app(LeaveYear::class)->current()];
     }
 
     public function subtitle(array $filters): string
     {
-        return (string) ($filters['year'] ?? '');
+        return isset($filters['year']) ? app(LeaveYear::class)->label((int) $filters['year']) : '';
     }
 
     public function paper(): string

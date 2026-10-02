@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace App\Reports;
 
+use App\Enums\AttendanceStatus;
 use App\Models\AttendanceDay;
 use Carbon\CarbonImmutable;
 use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Select;
 
 /** R1 — Daily muster roll. */
 final class DailyMusterReport extends Report
@@ -18,7 +20,12 @@ final class DailyMusterReport extends Report
 
     public function filterSchema(): array
     {
-        return [DatePicker::make('date')->required()->maxDate(now()), ...$this->orgFilters()];
+        return [
+            DatePicker::make('date')->required()->maxDate(now()),
+            Select::make('att_status')->label(__('Attendance status'))->placeholder(__('All'))
+                ->options(['late' => 'Late'] + collect(AttendanceStatus::cases())->mapWithKeys(fn (AttendanceStatus $s) => [$s->value => $s->name])->all()),
+            ...$this->orgFilters(),
+        ];
     }
 
     public function defaults(): array
@@ -55,6 +62,10 @@ final class DailyMusterReport extends Report
         foreach ($employees as $e) {
             $d = $days->get($e->id);
             if ($d === null && ($e->joined_on?->format('Y-m-d') > $filters['date'])) {
+                continue;
+            }
+            $wanted = $filters['att_status'] ?? null;
+            if ($wanted !== null && ($wanted === 'late' ? ! in_array('late', $d->flags ?? [], true) : $d?->status?->value !== $wanted)) {
                 continue;
             }
             $rows[] = [

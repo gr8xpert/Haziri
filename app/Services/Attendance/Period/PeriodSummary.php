@@ -19,12 +19,15 @@ final readonly class PeriodSummary
         public int $weeklyOffs,
         public int $officialDutyDays,
         public int $wfhDays,
+        public int $exemptedDays,
         public int $pendingDays,
         public int $lateCount,
         public int $earlyOutCount,
         public int $workedMinutes,
         public int $overtimeMinutes,
         public int $lateRollupDays,
+        /** Late roll-up / half-day days charged to leave instead of salary ("leave adjustment" mode). */
+        public float $leaveAdjustedDays,
         public float $deductionDays,
         public float $payableDays,
     ) {}

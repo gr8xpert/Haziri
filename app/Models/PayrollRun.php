@@ -38,6 +38,6 @@ class PayrollRun extends Model
 
     public function label(): string
     {
-        return date('F Y', mktime(0, 0, 0, $this->period->month, 1, $this->period->year));
+        return $this->period->label();
     }
 }

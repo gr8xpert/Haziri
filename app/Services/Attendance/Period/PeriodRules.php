@@ -16,12 +16,17 @@ final readonly class PeriodRules
         public bool $lateDeductionExempt = false,
         public bool $isDailyWage = false,
         public bool $dailyWagePaidHolidays = false,
+        /**
+         * "Leave adjustment" mode: late roll-ups and half days are charged to leave (up to this many days)
+         * instead of salary. 0 = salary mode; INF when the leave type allows a negative balance.
+         */
+        public float $leaveAdjustAvailable = 0.0,
     ) {}
 
     /**
      * @param  array<string, mixed>  $settings
      */
-    public static function fromSettings(array $settings, bool $lateDeductionExempt, bool $isDailyWage): self
+    public static function fromSettings(array $settings, bool $lateDeductionExempt, bool $isDailyWage, float $leaveAdjustAvailable = 0.0): self
     {
         return new self(
             latesPerAbsent: (int) ($settings['lates_per_absent'] ?? 3),
@@ -31,6 +36,7 @@ final readonly class PeriodRules
             lateDeductionExempt: $lateDeductionExempt,
             isDailyWage: $isDailyWage,
             dailyWagePaidHolidays: (bool) ($settings['daily_wage_paid_holidays'] ?? false),
+            leaveAdjustAvailable: $leaveAdjustAvailable,
         );
     }
 }

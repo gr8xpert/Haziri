@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace App\Services\Attendance;
 
 use App\Enums\AttendanceStatus;
+use App\Enums\ExemptionType;
 use App\Enums\PunchStatus;
 use App\Enums\RequestStatus;
 use App\Models\AttendanceDay;
+use App\Models\AttendanceExemption;
 use App\Models\AttendanceMarker;
 use App\Models\Employee;
 use App\Models\Holiday;
@@ -16,6 +18,7 @@ use App\Models\Punch;
 use App\Services\Attendance\Engine\DayContext;
 use App\Services\Attendance\Engine\EngineSettings;
 use App\Services\Attendance\Engine\LeaveInput;
+use App\Services\Attendance\Engine\PunchInput;
 use App\Services\Settings\TenantSettings;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
@@ -68,10 +71,11 @@ final class DayContextLoader
             manualOverride: $override !== null ? AttendanceStatus::from($override) : null,
             overtimeEligible: $employee->overtime_eligible,
             settings: EngineSettings::fromArray($this->settings->all()),
+            exemption: $this->exemptionFor($employee, $date),
         );
     }
 
-    /** @param list<\App\Services\Attendance\Engine\PunchInput> $punches */
+    /** @param list<PunchInput> $punches */
     private function firstPunchLocal(array $punches, string $date, string $timezone): ?string
     {
         foreach ($punches as $p) { // already ordered by time
@@ -87,6 +91,14 @@ final class DayContextLoader
     public function timezoneFor(Employee $employee): string
     {
         return $employee->branch?->timezone ?? tenant('timezone') ?? config('hazri.default_timezone');
+    }
+
+    /** A whole-day exemption beats a late-only one when both cover the employee. */
+    private function exemptionFor(Employee $employee, string $date): ?ExemptionType
+    {
+        $types = AttendanceExemption::query()->covering($employee, $date)->pluck('type');
+
+        return $types->contains(ExemptionType::Absent) ? ExemptionType::Absent : $types->first();
     }
 
     private function leaveFor(Employee $employee, string $date): ?LeaveInput

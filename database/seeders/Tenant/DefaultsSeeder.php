@@ -44,6 +44,12 @@ class DefaultsSeeder extends Seeder
             DB::table('leave_types')->insertOrIgnore($type + ['is_paid' => true, 'created_at' => $now, 'updated_at' => $now]);
         }
 
+        if (! DB::table('separation_reasons')->exists()) {
+            foreach (['Resigned', 'Terminated', 'Lay-off', 'Retired', 'Contract ended'] as $reason) {
+                DB::table('separation_reasons')->insert(['name' => $reason, 'is_active' => true, 'created_at' => $now, 'updated_at' => $now]);
+            }
+        }
+
         foreach (config('hazri.settings_defaults') as $key => $value) {
             DB::table('settings')->insertOrIgnore([
                 'key' => $key,

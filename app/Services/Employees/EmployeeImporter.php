@@ -10,10 +10,12 @@ use App\Models\Branch;
 use App\Models\Department;
 use App\Models\Designation;
 use App\Models\Employee;
+use App\Models\Grade;
 use App\Support\Excel\Spreadsheet;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
 /**
@@ -26,13 +28,18 @@ final class EmployeeImporter
         'code', 'first_name', 'last_name', 'cnic', 'phone', 'email', 'gender', 'dob',
         'branch_code', 'department_code', 'designation', 'employment_type', 'joined_on',
         'device_pin', 'card_no', 'work_mode', 'overtime_eligible',
+        'father_name', 'address', 'city', 'grade', 'payroll_id', 'home_phone', 'emergency_contact',
     ];
+
+    /** Optional free-text columns copied as-is (older templates without them still import). */
+    private const OPTIONAL_TEXT = ['father_name', 'address', 'city', 'payroll_id', 'home_phone', 'emergency_contact'];
 
     public function writeTemplate(string $path): void
     {
         Spreadsheet::write($path, self::HEADERS, [[
             'E001', 'Ali', 'Khan', '3520212345671', '03001234567', 'ali@example.com', 'male', '1990-05-14',
             'HO', 'ACC', 'Accountant', 'permanent', '2024-01-15', '47', '', 'office', 'no',
+            'Abdul Hafeez', 'House 10, Sector 14-B, North Karachi', 'Karachi', 'Officer', '320001', '021-6655635', 'Brother 0300-1234567',
         ]]);
     }
 
@@ -67,6 +74,13 @@ final class EmployeeImporter
                 'work_mode' => ['nullable', Rule::enum(WorkMode::class)],
                 'joined_on' => ['required', 'date'],
                 'device_pin' => ['nullable', 'max:20'],
+                'father_name' => ['nullable', 'max:255'],
+                'address' => ['nullable', 'max:1000'],
+                'city' => ['nullable', 'max:100'],
+                'grade' => ['nullable', 'max:255'],
+                'payroll_id' => ['nullable', 'max:30'],
+                'home_phone' => ['nullable', 'max:20'],
+                'emergency_contact' => ['nullable', 'max:255'],
             ]);
             $rowErrors = $validator->errors()->all();
 
@@ -123,8 +137,9 @@ final class EmployeeImporter
                 'card_no' => $r['card_no'],
                 'work_mode' => $r['work_mode'] ?? WorkMode::Office->value,
                 'overtime_eligible' => in_array(strtolower((string) $r['overtime_eligible']), ['1', 'yes', 'y', 'true'], true),
+                'grade' => $r['grade'] ?? null,
                 '_exists' => isset($existing[$r['code']]),
-            ];
+            ] + array_map(fn (string $k) => $r[$k] ?? null, array_combine(self::OPTIONAL_TEXT, self::OPTIONAL_TEXT));
         }
 
         $updates = count(array_filter($rows, fn ($r) => $r['_exists']));
@@ -139,13 +154,22 @@ final class EmployeeImporter
     {
         return DB::transaction(function () use ($rows) {
             $designations = [];
+            $grades = [];
             foreach ($rows as $row) {
                 $designationId = null;
                 if ($row['designation']) {
                     $designationId = $designations[$row['designation']]
                         ??= Designation::firstOrCreate(['name' => $row['designation']])->id;
                 }
-                $attrs = collect($row)->except(['designation', '_exists', 'code'])->all() + ['designation_id' => $designationId];
+                $gradeId = null;
+                if (! empty($row['grade'])) {
+                    $gradeId = $grades[$row['grade']] ??= (Grade::query()->where('name', $row['grade'])->orWhere('code', $row['grade'])->value('id')
+                        ?? Grade::create(['code' => Str::limit(Str::upper(Str::slug($row['grade'], '')), 20, ''), 'name' => $row['grade']])->id);
+                }
+                // Blank optional columns never wipe what is already on file.
+                $optional = array_filter(array_intersect_key($row, array_flip(self::OPTIONAL_TEXT)), fn ($v) => $v !== null);
+                $attrs = collect($row)->except(['designation', 'grade', '_exists', 'code', ...self::OPTIONAL_TEXT])->all()
+                    + $optional + ['designation_id' => $designationId] + ($gradeId ? ['grade_id' => $gradeId] : []);
                 Employee::withTrashed()->updateOrCreate(['code' => $row['code']], $attrs);
             }
 

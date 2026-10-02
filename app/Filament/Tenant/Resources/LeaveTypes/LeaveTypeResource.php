@@ -7,9 +7,11 @@ namespace App\Filament\Tenant\Resources\LeaveTypes;
 use App\Enums\EmploymentType;
 use App\Filament\Concerns\AuthorizesByPermission;
 use App\Filament\Tenant\NavigationGroup;
+use App\Models\Grade;
 use App\Models\LeaveType;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\CheckboxList;
+use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
@@ -56,6 +58,17 @@ class LeaveTypeResource extends Resource
             CheckboxList::make('applies_to')->options(EmploymentType::class)->columns(3)->columnSpan(2)->helperText('None ticked = everyone'),
             Select::make('gender_restriction')->options(['female' => 'Female only', 'male' => 'Male only'])->placeholder('Everyone'),
             Toggle::make('is_active')->default(true),
+            Toggle::make('allow_negative_balance')->label('Allow negative balance')
+                ->helperText('Leave can be approved beyond the balance; the overdraft carries into the next leave year'),
+            Repeater::make('entitlements')->relationship()->columnSpanFull()->columns(3)->defaultItems(0)
+                ->label('Entitlement by grade / category')
+                ->helperText('Overrides the yearly quota above. The most specific row wins: grade + category, then grade, then category.')
+                ->addActionLabel('Add entitlement')
+                ->schema([
+                    Select::make('grade_id')->label('Grade')->options(fn () => Grade::pluck('name', 'id'))->placeholder('Any grade'),
+                    Select::make('employment_type')->label('Category')->options(EmploymentType::class)->placeholder('Any category'),
+                    TextInput::make('days_per_year')->numeric()->minValue(0)->required()->suffix('days / year'),
+                ]),
         ]);
     }
 
@@ -68,6 +81,7 @@ class LeaveTypeResource extends Resource
                 IconColumn::make('is_paid')->boolean(),
                 TextColumn::make('annual_quota_days')->suffix(' d')->label('Quota'),
                 TextColumn::make('accrual'),
+                TextColumn::make('entitlements_count')->counts('entitlements')->label('Grade rules'),
                 IconColumn::make('sandwich_rule')->boolean(),
                 IconColumn::make('is_active')->boolean(),
             ])

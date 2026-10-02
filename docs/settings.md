@@ -7,7 +7,11 @@ read through `App\Services\Settings\TenantSettings`. Feature flags are stored as
 |---|---|---|
 | `dedupe_window_sec` | 60 | Punches closer than this to the previous one are double taps |
 | `trust_device_direction` | false | Use the device's In/Out key; otherwise direction is inferred by pairing |
+| `pay_cycle_start_day` | 1 | Day the attendance/payroll month starts. 21 → "June" runs 21 May → 20 June |
+| `leave_year_start_month` | 1 | Month the leave year starts (10 = Oct → Sep). Balances are keyed by the start year |
 | `lates_per_absent` | 3 | N lates = 1 deduction day (0 = off) |
+| `late_adjustment_mode` | salary | `salary` or `leave`: where late roll-ups and half days are deducted |
+| `late_adjustment_leave_type` | null | Leave type code charged in `leave` mode |
 | `late_count_resets` | monthly | Period over which lates are counted |
 | `half_day_counts_as` | 0.5 | Deduction per half day |
 | `absent_deduction_days` | 1 | Deduction per absent day |

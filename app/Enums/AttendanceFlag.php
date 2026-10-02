@@ -20,4 +20,5 @@ enum AttendanceFlag: string
     case ShortLeave = 'short_leave';
     case SandwichApplied = 'sandwich_applied';
     case ManualOverride = 'manual_override';
+    case Exempted = 'exempted';
 }

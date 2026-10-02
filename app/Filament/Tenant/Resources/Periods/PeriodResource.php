@@ -16,6 +16,7 @@ use Filament\Resources\Resource;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Validation\ValidationException;
 
 /** Month lock (spec §5.7): open → review → locked, unlock with reason. */
@@ -42,9 +43,9 @@ class PeriodResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
-            ->modifyQueryUsing(fn (\Illuminate\Database\Eloquent\Builder $query) => $query->orderByDesc('year')->orderByDesc('month'))
+            ->modifyQueryUsing(fn (Builder $query) => $query->orderByDesc('year')->orderByDesc('month'))
             ->columns([
-                TextColumn::make('month')->label('Month')->formatStateUsing(fn (AttendancePeriod $r) => date('F Y', mktime(0, 0, 0, $r->month, 1, $r->year))),
+                TextColumn::make('month')->label('Month')->formatStateUsing(fn (AttendancePeriod $r) => $r->label()),
                 TextColumn::make('status')->badge()->color(fn (PeriodStatus $state) => match ($state) {
                     PeriodStatus::Open => 'gray', PeriodStatus::Review => 'warning', PeriodStatus::Locked => 'success',
                 }),

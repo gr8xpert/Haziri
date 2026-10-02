@@ -12,7 +12,7 @@ use App\Services\Approvals\ApprovalChain;
 use App\Services\Attendance\Engine\SandwichRule;
 use App\Services\Attendance\WorkingDayCalendar;
 use App\Services\Leave\LeaveBalanceService;
-use Carbon\CarbonImmutable;
+use App\Services\Leave\LeaveYear;
 use Carbon\CarbonPeriod;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -28,6 +28,7 @@ final class DecideLeaveRequest
         private readonly LeaveBalanceService $balances,
         private readonly WorkingDayCalendar $calendar,
         private readonly SandwichRule $sandwich,
+        private readonly LeaveYear $leaveYear,
     ) {}
 
     public function __invoke(LeaveRequest $request, User $by, bool $approve, ?string $note = null): LeaveRequest
@@ -49,7 +50,7 @@ final class DecideLeaveRequest
             $request->current_step = $result['current'];
 
             if ($result['final']) {
-                $balance = $this->balances->balance($request->employee, $request->leaveType, (int) $request->from_date->format('Y'));
+                $balance = $this->balances->balance($request->employee, $request->leaveType, $this->leaveYear->yearFor($request->from_date->format('Y-m-d')));
                 $balance->decrement('pending', $request->days);
                 if ($approve) {
                     $sandwich = $request->leaveType->sandwich_rule ? $this->sandwichDates($request) : [];

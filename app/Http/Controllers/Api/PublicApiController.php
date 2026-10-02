@@ -12,6 +12,7 @@ use App\Models\AttendanceDay;
 use App\Models\Employee;
 use App\Models\LeaveBalance;
 use App\Reports\PayrollInputReport;
+use App\Services\Leave\LeaveYear;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -62,7 +63,7 @@ final class PublicApiController
 
     public function leaveBalances(Request $request): JsonResponse
     {
-        $year = (int) ($request->query('year') ?: now()->year);
+        $year = (int) ($request->query('year') ?: app(LeaveYear::class)->current());
 
         return response()->json(['data' => LeaveBalance::query()->with(['employee', 'leaveType'])->where('year', $year)->get()
             ->map(fn (LeaveBalance $b) => [

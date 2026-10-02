@@ -17,7 +17,7 @@ class LeaveAdjustment extends Model
 
     protected function casts(): array
     {
-        return ['days' => 'float'];
+        return ['days' => 'float', 'effective_on' => 'date:Y-m-d'];
     }
 
     public function getActivitylogOptions(): LogOptions
