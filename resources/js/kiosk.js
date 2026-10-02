@@ -40,20 +40,32 @@ Alpine.data('kiosk', ({ token, requirePhoto, modes }) => ({
     result: {},
     pending: 0,
     clock: '',
+    period: '',
+    today: '',
     scanning: false,
+    cameraOn: false,
+    online: navigator.onLine,
 
     async init() {
         this.tick();
         setInterval(() => this.tick(), 1000);
-        await startCamera(this.$refs.video, 'user').catch(() => {});
+        this.cameraOn = await startCamera(this.$refs.video, 'user').then(() => true).catch(() => false);
         this.refreshPending();
         setInterval(() => this.flush(), 15000);
-        window.addEventListener('online', () => this.flush());
+        window.addEventListener('online', () => {
+            this.online = true;
+            this.flush();
+        });
+        window.addEventListener('offline', () => (this.online = false));
         if (this.mode === 'qr') this.scanLoop();
     },
 
     tick() {
-        this.clock = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        const now = new Date();
+        const parts = new Intl.DateTimeFormat([], { hour: '2-digit', minute: '2-digit' }).formatToParts(now);
+        this.clock = parts.filter((x) => x.type !== 'dayPeriod').map((x) => x.value).join('').trim();
+        this.period = parts.find((x) => x.type === 'dayPeriod')?.value ?? '';
+        this.today = now.toLocaleDateString([], { weekday: 'long', day: 'numeric', month: 'long' });
     },
 
     press(key) {

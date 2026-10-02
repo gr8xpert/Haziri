@@ -1,0 +1,431 @@
+/*
+ | Hazri panel theme (tenant + central). Compiled by Vite so the Tailwind classes used in
+ | resources/views/filament and app/Filament are generated (Filament's prebuilt CSS only
+ | contains the classes Filament itself uses).
+ */
+@import '../../../../vendor/filament/filament/resources/css/theme.css';
+
+@source '../../../../app/Filament/**/*';
+@source '../../../../resources/views/filament/**/*';
+
+/* ------------------------------------------------------------------ shell */
+
+.fi-body {
+    --topbar-height: 3.75rem;
+    font-feature-settings: 'cv11', 'ss01';
+    @apply bg-gray-50/80 dark:bg-gray-950;
+}
+
+.fi-topbar {
+    @apply bg-white/80 shadow-none ring-0 border-b border-gray-950/[0.06] backdrop-blur-md supports-[backdrop-filter]:bg-white/70 dark:border-white/[0.06] dark:bg-gray-950/80 dark:supports-[backdrop-filter]:bg-gray-950/70;
+}
+
+.fi-logo {
+    @apply tracking-tight;
+}
+
+/*
+ | Sidebar: an accordion of groups (see filament/hooks/sidebar-accordion). Collapsed groups are
+ | compact clickable rows; the open group reads darker and its items sit right underneath.
+ */
+.fi-sidebar-nav {
+    @apply gap-y-4 py-5;
+}
+
+.fi-sidebar-nav-groups {
+    @apply gap-y-0.5;
+}
+
+.fi-sidebar-group {
+    @apply gap-y-0.5;
+}
+
+.fi-sidebar-group-btn {
+    @apply rounded-lg px-2.5 py-1.5 transition-colors duration-150 hover:bg-gray-950/[0.04] dark:hover:bg-white/[0.04];
+}
+
+.fi-sidebar-group-label {
+    @apply text-sm font-medium text-gray-500 transition-colors duration-150 dark:text-gray-400;
+}
+
+.fi-sidebar-group-collapse-btn {
+    @apply -me-1 transition-transform duration-200 ease-out;
+}
+
+/* Filament points the chevron up when open; we want right (closed) and down (open). */
+.fi-sidebar-group.fi-collapsible {
+    & .fi-sidebar-group-collapse-btn {
+        @apply rotate-180;
+    }
+
+    &.fi-collapsed .fi-sidebar-group-collapse-btn {
+        @apply rotate-90 rtl:-rotate-90;
+    }
+}
+
+.fi-sidebar-group:not(.fi-collapsed) > .fi-sidebar-group-btn .fi-sidebar-group-label,
+.fi-sidebar-group.fi-active > .fi-sidebar-group-btn .fi-sidebar-group-label {
+    @apply text-gray-950 dark:text-white;
+}
+
+.fi-sidebar-group.fi-active.fi-collapsed > .fi-sidebar-group-btn .fi-sidebar-group-label::after {
+    content: '';
+    @apply ms-2 inline-block size-1.5 rounded-full bg-primary-600 align-middle dark:bg-primary-400;
+}
+
+.fi-sidebar-group-items {
+    @apply pb-2;
+}
+
+.fi-sidebar-item-btn {
+    @apply px-2.5 py-[0.4375rem];
+}
+
+.fi-sidebar-item-label {
+    @apply font-normal text-gray-600 dark:text-gray-300;
+}
+
+.fi-sidebar-item.fi-active > .fi-sidebar-item-btn {
+    @apply bg-white shadow-xs ring-1 ring-gray-950/[0.06] dark:bg-white/[0.06] dark:shadow-none dark:ring-white/[0.06];
+
+    &::before {
+        content: '';
+        @apply absolute inset-y-2 -start-2 w-[3px] rounded-full bg-primary-600 dark:bg-primary-400;
+    }
+
+    & > .fi-sidebar-item-label {
+        @apply font-medium text-gray-950 dark:text-white;
+    }
+
+    & > .fi-icon {
+        @apply text-primary-600 dark:text-primary-400;
+    }
+}
+
+/* ------------------------------------------------------------------ page */
+
+.fi-header-heading {
+    @apply text-2xl font-semibold tracking-tight sm:text-[1.75rem];
+}
+
+.fi-header-subheading {
+    @apply mt-1 max-w-3xl text-sm text-gray-500 dark:text-gray-400;
+}
+
+.fi-page-content {
+    @apply gap-y-6;
+}
+
+/* Cards: hairline ring + tinted, very soft shadow. */
+.fi-section:not(.fi-section-not-contained),
+.fi-ta-ctn,
+.fi-wi-stats-overview-stat {
+    @apply shadow-[0_1px_2px_0_rgb(15_23_42/0.04),0_1px_3px_0_rgb(15_23_42/0.03)] ring-gray-950/[0.07] dark:shadow-none dark:ring-white/[0.08];
+}
+
+.fi-section-header-heading {
+    @apply font-semibold tracking-tight;
+}
+
+/* ------------------------------------------------------------------ tables */
+
+.fi-ta-header-cell {
+    @apply bg-gray-50/70 py-2.5 text-xs font-medium tracking-wide text-gray-500 dark:bg-white/[0.02] dark:text-gray-400;
+}
+
+.fi-ta-table,
+.hz-table {
+    font-variant-numeric: tabular-nums;
+}
+
+.fi-ta-row {
+    @apply transition-colors duration-100;
+}
+
+/* ------------------------------------------------------------------ stats */
+
+.fi-wi-stats-overview-stat {
+    @apply relative overflow-hidden p-5;
+
+    & .fi-wi-stats-overview-stat-label {
+        @apply text-[0.8125rem] font-medium text-gray-500 dark:text-gray-400;
+    }
+
+    & .fi-wi-stats-overview-stat-value {
+        @apply text-[2rem] leading-none font-semibold tracking-tight;
+        font-variant-numeric: tabular-nums;
+    }
+
+    & .fi-wi-stats-overview-stat-label-ctn > .fi-icon {
+        @apply size-8 rounded-lg bg-gray-100 p-1.5 text-gray-500 dark:bg-white/5 dark:text-gray-400;
+    }
+}
+
+/* ------------------------------------------------------------------ auth (simple layout) */
+
+.fi-simple-layout {
+    @apply relative isolate bg-gray-50 dark:bg-gray-950;
+
+    &::before {
+        content: '';
+        @apply pointer-events-none absolute inset-0 -z-10;
+        background:
+            radial-gradient(60rem 30rem at 50% -10%, color-mix(in oklab, var(--primary-500) 14%, transparent), transparent 70%),
+            radial-gradient(40rem 24rem at 100% 100%, color-mix(in oklab, var(--primary-400) 8%, transparent), transparent 70%);
+    }
+}
+
+.fi-simple-main {
+    @apply max-w-md shadow-[0_1px_2px_rgb(15_23_42/0.04),0_12px_32px_-8px_rgb(15_23_42/0.10)] ring-gray-950/[0.06] sm:rounded-2xl sm:px-10 sm:py-10 dark:shadow-none dark:ring-white/10;
+}
+
+.fi-simple-header-heading {
+    @apply text-xl font-semibold tracking-tight;
+}
+
+/* ------------------------------------------------------------------ Hazri custom pages
+ | Shared building blocks for the hand-written Blade pages (daily sheet, roster, reports, etc.).
+ */
+
+@layer components {
+    .hz-card,
+    .hz-toolbar,
+    .hz-table-wrap {
+        @apply rounded-xl bg-white shadow-[0_1px_2px_0_rgb(15_23_42/0.04),0_1px_3px_0_rgb(15_23_42/0.03)] ring-1 ring-gray-950/[0.07] dark:bg-gray-900 dark:shadow-none dark:ring-white/[0.08];
+    }
+
+    /* Filter / action bar above a table. */
+    .hz-toolbar {
+        @apply flex flex-wrap items-end gap-x-4 gap-y-3 p-4;
+    }
+
+    .hz-field {
+        @apply flex min-w-0 flex-col gap-1.5 text-sm;
+    }
+
+    .hz-label {
+        @apply text-[0.8125rem] font-medium text-gray-700 dark:text-gray-300;
+    }
+
+    .hz-hint {
+        @apply text-sm text-gray-500 dark:text-gray-400;
+    }
+
+    .hz-table-wrap {
+        @apply overflow-x-auto;
+    }
+
+    .hz-table {
+        @apply w-full text-sm;
+
+        & thead th {
+            @apply sticky top-0 border-b border-gray-950/[0.06] bg-gray-50/90 px-4 py-2.5 text-start text-xs font-medium tracking-wide whitespace-nowrap text-gray-500 backdrop-blur dark:border-white/[0.06] dark:bg-gray-900/90 dark:text-gray-400;
+        }
+
+        & tbody td {
+            @apply px-4 py-2.5 text-gray-700 dark:text-gray-200;
+        }
+
+        & tbody tr {
+            @apply border-b border-gray-950/[0.05] transition-colors duration-100 last:border-0 hover:bg-gray-50/70 dark:border-white/[0.05] dark:hover:bg-white/[0.02];
+        }
+
+        & .hz-mono {
+            @apply font-mono text-[0.8125rem] text-gray-500 dark:text-gray-400;
+        }
+    }
+
+    /* Dense variant for wide day-by-day reports. */
+    .hz-table-dense {
+        @apply text-xs;
+
+        & thead th {
+            @apply px-2.5 py-2;
+        }
+
+        & tbody td {
+            @apply px-2.5 py-1.5 whitespace-nowrap;
+        }
+
+        /* Pin the first two columns (code + name) while scrolling sideways. */
+        & th:first-child,
+        & td:first-child {
+            @apply sticky start-0 z-[1] bg-white dark:bg-gray-900;
+        }
+
+        & thead th:first-child {
+            @apply z-[2] bg-gray-50 dark:bg-gray-900;
+        }
+    }
+
+    .hz-empty {
+        @apply flex flex-col items-center justify-center gap-2 px-6 py-14 text-center text-sm text-gray-500 dark:text-gray-400;
+
+        & .hz-empty-icon {
+            @apply mb-1 size-10 rounded-full bg-gray-100 p-2.5 text-gray-400 dark:bg-white/5 dark:text-gray-500;
+        }
+
+        & strong {
+            @apply font-medium text-gray-900 dark:text-white;
+        }
+    }
+
+    .hz-kpi {
+        @apply flex flex-col gap-1;
+
+        & dt {
+            @apply text-[0.8125rem] text-gray-500 dark:text-gray-400;
+        }
+
+        & dd {
+            @apply text-2xl font-semibold tracking-tight text-gray-950 tabular-nums dark:text-white;
+        }
+    }
+
+    /* Native <select>/<textarea> that are not wrapped in Filament inputs. */
+    .hz-native {
+        @apply block w-full rounded-lg border-0 bg-white py-1.5 ps-2.5 pe-8 text-sm text-gray-950 shadow-xs ring-1 ring-gray-950/10 transition outline-none focus:ring-2 focus:ring-primary-600 dark:bg-white/5 dark:text-white dark:ring-white/15 dark:focus:ring-primary-500;
+    }
+
+    textarea.hz-native {
+        @apply px-3 py-2.5 leading-relaxed;
+    }
+
+    /* Attendance status codes (P, L, A, HD…) in reports. */
+    .hz-code {
+        @apply inline-flex min-w-7 items-center justify-center rounded-md px-1 py-0.5 text-[0.6875rem] font-semibold;
+    }
+    .hz-code-ok { @apply bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400; }
+    .hz-code-warn { @apply bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400; }
+    .hz-code-bad { @apply bg-rose-50 text-rose-700 dark:bg-rose-500/10 dark:text-rose-400; }
+    .hz-code-leave { @apply bg-sky-50 text-sky-700 dark:bg-sky-500/10 dark:text-sky-400; }
+    .hz-code-off { @apply text-gray-400 dark:text-gray-500; }
+}
+
+/* ------------------------------------------------------------------ motion
+ | Light, purposeful motion only: page content rises in once on load (staggered so the eye
+ | lands on the header first), cards and rows acknowledge hover, buttons acknowledge press.
+ | Fill-mode is `backwards`, never `both`: a transform left on an ancestor would break the
+ | position: fixed of Filament modals and the sticky save bars.
+ */
+@keyframes hz-rise {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+}
+
+@keyframes hz-fade {
+    from {
+        opacity: 0;
+    }
+}
+
+@keyframes hz-rail {
+    from {
+        transform: scaleY(0);
+    }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    :root {
+        --hz-ease: cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    /* Page entrance */
+    .fi-header {
+        animation: hz-rise 420ms var(--hz-ease) backwards;
+    }
+
+    .fi-page-content > * {
+        animation: hz-rise 480ms var(--hz-ease) backwards;
+    }
+
+    .fi-page-content > :nth-child(2) { animation-delay: 60ms; }
+    .fi-page-content > :nth-child(3) { animation-delay: 120ms; }
+    .fi-page-content > :nth-child(4) { animation-delay: 180ms; }
+    .fi-page-content > :nth-child(n + 5) { animation-delay: 220ms; }
+
+    /* Dashboard: widgets cascade, and the stat cards inside them cascade too. */
+    .fi-wi-widget {
+        animation: hz-rise 480ms var(--hz-ease) backwards;
+    }
+    .fi-wi-widget:nth-child(2) { animation-delay: 140ms; }
+    .fi-wi-widget:nth-child(n + 3) { animation-delay: 220ms; }
+
+    .fi-wi-stats-overview-stat {
+        animation: hz-rise 480ms var(--hz-ease) backwards;
+    }
+    .fi-grid-col:nth-child(2) > .fi-sc-component > .fi-wi-stats-overview-stat { animation-delay: 50ms; }
+    .fi-grid-col:nth-child(3) > .fi-sc-component > .fi-wi-stats-overview-stat { animation-delay: 100ms; }
+    .fi-grid-col:nth-child(4) > .fi-sc-component > .fi-wi-stats-overview-stat { animation-delay: 150ms; }
+    .fi-grid-col:nth-child(5) > .fi-sc-component > .fi-wi-stats-overview-stat { animation-delay: 200ms; }
+    .fi-grid-col:nth-child(6) > .fi-sc-component > .fi-wi-stats-overview-stat { animation-delay: 250ms; }
+
+    /* Table rows fade in on first render and on pagination (morphed rows keep their state). */
+    .fi-ta-row,
+    .hz-table tbody tr {
+        animation: hz-fade 360ms ease-out backwards;
+    }
+    .fi-ta-row:nth-child(n + 2), .hz-table tbody tr:nth-child(n + 2) { animation-delay: 30ms; }
+    .fi-ta-row:nth-child(n + 4), .hz-table tbody tr:nth-child(n + 4) { animation-delay: 60ms; }
+    .fi-ta-row:nth-child(n + 6), .hz-table tbody tr:nth-child(n + 6) { animation-delay: 90ms; }
+    .fi-ta-row:nth-child(n + 8), .hz-table tbody tr:nth-child(n + 8) { animation-delay: 120ms; }
+    .fi-ta-row:nth-child(n + 10), .hz-table tbody tr:nth-child(n + 10) { animation-delay: 150ms; }
+
+    /* Sidebar: active rail grows in, items nudge on hover. */
+    .fi-sidebar-item.fi-active > .fi-sidebar-item-btn::before {
+        animation: hz-rail 320ms var(--hz-ease) backwards;
+    }
+
+    .fi-sidebar-item-btn > .fi-icon {
+        transition: transform 180ms var(--hz-ease), color 150ms ease;
+    }
+
+    .fi-sidebar-item-has-url > .fi-sidebar-item-btn:hover > .fi-icon {
+        transform: translateX(2px);
+    }
+
+    /* Stat cards lift slightly on hover; their icon chip picks up the card colour. */
+    .fi-wi-stats-overview-stat {
+        transition: transform 220ms var(--hz-ease), box-shadow 220ms var(--hz-ease);
+
+        &:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 1px 2px rgb(15 23 42 / 0.04), 0 10px 24px -12px rgb(15 23 42 / 0.18);
+        }
+    }
+
+    .dark .fi-wi-stats-overview-stat:hover {
+        box-shadow: 0 10px 24px -12px rgb(0 0 0 / 0.6);
+    }
+
+    /* Clickable cards (switch company, punch photos). */
+    a.hz-card,
+    figure.hz-card {
+        transition: transform 220ms var(--hz-ease), box-shadow 220ms var(--hz-ease);
+
+        &:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 1px 2px rgb(15 23 42 / 0.04), 0 10px 24px -12px rgb(15 23 42 / 0.18);
+        }
+    }
+
+    /* Buttons acknowledge the press. */
+    .fi-btn,
+    .fi-icon-btn {
+        transition-property: color, background-color, border-color, box-shadow, transform;
+        transition-duration: 150ms;
+
+        &:active:not(:disabled) {
+            transform: scale(0.97);
+        }
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .fi-ta-row,
+    .hz-table tbody tr {
+        transition: none;
+    }
+}

@@ -11,6 +11,7 @@ use App\Models\Device;
 use App\Models\Employee;
 use App\Models\UnmappedPin;
 use Carbon\CarbonImmutable;
+use Filament\Support\Icons\Heroicon;
 use Filament\Widgets\StatsOverviewWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 
@@ -42,13 +43,18 @@ class TodayStats extends StatsOverviewWidget
         $offline = Device::where('status', 'offline')->count();
 
         return [
-            Stat::make(__('Present'), $present)->description(__(':n active employees', ['n' => $active]))->color('success'),
-            Stat::make(__('Late'), $late)->color($late ? 'warning' : 'gray'),
-            Stat::make(__('Not in yet / absent'), $notIn)->color($notIn ? 'danger' : 'gray'),
-            Stat::make(__('On leave'), $onLeave),
-            Stat::make(__('Unmapped PINs'), $unmapped)->color($unmapped ? 'warning' : 'gray')
-                ->description($unmapped ? __('Map them so punches count') : __('All mapped')),
-            Stat::make(__('Devices offline'), $offline)->color($offline ? 'danger' : 'gray'),
+            Stat::make(__('Present'), $present)->icon(Heroicon::OutlinedCheckCircle)
+                ->description(__('of :n active employees', ['n' => $active]))->color('success'),
+            Stat::make(__('Late'), $late)->icon(Heroicon::OutlinedClock)
+                ->description($late ? __('Arrived after grace time') : __('Everyone on time'))->color($late ? 'warning' : 'gray'),
+            Stat::make(__('Not in yet / absent'), $notIn)->icon(Heroicon::OutlinedUserMinus)
+                ->description($notIn ? __('No punch recorded today') : __('Everyone accounted for'))->color($notIn ? 'danger' : 'gray'),
+            Stat::make(__('On leave'), $onLeave)->icon(Heroicon::OutlinedCalendarDays)
+                ->description(__('Approved leave today'))->color('gray'),
+            Stat::make(__('Unmapped PINs'), $unmapped)->icon(Heroicon::OutlinedFingerPrint)
+                ->description($unmapped ? __('Map them so punches count') : __('All mapped'))->color($unmapped ? 'warning' : 'gray'),
+            Stat::make(__('Devices offline'), $offline)->icon(Heroicon::OutlinedSignalSlash)
+                ->description($offline ? __('Check power and network') : __('All devices online'))->color($offline ? 'danger' : 'gray'),
         ];
     }
 }

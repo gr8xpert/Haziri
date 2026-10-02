@@ -5,11 +5,12 @@
     <style>
         @page { margin: 18px 20px; }
         body { font-family: DejaVu Sans, sans-serif; font-size: {{ count($columns) > 20 ? '7px' : '9px' }}; color: #111; }
-        h1 { font-size: 14px; margin: 0; }
+        .company { color: #047857; font-size: 9px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px; }
+        h1 { font-size: 15px; margin: 2px 0 0; }
         .sub { color: #555; margin: 2px 0 10px; }
         table { width: 100%; border-collapse: collapse; }
-        th, td { border: 1px solid #bbb; padding: 2px 3px; text-align: left; }
-        th { background: #eef2f0; }
+        th, td { border: 1px solid #d4d4d8; padding: 2px 3px; text-align: left; }
+        th { background: #ecfdf5; color: #064e3b; }
         tr:nth-child(even) td { background: #fafafa; }
         .summary { margin-top: 10px; }
         .summary span { display: inline-block; margin-right: 14px; }
@@ -17,7 +18,8 @@
     </style>
 </head>
 <body>
-    <h1>{{ $company }} — {{ $report->title() }}</h1>
+    <div class="company">{{ $company }}</div>
+    <h1>{{ $report->title() }}</h1>
     <div class="sub">{{ $subtitle }}</div>
     <table>
         <thead>

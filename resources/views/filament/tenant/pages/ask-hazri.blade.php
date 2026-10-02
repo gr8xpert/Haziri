@@ -1,36 +1,56 @@
 <x-filament-panels::page>
-    <form wire:submit="ask" class="flex gap-2">
-        <x-filament::input.wrapper class="grow">
-            <x-filament::input type="text" wire:model="question" placeholder="{{ __('e.g. Who in Sales was late more than 3 times in August?') }}" />
-        </x-filament::input.wrapper>
-        <x-filament::button type="submit" icon="heroicon-o-sparkles" wire:loading.attr="disabled">{{ __('Ask') }}</x-filament::button>
-    </form>
-    <p class="text-xs text-gray-500">{{ __('Answers are read-only queries over attendance, leave and employee data. AI budget left this month: :n tokens.', ['n' => number_format($this->tokensLeft())]) }}</p>
+    <div class="hz-card p-4 sm:p-5">
+        <form wire:submit="ask" class="flex flex-col gap-3 sm:flex-row">
+            <label class="sr-only" for="hz-ask">{{ __('Your question') }}</label>
+            <x-filament::input.wrapper class="grow" prefix-icon="heroicon-m-sparkles">
+                <x-filament::input id="hz-ask" type="text" wire:model="question" placeholder="{{ __('e.g. Who in Sales was late more than 3 times in August?') }}" />
+            </x-filament::input.wrapper>
+            <x-filament::button type="submit" icon="heroicon-m-paper-airplane" wire:loading.attr="disabled" wire:target="ask">{{ __('Ask') }}</x-filament::button>
+        </form>
+        <p class="hz-hint mt-3">
+            {{ __('Answers are read-only queries over attendance, leave and employee data.') }}
+            <span class="whitespace-nowrap">{{ __('AI budget left this month: :n tokens.', ['n' => number_format($this->tokensLeft())]) }}</span>
+        </p>
+    </div>
 
-    <div wire:loading wire:target="ask" class="text-sm text-gray-500">{{ __('Thinking…') }}</div>
+    <div wire:loading.flex wire:target="ask" class="hz-card items-center gap-3 p-5 text-sm text-gray-500 dark:text-gray-400">
+        <x-filament::loading-indicator class="size-5 text-primary-600" />
+        {{ __('Reading your data...') }}
+    </div>
 
     @if ($answer)
         @if (! $answer['ok'])
-            <x-filament::section><p class="text-sm text-danger-600">{{ $answer['error'] }}</p></x-filament::section>
+            <div class="flex items-start gap-3 rounded-xl bg-danger-50 p-4 text-sm text-danger-700 ring-1 ring-danger-600/15 dark:bg-danger-500/10 dark:text-danger-400 dark:ring-danger-400/20" wire:loading.remove wire:target="ask">
+                <x-filament::icon icon="heroicon-m-exclamation-triangle" class="mt-0.5 size-5 shrink-0" />
+                <p>{{ $answer['error'] }}</p>
+            </div>
         @else
-            <x-filament::section>
-                <x-slot name="heading">{{ count($answer['rows']) }} {{ __('rows') }}</x-slot>
-                <x-slot name="headerEnd">
-                    <x-filament::button size="xs" color="gray" wire:click="export" icon="heroicon-o-table-cells">Excel</x-filament::button>
-                    <x-filament::icon-button icon="heroicon-o-hand-thumb-up" wire:click="feedback(1)" label="Good answer" />
-                    <x-filament::icon-button icon="heroicon-o-hand-thumb-down" wire:click="feedback(-1)" label="Bad answer" />
+            <x-filament::section wire:loading.remove wire:target="ask">
+                <x-slot name="heading">{{ trans_choice(':n row|:n rows', count($answer['rows']), ['n' => count($answer['rows'])]) }}</x-slot>
+                <x-slot name="afterHeader">
+                    <div class="flex items-center gap-1">
+                        <x-filament::button size="sm" color="gray" wire:click="export" icon="heroicon-m-arrow-down-tray">Excel</x-filament::button>
+                        <x-filament::icon-button icon="heroicon-o-hand-thumb-up" color="gray" wire:click="feedback(1)" :label="__('Good answer')" />
+                        <x-filament::icon-button icon="heroicon-o-hand-thumb-down" color="gray" wire:click="feedback(-1)" :label="__('Bad answer')" />
+                    </div>
                 </x-slot>
-                <div class="overflow-x-auto">
-                    <table class="w-full text-xs">
-                        <thead><tr class="text-left text-gray-500">@foreach ($answer['columns'] as $c)<th class="p-2">{{ $c }}</th>@endforeach</tr></thead>
+                <div class="-mx-6 -my-6 overflow-x-auto">
+                    <table class="hz-table">
+                        <thead><tr>@foreach ($answer['columns'] as $c)<th>{{ $c }}</th>@endforeach</tr></thead>
                         <tbody>
                             @foreach (array_slice($answer['rows'], 0, 500) as $row)
-                                <tr class="border-t border-gray-100 dark:border-white/5">@foreach ($row as $v)<td class="p-2">{{ $v }}</td>@endforeach</tr>
+                                <tr>@foreach ($row as $v)<td class="whitespace-nowrap">{{ $v }}</td>@endforeach</tr>
                             @endforeach
                         </tbody>
                     </table>
                 </div>
-                <details class="mt-3 text-xs text-gray-500"><summary>SQL</summary><pre class="mt-1 whitespace-pre-wrap">{{ $answer['sql'] }}</pre></details>
+                <details class="group mt-10 text-xs">
+                    <summary class="inline-flex cursor-pointer items-center gap-1 font-medium text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+                        <x-filament::icon icon="heroicon-m-chevron-right" class="size-4 transition-transform group-open:rotate-90" />
+                        {{ __('Show SQL') }}
+                    </summary>
+                    <pre class="mt-2 overflow-x-auto rounded-lg bg-gray-50 p-3 font-mono whitespace-pre-wrap text-gray-700 ring-1 ring-gray-950/5 dark:bg-white/5 dark:text-gray-300 dark:ring-white/10">{{ $answer['sql'] }}</pre>
+                </details>
             </x-filament::section>
         @endif
     @endif

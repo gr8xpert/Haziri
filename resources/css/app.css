@@ -2,6 +2,7 @@
 
 @source '../views/me/**/*.blade.php';
 @source '../views/kiosk/**/*.blade.php';
+@source '../views/welcome.blade.php';
 @source '../js/**/*.js';
 @source '../../storage/framework/views/*.php';
 
@@ -14,5 +15,91 @@
 @theme {
     --color-brand: #047857;
     --color-brand-dark: #065f46;
+    --color-brand-deep: #022c22;
+    --color-brand-soft: #ecfdf5;
+    --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
 }
-[x-cloak] { display: none !important; }
+
+[x-cloak] {
+    display: none !important;
+}
+
+@layer base {
+    html {
+        -webkit-tap-highlight-color: transparent;
+        font-feature-settings: 'cv11', 'ss01';
+    }
+
+    :focus-visible {
+        outline: 2px solid var(--color-brand);
+        outline-offset: 2px;
+    }
+
+    @media (prefers-color-scheme: dark) {
+        :focus-visible {
+            outline-color: var(--color-emerald-400);
+        }
+    }
+}
+
+@layer components {
+    /* Employee app (/me) */
+    .me-card {
+        @apply rounded-2xl bg-white shadow-[0_1px_2px_rgb(15_23_42/0.04),0_1px_3px_rgb(15_23_42/0.04)] ring-1 ring-zinc-950/[0.06] dark:bg-zinc-900 dark:shadow-none dark:ring-white/[0.08];
+    }
+
+    .me-label {
+        @apply mb-1.5 block text-[0.8125rem] font-medium text-zinc-700 dark:text-zinc-300;
+    }
+
+    .me-input {
+        @apply block w-full appearance-none rounded-xl border-0 bg-white px-3.5 py-3 text-base text-zinc-950 shadow-xs ring-1 ring-zinc-950/10 transition outline-none placeholder:text-zinc-400 focus:ring-2 focus:ring-brand dark:bg-white/5 dark:text-white dark:ring-white/15 dark:placeholder:text-zinc-500 dark:focus:ring-emerald-400;
+    }
+
+    select.me-input {
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%2371717a' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+        background-position: right 0.75rem center;
+        background-repeat: no-repeat;
+        background-size: 1.25rem;
+        padding-inline-end: 2.5rem;
+    }
+
+    [dir='rtl'] select.me-input {
+        background-position: left 0.75rem center;
+    }
+
+    .me-btn {
+        @apply inline-flex w-full items-center justify-center gap-2 rounded-xl bg-brand px-4 py-3 text-base font-semibold text-white shadow-sm transition duration-150 ease-out hover:bg-brand-dark active:scale-[0.98] disabled:pointer-events-none disabled:opacity-60 dark:bg-emerald-500 dark:text-emerald-950 dark:hover:bg-emerald-400;
+    }
+
+    .me-chip {
+        @apply inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium;
+    }
+}
+
+/* Employee app: cards rise in when a tab is shown (x-show toggles display, which restarts the animation). */
+@keyframes me-rise {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    [x-data^='meApp'] > section > * {
+        animation: me-rise 420ms var(--ease-out-quint) backwards;
+    }
+
+    [x-data^='meApp'] > section > :nth-child(2) { animation-delay: 60ms; }
+    [x-data^='meApp'] > section > :nth-child(3) { animation-delay: 120ms; }
+    [x-data^='meApp'] > section > :nth-child(n + 4) { animation-delay: 180ms; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+    }
+}
