@@ -36,6 +36,7 @@ use App\Models\Setting;
 use App\Models\UnmappedPin;
 use App\Models\User;
 use App\Services\Attendance\AttendanceRecomputer;
+use App\Services\Features\FeatureCatalog;
 use App\Services\Leave\LeaveBalanceService;
 use App\Services\Leave\LeaveYear;
 use App\Services\Settings\TenantSettings;
@@ -66,7 +67,7 @@ final class SeedDemoData extends Command
         config(['queue.default' => 'sync']);
         mt_srand(42);
 
-        app(SetTenantFeatureFlags::class)($tenant, array_fill_keys(config('hazri.feature_flags'), true));
+        app(SetTenantFeatureFlags::class)($tenant, array_fill_keys(FeatureCatalog::fromConfig()->keys(), true));
         $tenant->update(['employee_limit' => null]);
 
         $tenant->run(fn () => $this->seed());

@@ -6,6 +6,7 @@ namespace App\Filament\Tenant\Resources\ShiftSwaps;
 
 use App\Actions\Rosters\ApproveShiftSwap;
 use App\Filament\Concerns\AuthorizesByPermission;
+use App\Filament\Concerns\RequiresFeature;
 use App\Filament\Tenant\NavigationGroup;
 use App\Models\Employee;
 use App\Models\ShiftSwapRequest;
@@ -25,6 +26,9 @@ use Illuminate\Validation\ValidationException;
 class ShiftSwapResource extends Resource
 {
     use AuthorizesByPermission;
+    use RequiresFeature;
+
+    protected static string $feature = 'rosters';
 
     protected static ?string $model = ShiftSwapRequest::class;
 

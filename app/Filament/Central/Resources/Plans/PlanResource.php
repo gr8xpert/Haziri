@@ -4,12 +4,13 @@ declare(strict_types=1);
 
 namespace App\Filament\Central\Resources\Plans;
 
+use App\Filament\Central\FeatureToggles;
 use App\Models\Central\Plan;
 use Filament\Actions\EditAction;
-use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Group;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\IconColumn;
@@ -31,14 +32,8 @@ class PlanResource extends Resource
             TextInput::make('price_fixed')->numeric()->integer()->prefix('Rs')->required()->default(0),
             TextInput::make('limits.employees')->numeric()->integer()->label('Employee limit')->helperText('Blank = unlimited'),
             Toggle::make('is_active')->default(true),
-            // Stored as {flag: bool}; edited as a list of enabled flags.
-            CheckboxList::make('feature_flags')->label('Default feature flags')->columns(4)->columnSpanFull()
-                ->options(array_combine(config('hazri.feature_flags'), config('hazri.feature_flags')))
-                ->formatStateUsing(fn (?array $state) => array_keys(array_filter($state ?? [])))
-                ->dehydrateStateUsing(fn (?array $state) => array_map(
-                    fn (string $flag) => in_array($flag, $state ?? [], true),
-                    array_combine(config('hazri.feature_flags'), config('hazri.feature_flags')),
-                )),
+            // Stored as {feature: bool}: the defaults a new company on this plan starts with.
+            Group::make(FeatureToggles::schema('feature_flags'))->columnSpanFull(),
         ]);
     }
 

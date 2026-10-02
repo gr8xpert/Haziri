@@ -10,7 +10,9 @@ use App\Events\TenantProvisioned;
 use App\Models\Central\Plan;
 use App\Models\Central\Tenant;
 use App\Models\Central\TenantSetting;
+use App\Models\Central\TenantUserLink;
 use App\Models\User;
+use App\Services\Features\FeatureCatalog;
 use Carbon\CarbonImmutable;
 use Database\Seeders\Tenant\DefaultsSeeder;
 use Database\Seeders\Tenant\RolesAndPermissionsSeeder;
@@ -42,6 +44,8 @@ final class ProvisionTenant
         $this->validate($slug, $adminEmail);
 
         $plan = $planCode ? Plan::query()->where('code', $planCode)->firstOrFail() : null;
+        // The plan's switches, with connected features made consistent; no plan = catalog defaults.
+        $flags = $plan ? FeatureCatalog::fromConfig()->normalise($plan->feature_flags ?? []) : [];
 
         $tenant = Tenant::create([
             'slug' => $slug,
@@ -52,17 +56,17 @@ final class ProvisionTenant
         // Subdomain identification: the domain row holds just the subdomain; custom domains hold the full host.
         $tenant->domains()->create(['domain' => $slug]);
 
-        foreach ($plan?->feature_flags ?? [] as $flag => $enabled) {
+        foreach ($flags as $flag => $enabled) {
             TenantSetting::create(['tenant_id' => $tenant->id, 'key' => "feature.{$flag}", 'value' => (bool) $enabled]);
         }
 
         $password = Str::password(16, symbols: false);
-        $owner = $tenant->run(function () use ($tenant, $adminEmail, $adminName, $password, $plan) {
+        $owner = $tenant->run(function () use ($tenant, $adminEmail, $adminName, $password, $flags) {
             (new RolesAndPermissionsSeeder)->run();
             (new DefaultsSeeder)->run();
             app(LoadPakistanHolidays::class)((int) CarbonImmutable::now($tenant->timezone)->year);
 
-            foreach ($plan?->feature_flags ?? [] as $flag => $enabled) {
+            foreach ($flags as $flag => $enabled) {
                 DB::table('settings')->updateOrInsert(['key' => "feature.{$flag}"], ['value' => json_encode((bool) $enabled)]);
             }
 
@@ -76,7 +80,7 @@ final class ProvisionTenant
             return $owner;
         });
 
-        \App\Models\Central\TenantUserLink::link($adminEmail, $tenant->id);
+        TenantUserLink::link($adminEmail, $tenant->id);
         app(GrantAiReadonly::class)($tenant);
         event(new TenantProvisioned($tenant));
 

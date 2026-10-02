@@ -13,6 +13,7 @@ use App\Models\Employee;
 use App\Models\Shift;
 use App\Models\ShiftAssignment;
 use App\Services\Attendance\Period\PayCycle;
+use App\Services\Settings\TenantSettings;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonPeriod;
 use Filament\Actions\Action;
@@ -49,7 +50,7 @@ class Roster extends Page
 
     public static function canAccess(): bool
     {
-        return (bool) auth()->user()?->can('shifts.manage');
+        return app(TenantSettings::class)->featureEnabled('rosters') && (bool) auth()->user()?->can('shifts.manage');
     }
 
     public function mount(): void

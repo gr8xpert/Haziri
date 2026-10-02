@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace App\Services\Settings;
 
 use App\Models\Setting;
+use App\Services\Features\FeatureCatalog;
+use Illuminate\Contracts\Encryption\DecryptException;
+use Illuminate\Support\Facades\Crypt;
 
 /**
  * Current tenant's settings merged over config('hazri.settings_defaults').
@@ -39,15 +42,18 @@ final class TenantSettings
             return null;
         }
         try {
-            return \Illuminate\Support\Facades\Crypt::decryptString($value);
-        } catch (\Illuminate\Contracts\Encryption\DecryptException) {
+            return Crypt::decryptString($value);
+        } catch (DecryptException) {
             return null;
         }
     }
 
+    /** Unset switches fall back to the catalog default (config/features.php). */
     public function featureEnabled(string $flag): bool
     {
-        return (bool) $this->get("feature.{$flag}", false);
+        $value = $this->get("feature.{$flag}");
+
+        return $value === null ? FeatureCatalog::fromConfig()->default($flag) : (bool) $value;
     }
 
     public function flush(): void

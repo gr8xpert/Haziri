@@ -3,7 +3,10 @@
 declare(strict_types=1);
 
 use App\Enums\Role;
+use App\Models\Setting;
 use App\Models\User;
+use App\Services\Features\FeatureCatalog;
+use App\Services\Settings\TenantSettings;
 use Filament\Facades\Filament;
 
 /*
@@ -16,10 +19,10 @@ beforeEach(function () {
     $this->base = "http://{$host}";
     Filament::setCurrentPanel(Filament::getPanel('tenant'));
     // Every optional module on, so every screen gets rendered.
-    foreach (config('hazri.feature_flags') as $flag) {
-        App\Models\Setting::updateOrCreate(['key' => "feature.{$flag}"], ['value' => true]);
+    foreach (FeatureCatalog::fromConfig()->keys() as $flag) {
+        Setting::updateOrCreate(['key' => "feature.{$flag}"], ['value' => true]);
     }
-    app(App\Services\Settings\TenantSettings::class)->flush();
+    app(TenantSettings::class)->flush();
 });
 
 it('renders every tenant panel page for the owner', function () {

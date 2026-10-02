@@ -7,12 +7,12 @@ namespace App\Filament\Central\Resources\Tenants;
 use App\Actions\Tenants\SetTenantFeatureFlags;
 use App\Enums\Role;
 use App\Enums\TenantStatus;
+use App\Filament\Central\FeatureToggles;
 use App\Models\Central\Plan;
 use App\Models\Central\Tenant;
 use App\Models\User;
 use Filament\Actions\Action;
 use Filament\Actions\EditAction;
-use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
@@ -66,18 +66,13 @@ class TenantResource extends Resource
             ->filters([SelectFilter::make('status')->options(TenantStatus::class)])
             ->recordActions([
                 EditAction::make(),
-                Action::make('features')->icon(Heroicon::OutlinedCog6Tooth)->color('gray')
-                    ->fillForm(fn (Tenant $r) => ['flags' => array_keys(array_filter(SetTenantFeatureFlags::current($r)))])
-                    ->schema([
-                        CheckboxList::make('flags')->options(array_combine(config('hazri.feature_flags'), config('hazri.feature_flags')))->columns(2),
-                    ])
-                    ->action(function (Tenant $r, array $data, SetTenantFeatureFlags $set) {
-                        $flags = array_fill_keys(config('hazri.feature_flags'), false);
-                        foreach ($data['flags'] as $f) {
-                            $flags[$f] = true;
-                        }
-                        $set($r, $flags);
-                        Notification::make()->success()->title('Feature flags saved')->send();
+                Action::make('features')->icon(Heroicon::OutlinedCog6Tooth)->color('gray')->modalWidth('3xl')
+                    ->modalDescription('Switch features on or off for this company. Connected features follow automatically; data is kept when a feature is off.')
+                    ->fillForm(fn (Tenant $r) => ['flags' => SetTenantFeatureFlags::current($r)])
+                    ->schema(FeatureToggles::schema('flags'))
+                    ->action(function (Tenant $r, array $data, SetTenantFeatureFlags $setFlags) {
+                        $setFlags($r, array_map('boolval', $data['flags'] ?? []));
+                        Notification::make()->success()->title('Features saved')->send();
                     }),
                 Action::make('suspend')->icon(Heroicon::OutlinedExclamationTriangle)->color('danger')->requiresConfirmation()
                     ->visible(fn (Tenant $r) => $r->status !== TenantStatus::Suspended)
