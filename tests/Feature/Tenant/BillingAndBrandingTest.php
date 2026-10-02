@@ -2,19 +2,22 @@
 
 declare(strict_types=1);
 
+use App\Actions\Tenants\SetTenantFeatureFlags;
 use App\Enums\TenantStatus;
 use App\Filament\Tenant\Pages\Branding;
+use App\Models\Central\DeviceRegistry;
 use App\Models\Central\Invoice;
-use App\Models\Central\Payment;
 use App\Models\Central\Plan;
 use App\Models\Central\SuperAdmin;
 use App\Models\Central\UnknownDevice;
 use App\Models\Device;
 use App\Models\Employee;
 use App\Models\Setting;
+use App\Models\User;
 use App\Services\Billing\BillingService;
 use App\Services\Settings\TenantSettings;
 use Carbon\CarbonImmutable;
+use Filament\Support\Facades\FilamentColor;
 use Illuminate\Validation\ValidationException;
 use Livewire\Livewire;
 
@@ -30,7 +33,7 @@ afterEach(function () {
     Invoice::where('tenant_id', $this->tenant->id)->delete();
     $this->tenant->update(['plan_id' => null, 'status' => TenantStatus::Trial, 'employee_limit' => null, 'suspended_at' => null]);
     UnknownDevice::where('serial_number', 'NEWSN1')->delete();
-    App\Models\Central\DeviceRegistry::where('serial_number', 'NEWSN1')->delete();
+    DeviceRegistry::where('serial_number', 'NEWSN1')->delete();
 });
 
 it('invoices active employees at the plan price, once per month', function () {
@@ -74,13 +77,13 @@ it('attaches an unknown ADMS device to a company', function () {
     $this->tenant->run(fn () => Device::create(['name' => 'Gate', 'serial_number' => 'NEWSN1', 'type' => 'adms']));
 
     expect(UnknownDevice::where('serial_number', 'NEWSN1')->exists())->toBeFalse()
-        ->and(App\Models\Central\DeviceRegistry::where('serial_number', 'NEWSN1')->value('tenant_id'))->toBe($this->tenant->id);
+        ->and(DeviceRegistry::where('serial_number', 'NEWSN1')->value('tenant_id'))->toBe($this->tenant->id);
 });
 
 it('validates custom domains and applies white-label settings', function () {
     Setting::updateOrCreate(['key' => 'feature.white_label'], ['value' => true]);
     app(TenantSettings::class)->flush();
-    $this->actingAs(App\Models\User::where('email', 'owner@pest.test')->first());
+    $this->actingAs(User::where('email', 'owner@pest.test')->first());
 
     Livewire::test(Branding::class)->set('newDomain', 'x.' . config('hazri.central_domain'))->call('addDomain')->assertHasErrors('newDomain');
     Livewire::test(Branding::class)->set('newDomain', 'attendance.acme-test.pk')->call('addDomain')->assertHasNoErrors();
@@ -90,5 +93,22 @@ it('validates custom domains and applies white-label settings', function () {
     Setting::updateOrCreate(['key' => 'brand_color'], ['value' => '#7c3aed']);
     app(TenantSettings::class)->flush();
     $this->get('http://pest.' . config('hazri.central_domain') . '/admin')->assertOk();
-    expect(Filament\Support\Facades\FilamentColor::getColor('primary'))->not->toBeNull();
+    expect(FilamentColor::getColor('primary'))->not->toBeNull();
+});
+
+it('never invoices or auto-suspends a white-label client, who is billed outside the app', function () {
+    $flags = app(SetTenantFeatureFlags::class);
+    $original = SetTenantFeatureFlags::current($this->tenant);
+    $billing = app(BillingService::class);
+
+    try {
+        $billing->invoiceMonth(CarbonImmutable::parse('2026-07-01')); // an old open invoice from before white-label
+        $flags($this->tenant, ['white_label' => true]);
+
+        expect($billing->invoiceMonth(CarbonImmutable::parse('2026-08-01')))->toBe(0)
+            ->and($billing->enforce(CarbonImmutable::parse('2026-09-01')))->toBe(0)
+            ->and($this->tenant->fresh()->status)->toBe(TenantStatus::Active);
+    } finally {
+        $flags($this->tenant, $original);
+    }
 });

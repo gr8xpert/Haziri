@@ -10,6 +10,8 @@ use App\Services\Notifications\Recipient;
 use App\Services\Notifications\RenderedMessage;
 use App\Services\SelfService\OtpService;
 use App\Services\Settings\TenantSettings;
+use App\Support\Brand;
+use App\Support\Security\PublicUrl;
 use Illuminate\Support\Facades\Http;
 
 /**
@@ -40,13 +42,13 @@ final class HttpSmsChannel implements NotificationChannel
         if ($url === '') {
             return DeliveryResult::failed('SMS gateway URL is not configured.');
         }
-        if (($problem = \App\Support\Security\PublicUrl::check($url)) !== null) {
+        if (($problem = PublicUrl::check($url)) !== null) {
             return DeliveryResult::failed("SMS gateway URL rejected: {$problem}");
         }
         $vars = [
             '{to}' => OtpService::normalise((string) $to->phone),
             '{message}' => mb_substr(trim(($message->subject ? $message->subject . ': ' : '') . $message->body), 0, 459),
-            '{sender}' => (string) $this->settings->get('sms_http_sender', 'Hazri'),
+            '{sender}' => (string) ($this->settings->get('sms_http_sender') ?: Brand::name()),
             '{api_key}' => (string) $this->settings->secret('sms_http_api_key'),
         ];
         $params = array_map(fn ($v) => strtr((string) $v, $vars), (array) $this->settings->get('sms_http_params', ['to' => '{to}', 'message' => '{message}']));

@@ -2,12 +2,21 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\Api\PublicApiController;
 use App\Http\Controllers\KioskController;
 use App\Http\Controllers\Me\AuthController;
 use App\Http\Controllers\Me\MeController;
+use App\Http\Controllers\SwitchCompanyController;
+use App\Http\Middleware\AuthenticateApiToken;
 use App\Http\Middleware\EnsureEmployee;
 use App\Http\Middleware\IdentifyTenant;
+use App\Models\Punch;
+use App\Models\Visitor;
+use App\Support\Brand;
+use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
+use Illuminate\Routing\Middleware\ThrottleRequests;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Storage;
 use Stancl\Tenancy\Features\UserImpersonation;
 use Stancl\Tenancy\Middleware\PreventAccessFromCentralDomains;
 
@@ -21,6 +30,14 @@ Route::middleware([
     PreventAccessFromCentralDomains::class,
 ])->group(function () {
     Route::get('/', fn () => redirect('/admin'));
+
+    // White-label app icon (tab, phone home screen): the client's uploaded icon/logo.
+    Route::get('/app-icon', function () {
+        [$meta, $data] = array_pad(explode(',', Brand::uploadedIcon() ?? '', 2), 2, '');
+        abort_unless(preg_match('#^data:(image/(png|jpeg|webp));base64$#', $meta, $m) === 1, 404);
+
+        return response(base64_decode($data, true) ?: abort(404), 200, ['Content-Type' => $m[1], 'Cache-Control' => 'public, max-age=3600']);
+    })->name('brand.icon');
 
     // Super-admin "log in as owner" (spec §8); token is single-use, 60 s TTL, and audited centrally.
     Route::get('/impersonate/{token}', fn (string $token) => UserImpersonation::makeResponse($token))
@@ -47,24 +64,24 @@ Route::middleware([
     });
 
     // Punch photos: private storage, only via short-lived signed URLs (spec §15).
-    Route::get('/photos/punch/{punch}', function (App\Models\Punch $punch) {
+    Route::get('/photos/punch/{punch}', function (Punch $punch) {
         $path = (string) $punch->photo_path;
-        abort_if(! str_starts_with($path, 'photos/') || str_contains($path, '..') || ! Illuminate\Support\Facades\Storage::disk('local')->exists($path), 404);
+        abort_if(! str_starts_with($path, 'photos/') || str_contains($path, '..') || ! Storage::disk('local')->exists($path), 404);
 
-        return Illuminate\Support\Facades\Storage::disk('local')->response($punch->photo_path, null, ['Cache-Control' => 'private, max-age=600']);
+        return Storage::disk('local')->response($punch->photo_path, null, ['Cache-Control' => 'private, max-age=600']);
     })->middleware('signed')->name('tenant.punch-photo');
 
     // Multi-company: jump to another company this login is linked to.
-    Route::get('/switch/{tenantId}', App\Http\Controllers\SwitchCompanyController::class)
+    Route::get('/switch/{tenantId}', SwitchCompanyController::class)
         ->middleware(['auth', 'throttle:10,1'])->name('tenant.switch');
 
     // Printable visitor badge (receptionist, logged in to the panel).
-    Route::get('/visitors/{visitor}/badge', function (App\Models\Visitor $visitor) {
+    Route::get('/visitors/{visitor}/badge', function (Visitor $visitor) {
         abort_unless(auth()->user()?->can('visitors.manage'), 403);
         $path = (string) $visitor->photo_path;
         $safe = str_starts_with($path, 'visitor-photos/') && ! str_contains($path, '..');
-        $photo = $safe && Illuminate\Support\Facades\Storage::disk('local')->exists($path)
-            ? 'data:image/jpeg;base64,' . base64_encode(Illuminate\Support\Facades\Storage::disk('local')->get($path))
+        $photo = $safe && Storage::disk('local')->exists($path)
+            ? 'data:image/jpeg;base64,' . base64_encode(Storage::disk('local')->get($path))
             : null;
 
         return view('visitors.badge', ['visitor' => $visitor, 'photo' => $photo, 'company' => tenant('company_name')]);
@@ -72,16 +89,16 @@ Route::middleware([
 
     // ---- Public API v1 (spec §13.3): bearer token, per-token rate limit, no session/CSRF ----
     Route::prefix('api/v1')->name('api.')
-        ->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\PreventRequestForgery::class])
-        ->middleware(\Illuminate\Routing\Middleware\ThrottleRequests::using('public-api'))
+        ->withoutMiddleware([PreventRequestForgery::class])
+        ->middleware(ThrottleRequests::using('public-api'))
         ->group(function () {
-            $read = App\Http\Middleware\AuthenticateApiToken::class . ':read';
-            Route::get('employees', [App\Http\Controllers\Api\PublicApiController::class, 'employees'])->middleware($read);
-            Route::get('attendance', [App\Http\Controllers\Api\PublicApiController::class, 'attendance'])->middleware($read);
-            Route::get('leave/balances', [App\Http\Controllers\Api\PublicApiController::class, 'leaveBalances'])->middleware($read);
-            Route::get('periods/{ym}/payroll-input', [App\Http\Controllers\Api\PublicApiController::class, 'payrollInput'])->middleware($read);
-            Route::post('punches', [App\Http\Controllers\Api\PublicApiController::class, 'punch'])
-                ->middleware(App\Http\Middleware\AuthenticateApiToken::class . ':punches:write');
+            $read = AuthenticateApiToken::class . ':read';
+            Route::get('employees', [PublicApiController::class, 'employees'])->middleware($read);
+            Route::get('attendance', [PublicApiController::class, 'attendance'])->middleware($read);
+            Route::get('leave/balances', [PublicApiController::class, 'leaveBalances'])->middleware($read);
+            Route::get('periods/{ym}/payroll-input', [PublicApiController::class, 'payrollInput'])->middleware($read);
+            Route::post('punches', [PublicApiController::class, 'punch'])
+                ->middleware(AuthenticateApiToken::class . ':punches:write');
         });
 
     // ---- Tablet kiosk (spec §6.5) ----
@@ -89,6 +106,6 @@ Route::middleware([
         Route::get('/', [KioskController::class, 'show'])->name('show');
         Route::get('config', [KioskController::class, 'config'])->name('config');
         Route::post('punch', [KioskController::class, 'punch'])->middleware('throttle:120,1')->name('punch')
-            ->withoutMiddleware(\Illuminate\Foundation\Http\Middleware\PreventRequestForgery::class);
+            ->withoutMiddleware(PreventRequestForgery::class);
     });
 });

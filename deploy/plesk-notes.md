@@ -23,3 +23,9 @@
 
 Plesk puts nginx in front of PHP. Set `TRUSTED_PROXIES=127.0.0.1` in `.env` so the app sees the visitor's real IP;
 otherwise every request looks like it comes from 127.0.0.1 and the "office internet only" kiosk and branch rules misfire.
+
+## White-label neutral domain
+
+Register a domain with no platform name (e.g. `attendance-cloud.pk`) and point it, plus `adms.` and `api.` subdomains and
+a wildcard for client CNAMEs, at this server with TLS. Set `HAZRI_NEUTRAL_DOMAIN=attendance-cloud.pk`. White-label clients
+CNAME their own domain (e.g. `attendance.aasml.com`) to it; issue a certificate for each client domain.

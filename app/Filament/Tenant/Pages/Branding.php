@@ -4,9 +4,10 @@ declare(strict_types=1);
 
 namespace App\Filament\Tenant\Pages;
 
+use App\Actions\Tenants\SaveBranding;
 use App\Filament\Tenant\NavigationGroup;
-use App\Models\Setting;
 use App\Services\Settings\TenantSettings;
+use App\Support\Brand;
 use Filament\Forms\Components\ColorPicker;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\TextInput;
@@ -17,10 +18,12 @@ use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
+use Stancl\Tenancy\Database\Models\Domain;
 
 /**
- * White-label + custom domains (spec §9 phase 4, plan feature `white_label`): logo, colour and email sender name;
- * company domains pointing at Hazri (CNAME to the {slug} subdomain; TLS is issued by operations).
+ * White-label + custom domains (spec §9 phase 4, plan feature `white_label`): logo, icon, colour, product and
+ * assistant names, email sender name; company domains (CNAME to the platform; TLS is issued by operations).
+ * The super-admin can lock this page.
  */
 class Branding extends Page
 {
@@ -46,39 +49,61 @@ class Branding extends Page
 
     public function mount(TenantSettings $settings): void
     {
-        $this->form->fill(['brand_color' => $settings->get('brand_color'), 'email_from_name' => $settings->get('email_from_name')]);
+        $this->form->fill(array_combine(SaveBranding::TEXT_KEYS, array_map(fn (string $k) => $settings->get($k), SaveBranding::TEXT_KEYS)));
+    }
+
+    public function isLocked(): bool
+    {
+        return (bool) app(TenantSettings::class)->get('branding_locked');
     }
 
     public function form(Schema $schema): Schema
     {
-        return $schema->statePath('data')->components([
+        $image = fn (string $name, string $label) => FileUpload::make($name)->label($label)->image()->disk('local')->directory('branding')
+            ->acceptedFileTypes(['image/png', 'image/jpeg', 'image/webp'])->maxSize(150);
+
+        return $schema->statePath('data')->disabled(fn () => $this->isLocked())->components([
+            Section::make(__('Name'))->columns(3)->schema([
+                TextInput::make('app_name')->label(__('App name'))->maxLength(60)->placeholder(tenant('company_name') . ' Attendance')
+                    ->helperText(__('Shown in titles, the employee app, the kiosk, PDFs and messages.')),
+                TextInput::make('assistant_name')->label(__('AI assistant name'))->maxLength(60)->placeholder(__('Ask AI')),
+                TextInput::make('email_from_name')->label(__('Email sender name'))->maxLength(60)->placeholder(tenant('company_name')),
+            ]),
             Section::make(__('Look'))->columns(3)->schema([
-                FileUpload::make('logo')->label(__('Logo (PNG/JPEG/WebP, max 150 KB)'))->image()->disk('local')->directory('branding')
-                    ->acceptedFileTypes(['image/png', 'image/jpeg', 'image/webp'])->maxSize(150),
-                ColorPicker::make('brand_color')->hex()->regex('/^#[0-9a-fA-F]{6}$/'),
-                TextInput::make('email_from_name')->maxLength(60)->placeholder(tenant('company_name')),
+                $image('logo', __('Logo (PNG/JPEG/WebP, max 150 KB)')),
+                $image('icon', __('App icon, square (PNG/JPEG/WebP, max 150 KB)'))->helperText(__('Browser tab and phone home screen. Falls back to the logo.')),
+                ColorPicker::make('brand_color')->label(__('Theme colour'))->hex()->regex('/^#[0-9a-fA-F]{6}$/'),
             ]),
         ]);
     }
 
-    public function save(TenantSettings $settings): void
+    public function save(SaveBranding $save): void
     {
+        if ($this->isLocked()) {
+            throw ValidationException::withMessages(['data.app_name' => __('Branding is managed by your provider.')]);
+        }
         $state = $this->form->getState();
-        if (! empty($state['logo'])) {
-            $bytes = Storage::disk('local')->get($state['logo']);
-            $mime = (new \finfo(FILEINFO_MIME_TYPE))->buffer((string) $bytes);
-            if (! in_array($mime, ['image/png', 'image/jpeg', 'image/webp'], true) || strlen((string) $bytes) > 150_000) {
-                throw ValidationException::withMessages(['data.logo' => __('Use a PNG, JPEG or WebP under 150 KB.')]);
+        $read = function (?string $path): ?string {
+            if (empty($path)) {
+                return null;
             }
-            // Stored inline so every panel / PWA / email can show it without a public, tenant-shared disk.
-            Setting::updateOrCreate(['key' => 'brand_logo'], ['value' => "data:{$mime};base64," . base64_encode((string) $bytes)]);
-            Storage::disk('local')->delete($state['logo']);
+            $bytes = (string) Storage::disk('local')->get($path);
+            Storage::disk('local')->delete($path);
+
+            return $bytes;
+        };
+        try {
+            $save(array_intersect_key($state, array_flip(SaveBranding::TEXT_KEYS)), $read($state['logo'] ?? null), $read($state['icon'] ?? null));
+        } catch (ValidationException $e) {
+            throw ValidationException::withMessages(collect($e->errors())->mapWithKeys(fn ($m, $k) => ["data.{$k}" => $m])->all());
         }
-        foreach (['brand_color', 'email_from_name'] as $key) {
-            Setting::updateOrCreate(['key' => $key], ['value' => $state[$key] ?: null]);
-        }
-        $settings->flush();
         Notification::make()->success()->title(__('Branding saved'))->send();
+    }
+
+    /** Where the client points their CNAME: a neutral platform host when configured. */
+    public function cnameTarget(): string
+    {
+        return Brand::host('cname');
     }
 
     /** @return list<string> */
@@ -95,13 +120,13 @@ class Branding extends Page
         if (! $valid || $host === $central || str_ends_with($host, '.' . $central)) {
             throw ValidationException::withMessages(['newDomain' => __('Enter a domain you own, like attendance.yourcompany.pk.')]);
         }
-        if (\Stancl\Tenancy\Database\Models\Domain::query()->where('domain', $host)->exists()) {
+        if (Domain::query()->where('domain', $host)->exists()) {
             throw ValidationException::withMessages(['newDomain' => __('This domain is already in use.')]);
         }
         tenant()->domains()->create(['domain' => $host]);
         $this->newDomain = '';
         Notification::make()->success()->title(__('Domain added'))
-            ->body(__('Create a CNAME record :d → :t. HTTPS is enabled by our team within one working day.', ['d' => $host, 't' => tenant('slug') . '.' . $central]))
+            ->body(__('Create a CNAME record :d → :t. HTTPS is enabled by our team within one working day.', ['d' => $host, 't' => $this->cnameTarget()]))
             ->persistent()->send();
     }
 

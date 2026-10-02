@@ -9,6 +9,7 @@ use App\Filament\Concerns\AuthorizesByPermission;
 use App\Filament\Tenant\NavigationGroup;
 use App\Models\Device;
 use App\Services\Devices\DeviceCommander;
+use App\Support\Brand;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
 use Filament\Actions\DeleteAction;
@@ -17,8 +18,8 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
-use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Html;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
@@ -125,8 +126,8 @@ class DeviceResource extends Resource
     public static function instructions(mixed $type, string $serial): string
     {
         $type = $type instanceof DevicePunchSourceType ? $type : DevicePunchSourceType::tryFrom((string) $type);
-        $adms = e(config('hazri.adms_domain'));
-        $api = e(config('hazri.api_domain'));
+        $adms = e(Brand::host('adms'));
+        $api = e(Brand::host('api'));
 
         return match ($type) {
             DevicePunchSourceType::Adms => <<<HTML
@@ -140,7 +141,7 @@ class DeviceResource extends Resource
                 HTML,
             DevicePunchSourceType::Agent => <<<HTML
                 <ol class="list-decimal ps-5 space-y-1 text-sm">
-                  <li>Install <b>hazri-agent</b> on any always-on PC or Raspberry Pi on the same network as the device.</li>
+                  <li>Install the <b>sync agent</b> on any always-on PC or Raspberry Pi on the same network as the device.</li>
                   <li>Create an agent key: <b>Devices → Agent keys</b>. Copy it — it is shown once.</li>
                   <li>In <code>agent.yaml</code>: <code>server: https://{$api}</code>, <code>api_key: …</code>, and add this device with serial <code>{$serial}</code> and its LAN IP (port 4370).</li>
                   <li>Start the service. This page shows <b>online</b> after the first poll (60 s).</li>

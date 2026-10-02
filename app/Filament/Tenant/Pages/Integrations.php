@@ -10,6 +10,8 @@ use App\Services\Notifications\ChannelRegistry;
 use App\Services\Notifications\Recipient;
 use App\Services\Notifications\RenderedMessage;
 use App\Services\Settings\TenantSettings;
+use App\Support\Brand;
+use App\Support\Security\PublicUrl;
 use Filament\Actions\Action;
 use Filament\Forms\Components\KeyValue;
 use Filament\Forms\Components\Select;
@@ -71,7 +73,7 @@ class Integrations extends Page
                 Select::make('sms_provider')->options(['log' => 'Not set up (log only)', 'http' => 'HTTP gateway'])->live(),
                 TextInput::make('sms_http_url')->url()->label('Gateway URL')->visible($is('sms_provider', 'http'))
                     ->rule(fn () => function (string $attribute, $value, \Closure $fail) {
-                        if (filled($value) && ($problem = \App\Support\Security\PublicUrl::check((string) $value)) !== null) {
+                        if (filled($value) && ($problem = PublicUrl::check((string) $value)) !== null) {
                             $fail($problem);
                         }
                     }),
@@ -119,7 +121,7 @@ class Integrations extends Page
                         return;
                     }
                     $r = $driver->send(new Recipient('Test', null, $data['phone']),
-                        new RenderedMessage('test', null, __('Hazri test message from :c', ['c' => tenant('company_name')])));
+                        new RenderedMessage('test', null, __(':app test message from :c', ['app' => Brand::name(), 'c' => tenant('company_name')])));
                     $r->ok
                         ? Notification::make()->success()->title(__('Sent'))->body($r->providerRef)->send()
                         : Notification::make()->danger()->title(__('Failed'))->body($r->error)->persistent()->send();

@@ -10,6 +10,7 @@ use App\Services\Ai\AiGateway;
 use App\Services\Ai\AskHazri;
 use App\Services\Settings\TenantSettings;
 use App\Support\BranchAccess;
+use App\Support\Brand;
 use App\Support\Excel\Spreadsheet;
 use Filament\Pages\Page;
 use Filament\Support\Icons\Heroicon;
@@ -28,7 +29,15 @@ class AskHazriPage extends Page
 
     protected static ?int $navigationSort = 2;
 
-    protected static ?string $title = 'Ask Hazri';
+    public function getTitle(): string
+    {
+        return Brand::assistantName();
+    }
+
+    public static function getNavigationLabel(): string
+    {
+        return Brand::assistantName();
+    }
 
     public string $question = '';
 

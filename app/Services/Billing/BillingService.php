@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Billing;
 
+use App\Actions\Tenants\SetTenantFeatureFlags;
 use App\Enums\EmployeeStatus;
 use App\Enums\TenantStatus;
 use App\Models\Central\Invoice;
@@ -30,7 +31,8 @@ final class BillingService
         }
         $n = 0;
         foreach (Tenant::query()->with('plan')->where('status', '!=', TenantStatus::Trial)->get() as $tenant) {
-            if ($tenant->plan === null || Invoice::query()->where(['tenant_id' => $tenant->id])->whereDate('period_start', $monthStart)->exists()) {
+            if ($tenant->plan === null || self::invoicedOutsideApp($tenant)
+                || Invoice::query()->where(['tenant_id' => $tenant->id])->whereDate('period_start', $monthStart)->exists()) {
                 continue;
             }
             $count = (int) $tenant->run(fn () => Employee::query()->where('status', '!=', EmployeeStatus::Left)->count());
@@ -61,6 +63,9 @@ final class BillingService
         $overdue = Invoice::query()->where('status', 'open')->where('due_on', '<', $cutoff)->pluck('tenant_id')->unique();
         $n = 0;
         foreach (Tenant::query()->whereIn('id', $overdue)->where('status', TenantStatus::Active)->get() as $tenant) {
+            if (self::invoicedOutsideApp($tenant)) {
+                continue; // suspended by hand only
+            }
             $tenant->status = TenantStatus::Suspended;
             $tenant->suspended_at = now();
             $tenant->suspension_reason = 'billing';
@@ -69,6 +74,12 @@ final class BillingService
         }
 
         return $n;
+    }
+
+    /** White-label clients are invoiced outside the app: no invoices, no automatic suspension, no billing page. */
+    public static function invoicedOutsideApp(Tenant $tenant): bool
+    {
+        return SetTenantFeatureFlags::current($tenant)['white_label'] ?? false;
     }
 
     public function confirm(Payment $payment, SuperAdmin $by): Invoice

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Filament\Central\Resources\Tenants;
 
+use App\Actions\Tenants\SaveBranding;
 use App\Actions\Tenants\SetTenantFeatureFlags;
 use App\Enums\Role;
 use App\Enums\TenantStatus;
@@ -11,17 +12,23 @@ use App\Filament\Central\FeatureToggles;
 use App\Models\Central\Plan;
 use App\Models\Central\Tenant;
 use App\Models\User;
+use App\Services\Settings\TenantSettings;
 use Filament\Actions\Action;
 use Filament\Actions\EditAction;
+use Filament\Forms\Components\ColorPicker;
+use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Support\Facades\Storage;
 
 class TenantResource extends Resource
 {
@@ -66,6 +73,45 @@ class TenantResource extends Resource
             ->filters([SelectFilter::make('status')->options(TenantStatus::class)])
             ->recordActions([
                 EditAction::make(),
+                Action::make('branding')->icon(Heroicon::OutlinedSwatch)->color('gray')->modalWidth('3xl')
+                    ->visible(fn (Tenant $r) => SetTenantFeatureFlags::current($r)['white_label'] ?? false)
+                    ->modalDescription('The client\'s own name, logo and colours, shown instead of ours everywhere they can see.')
+                    ->fillForm(fn (Tenant $r) => $r->run(function () {
+                        $settings = app(TenantSettings::class);
+                        $settings->flush();
+
+                        return array_combine(SaveBranding::TEXT_KEYS, array_map(fn (string $k) => $settings->get($k), SaveBranding::TEXT_KEYS))
+                            + ['branding_locked' => (bool) $settings->get('branding_locked')];
+                    }))
+                    ->schema([
+                        Grid::make(3)->schema([
+                            TextInput::make('app_name')->label('App name')->maxLength(60)->placeholder('AASML Attendance'),
+                            TextInput::make('assistant_name')->label('AI assistant name')->maxLength(60)->placeholder('Ask AI'),
+                            TextInput::make('email_from_name')->label('Email sender name')->maxLength(60),
+                            FileUpload::make('logo')->image()->disk('local')->directory('branding-uploads')->maxSize(150)
+                                ->acceptedFileTypes(['image/png', 'image/jpeg', 'image/webp']),
+                            FileUpload::make('icon')->label('App icon (square)')->image()->disk('local')->directory('branding-uploads')->maxSize(150)
+                                ->acceptedFileTypes(['image/png', 'image/jpeg', 'image/webp']),
+                            ColorPicker::make('brand_color')->label('Theme colour')->hex()->regex('/^#[0-9a-fA-F]{6}$/'),
+                        ]),
+                        Toggle::make('branding_locked')->label('Lock branding (the client cannot change it)'),
+                    ])
+                    ->action(function (Tenant $r, array $data) {
+                        $read = function (?string $path): ?string {
+                            if (empty($path)) {
+                                return null;
+                            }
+                            $bytes = (string) Storage::disk('local')->get($path);
+                            Storage::disk('local')->delete($path);
+
+                            return $bytes;
+                        };
+                        $logo = $read($data['logo'] ?? null);
+                        $icon = $read($data['icon'] ?? null);
+                        $r->run(fn () => app(SaveBranding::class)(array_intersect_key($data, array_flip(SaveBranding::TEXT_KEYS)), $logo, $icon,
+                            (bool) ($data['branding_locked'] ?? false)));
+                        Notification::make()->success()->title('Branding saved')->send();
+                    }),
                 Action::make('features')->icon(Heroicon::OutlinedCog6Tooth)->color('gray')->modalWidth('3xl')
                     ->modalDescription('Switch features on or off for this company. Connected features follow automatically; data is kept when a feature is off.')
                     ->fillForm(fn (Tenant $r) => ['flags' => SetTenantFeatureFlags::current($r)])

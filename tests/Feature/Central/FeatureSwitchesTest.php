@@ -8,6 +8,7 @@ use App\Filament\Central\Resources\Tenants\Pages\ListTenants;
 use App\Models\Central\Plan;
 use App\Models\Central\SuperAdmin;
 use App\Models\Central\Tenant;
+use App\Models\Setting;
 use Filament\Facades\Filament;
 use Illuminate\Support\Facades\Schema;
 use Livewire\Livewire;
@@ -61,4 +62,24 @@ it('saves a plan with every feature switch present', function () {
         ->and(array_keys($flags))->toContain('payroll_tax', 'white_label');
 
     Plan::where('code', 'pest-plan')->delete();
+});
+
+it('sets a white-label client\'s branding from the super-admin panel', function () {
+    $tenant = Tenant::where('slug', 'pest')->first() ?? $this->markTestSkipped('needs the pest tenant');
+    $original = SetTenantFeatureFlags::current($tenant);
+    app(SetTenantFeatureFlags::class)($tenant, ['white_label' => true]);
+
+    try {
+        Livewire::test(ListTenants::class)
+            ->mountTableAction('branding', $tenant)
+            ->setTableActionData(['app_name' => 'AASML Attendance', 'brand_color' => '#1d4ed8', 'branding_locked' => true])
+            ->callMountedTableAction()
+            ->assertHasNoTableActionErrors();
+
+        $saved = $tenant->run(fn () => Setting::whereIn('key', ['app_name', 'brand_color', 'branding_locked'])->pluck('value', 'key')->all());
+        expect($saved)->toMatchArray(['app_name' => 'AASML Attendance', 'brand_color' => '#1d4ed8', 'branding_locked' => true]);
+    } finally {
+        $tenant->run(fn () => Setting::whereIn('key', ['app_name', 'brand_color', 'branding_locked'])->delete());
+        app(SetTenantFeatureFlags::class)($tenant, $original);
+    }
 });

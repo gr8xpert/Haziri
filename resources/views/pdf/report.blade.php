@@ -38,6 +38,6 @@
             @foreach ($summary as $k => $v)<span><strong>{{ $k }}:</strong> {{ $v }}</span>@endforeach
         </div>
     @endif
-    <div class="foot">{{ __('Generated') }} {{ now(tenant('timezone'))->format('d M Y H:i') }} · Hazri</div>
+    <div class="foot">{{ __('Generated') }} {{ now(tenant('timezone'))->format('d M Y H:i') }} · {{ \App\Support\Brand::name() }}</div>
 </body>
 </html>

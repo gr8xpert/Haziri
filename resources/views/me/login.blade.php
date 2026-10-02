@@ -9,7 +9,7 @@
 
     <div class="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center">
         <div class="mb-8 text-center">
-            <img src="/hazri-icon.svg" alt="" class="mx-auto size-14 rounded-2xl shadow-sm">
+            <img src="{{ \App\Support\Brand::iconUrl() }}" alt="" class="mx-auto size-14 rounded-2xl shadow-sm">
             <h1 class="mt-4 text-2xl font-semibold tracking-tight text-balance">{{ $company }}</h1>
             <p class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">{{ __('Sign in to see your attendance, apply for leave and punch in.') }}</p>
         </div>
@@ -80,6 +80,8 @@
         </div>
     </div>
 
-    <p class="mt-8 text-center text-xs text-zinc-400 dark:text-zinc-500">{{ __('Powered by Hazri') }}</p>
+    @if (\App\Support\Brand::showPlatform())
+        <p class="mt-8 text-center text-xs text-zinc-400 dark:text-zinc-500">{{ __('Powered by :name', ['name' => \App\Support\Brand::name()]) }}</p>
+    @endif
 </main>
 @endsection

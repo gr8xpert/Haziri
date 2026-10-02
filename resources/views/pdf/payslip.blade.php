@@ -43,6 +43,6 @@
     </table>
 
     <h1 style="margin-top:16px">{{ __('Net pay') }}: Rs {{ number_format($slip->net) }}</h1>
-    <p class="muted" style="margin-top:24px">{{ __('Computer-generated payslip from Hazri. Attendance figures are from the locked month.') }}</p>
+    <p class="muted" style="margin-top:24px">{{ __('Computer-generated payslip from :app. Attendance figures are from the locked month.', ['app' => \App\Support\Brand::name()]) }}</p>
 </body>
 </html>

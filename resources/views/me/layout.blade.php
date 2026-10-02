@@ -8,9 +8,9 @@
     <meta name="color-scheme" content="light dark">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <link rel="manifest" href="/manifest.webmanifest">
-    <link rel="icon" href="/hazri-icon.svg" type="image/svg+xml">
-    <link rel="apple-touch-icon" href="/hazri-icon.svg">
-    <title>@yield('title', 'Hazri') | {{ $company ?? 'Hazri' }}</title>
+    <link rel="icon" href="{{ \App\Support\Brand::iconUrl() }}">
+    <link rel="apple-touch-icon" href="{{ \App\Support\Brand::iconUrl() }}">
+    <title>@yield('title', \App\Support\Brand::name()) | {{ $company ?? \App\Support\Brand::name() }}</title>
     @fonts
     @vite(['resources/css/app.css', 'resources/js/me.js'])
 </head>

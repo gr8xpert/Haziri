@@ -42,3 +42,20 @@ read through `App\Services\Settings\TenantSettings`. Feature flags are stored as
 | `whatsapp_provider` / `sms_provider` | log | `meta` / `http`; credentials on the "WhatsApp & SMS" page (encrypted) |
 | `brand_logo` / `brand_color` / `email_from_name` | — | White-label (plan feature `white_label`) |
 | `feature.*` | from plan | `machine_sync`, `kiosk`, `mobile_punch`, `leave`, `payroll_lite`, `visitors`, `ai_reports`, `whatsapp`, `public_api`, `white_label` |
+
+## White-label branding (feature `white_label`)
+
+Set on the client's **Branding** page or by the super-admin (Companies → Branding, which can also lock it).
+
+| Key | Meaning |
+|---|---|
+| `app_name` | Product name the client sees (titles, /me app, kiosk, PDFs, emails, SMS sender). Default: company name |
+| `assistant_name` | Name of the AI assistant. Default: "Ask AI" |
+| `brand_logo` / `brand_icon` | data: URLs (PNG/JPEG/WebP ≤ 150 KB); the icon is served at `/app-icon` |
+| `brand_color` | Panel primary colour, PWA theme colour, avatar colour |
+| `email_from_name` | Sender name on emails (no "via …" suffix when white-labelled) |
+| `branding_locked` | Super-admin only: the client cannot change the above |
+
+Env `HAZRI_NEUTRAL_DOMAIN`: a domain without the platform name pointing at the same server; white-label clients are
+told to CNAME to it and to use `adms.<it>` / `api.<it>` for machines and the sync agent. White-label clients have no
+Billing page, are never invoiced by the app and are never suspended automatically.

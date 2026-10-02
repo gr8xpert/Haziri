@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
     <meta name="theme-color" content="#022c22">
     <link rel="manifest" href="/manifest.webmanifest">
-    <link rel="icon" href="/hazri-icon.svg" type="image/svg+xml">
+    <link rel="icon" href="{{ \App\Support\Brand::iconUrl() }}">
     <title>{{ $company }} | Kiosk</title>
     @fonts
     @vite(['resources/css/app.css', 'resources/js/kiosk.js'])
@@ -18,7 +18,7 @@
 
         {{-- Top bar --}}
         <header class="mx-auto flex w-full max-w-6xl items-center gap-3">
-            <img src="/hazri-icon.svg" alt="" class="size-10 rounded-xl ring-1 ring-white/15">
+            <img src="{{ \App\Support\Brand::iconUrl() }}" alt="" class="size-10 rounded-xl ring-1 ring-white/15">
             <div class="min-w-0 leading-tight">
                 <div class="truncate text-[1.0625rem] font-semibold">{{ $company }}</div>
                 <div class="truncate text-sm text-white/55">{{ $kiosk->branch?->name ?? 'Attendance kiosk' }}</div>
@@ -87,7 +87,7 @@
                         <div class="flex items-start justify-between gap-4">
                             <div>
                                 <h1 class="text-2xl font-semibold tracking-tight">Punch in or out</h1>
-                                <p class="mt-1 text-white/60" x-text="mode === 'qr' ? 'Scan the QR badge from your Hazri app' : (askKioskPin ? 'Now enter your 4-digit kiosk PIN' : 'Enter your employee PIN')"></p>
+                                <p class="mt-1 text-white/60" x-text="mode === 'qr' ? @js(__('Scan the QR badge from your :app app', ['app' => \App\Support\Brand::name()])) : (askKioskPin ? 'Now enter your 4-digit kiosk PIN' : 'Enter your employee PIN')"></p>
                             </div>
                             <div x-show="modes.length > 1" class="grid shrink-0 grid-cols-2 rounded-xl bg-white/[0.06] p-1 text-sm font-medium ring-1 ring-white/10">
                                 <button @click="mode = 'pin'" :aria-pressed="mode === 'pin'" :class="mode === 'pin' ? 'bg-white text-brand-deep shadow' : 'text-white/65'" class="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 transition">
@@ -102,7 +102,7 @@
                         <div x-show="mode === 'qr'" class="mt-5 flex flex-1 flex-col items-center justify-center rounded-3xl bg-white/[0.04] px-8 py-12 text-center ring-1 ring-white/10">
                             <span class="kiosk-float flex size-20 items-center justify-center rounded-3xl bg-emerald-400/15 ring-1 ring-emerald-300/30">@svg('heroicon-o-qr-code', 'size-10 text-emerald-300')</span>
                             <p class="mt-6 text-2xl font-semibold">Show your QR badge</p>
-                            <p class="mt-2 max-w-xs text-white/60">Open the Hazri app on your phone and hold the badge up to the camera.</p>
+                            <p class="mt-2 max-w-xs text-white/60">{{ __('Open the :app app on your phone and hold the badge up to the camera.', ['app' => \App\Support\Brand::name()]) }}</p>
                         </div>
 
                         <div x-show="mode === 'pin'" class="mt-5 flex flex-1 flex-col">
@@ -205,7 +205,7 @@
 
         <footer class="mx-auto flex w-full max-w-6xl items-center justify-between text-sm text-white/40">
             <span>Forgot your PIN? Ask HR.</span>
-            <span>Hazri</span>
+            <span>{{ \App\Support\Brand::name() }}</span>
         </footer>
     </div>
 

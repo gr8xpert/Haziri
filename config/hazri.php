@@ -12,6 +12,12 @@ return [
     'dedicated_tenant' => env('HAZRI_DEDICATED_TENANT'),
 
     'central_domain' => env('HAZRI_CENTRAL_DOMAIN', 'hazri.localhost'),
+    // Product name shown to clients without white-label.
+    'platform_name' => env('APP_NAME', 'Hazri'),
+    // A second domain with no platform name in it, pointing at the same server. White-label clients see it instead of
+    // ours: CNAME target for their own domain, and adms.<it> / api.<it> for machines and the sync agent
+    // (those endpoints find the company by device serial / agent key, so any host works). Empty = our domains.
+    'neutral_domain' => env('HAZRI_NEUTRAL_DOMAIN'),
     'admin_domain' => env('HAZRI_ADMIN_DOMAIN', 'admin.' . env('HAZRI_CENTRAL_DOMAIN', 'hazri.localhost')),
     'adms_domain' => env('HAZRI_ADMS_DOMAIN', 'adms.' . env('HAZRI_CENTRAL_DOMAIN', 'hazri.localhost')),
     'api_domain' => env('HAZRI_API_DOMAIN', 'api.' . env('HAZRI_CENTRAL_DOMAIN', 'hazri.localhost')),

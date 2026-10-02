@@ -8,6 +8,7 @@ use App\Filament\Tenant\Pages\SwitchCompany;
 use App\Http\Middleware\ApplyTenantBranding;
 use App\Http\Middleware\IdentifyTenant;
 use App\Http\Middleware\ScopeToUserBranches;
+use App\Support\Brand;
 use Filament\Actions\Action;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
@@ -55,7 +56,7 @@ class TenantPanelProvider extends PanelProvider
             ->id('tenant')
             ->path('admin')
             ->login()
-            ->brandName(fn () => tenant('company_name') ?? 'Hazri')
+            ->brandName(fn () => tenant('company_name') ?? Brand::name())
             ->userMenuItems([
                 Action::make('switchCompany')->label(__('Switch company'))
                     ->icon(Heroicon::OutlinedBuildingOffice2)

@@ -30,7 +30,7 @@ return [
     ],
     'device_offline' => [
         'channels' => ['mail', 'database'],
-        'en' => ['Attendance machine offline: {{ device }}', '{{ device }} ({{ serial }}) has not contacted Hazri since {{ last_seen }}. Check power and internet.'],
+        'en' => ['Attendance machine offline: {{ device }}', '{{ device }} ({{ serial }}) has sent nothing since {{ last_seen }}. Check power and internet.'],
         'ur' => ['حاضری مشین آف لائن: {{ device }}', '{{ device }} ({{ serial }}) کا {{ last_seen }} سے رابطہ نہیں ہوا۔ بجلی اور انٹرنیٹ چیک کریں۔'],
     ],
     'unmapped_pins_pending' => [

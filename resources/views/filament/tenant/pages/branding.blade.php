@@ -1,13 +1,19 @@
 <x-filament-panels::page>
+    @if ($this->isLocked())
+        <x-filament::section icon="heroicon-o-lock-closed" icon-color="warning" :heading="__('Branding is managed by your provider')"
+            :description="__('Contact them to change your logo, colours or names.')" />
+    @endif
     <form wire:submit="save" class="flex flex-col gap-4">
         {{ $this->form }}
-        <div>
-            <x-filament::button type="submit" icon="heroicon-m-check" wire:loading.attr="disabled" wire:target="save">{{ __('Save branding') }}</x-filament::button>
-        </div>
+        @unless ($this->isLocked())
+            <div>
+                <x-filament::button type="submit" icon="heroicon-m-check" wire:loading.attr="disabled" wire:target="save">{{ __('Save branding') }}</x-filament::button>
+            </div>
+        @endunless
     </form>
 
     <x-filament::section :heading="__('Custom domain')" icon="heroicon-o-globe-alt"
-        :description="__('Use your own address, e.g. attendance.yourcompany.pk. Your :d address keeps working.', ['d' => tenant('slug') . '.' . config('hazri.central_domain')])">
+        :description="__('Use your own address, e.g. attendance.yourcompany.pk: create a CNAME record pointing to :t.', ['t' => $this->cnameTarget()])">
         <ul class="mb-4 flex flex-col divide-y divide-gray-950/[0.05] text-sm dark:divide-white/[0.05]">
             @forelse ($this->getDomains() as $d)
                 <li class="flex items-center justify-between gap-3 py-2.5">

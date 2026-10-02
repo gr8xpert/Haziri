@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Filament\AvatarProviders;
 
+use App\Support\Brand;
 use Filament\AvatarProviders\Contracts\AvatarProvider;
 use Filament\Facades\Filament;
 use Illuminate\Contracts\Auth\Authenticatable;
@@ -29,7 +30,7 @@ final class InitialsAvatarProvider implements AvatarProvider
 
         [$background, $foreground] = Filament::getCurrentPanel()?->getId() === 'central'
             ? ['#b45309', '#ffffff']
-            : ['#047857', '#ffffff'];
+            : [Brand::color() ?? '#047857', '#ffffff'];
 
         $svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">'
             . '<rect width="64" height="64" fill="' . $background . '"/>'

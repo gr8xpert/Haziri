@@ -21,6 +21,7 @@ use App\Services\Leave\LeaveBalanceService;
 use App\Services\Leave\LeaveYear;
 use App\Services\SelfService\QrBadge;
 use App\Services\Settings\TenantSettings;
+use App\Support\Brand;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonPeriod;
 use Illuminate\Http\JsonResponse;
@@ -166,14 +167,14 @@ final class MeController
     public function manifest(): JsonResponse
     {
         return response()->json([
-            'name' => (tenant('company_name') ?? 'Hazri') . ' — Hazri',
-            'short_name' => 'Hazri',
+            'name' => Brand::whiteLabel() ? Brand::name() : (tenant('company_name') ?? Brand::name()) . ' — ' . Brand::name(),
+            'short_name' => Brand::name(),
             'start_url' => '/me',
             'scope' => '/',
             'display' => 'standalone',
             'background_color' => '#ffffff',
-            'theme_color' => '#047857',
-            'icons' => [['src' => '/hazri-icon.svg', 'sizes' => 'any', 'type' => 'image/svg+xml', 'purpose' => 'any maskable']],
+            'theme_color' => Brand::color() ?? '#047857',
+            'icons' => [['src' => Brand::iconUrl(), 'sizes' => 'any', 'purpose' => 'any maskable']],
         ])->header('Content-Type', 'application/manifest+json');
     }
 }
