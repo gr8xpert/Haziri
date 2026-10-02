@@ -1,6 +1,6 @@
-# Hazri — Multi-Tenant Attendance SaaS (Build Specification)
+# Haziri — Multi-Tenant Attendance SaaS (Build Specification)
 
-> Working name: **Hazri** (Urdu for "attendance"). Rename freely; treat `Hazri` as a placeholder in code namespaces and config.
+> Working name: **Haziri** (Urdu for "attendance"). Rename freely; treat `Haziri` as a placeholder in code namespaces and config.
 >
 > Audience: this file is the source of truth for Claude Code building the app. Read it fully before writing code. When something is ambiguous, prefer the simplest option that keeps **one codebase, zero per-client code**, and ask before adding packages not listed in §2.
 
@@ -233,7 +233,7 @@ Behaviour:
 Auth: `Authorization: Bearer <agent_key>`; key resolves to tenant; device serial must belong to that tenant.
 
 ### 6.3 USB log import
-- Tenant page "Import from USB". Accepts ZKTeco `*_attlog.dat` (header-less, tab-separated: PIN, `YYYY-MM-DD HH:MM:SS`, status, verify, workcode…) and a Hazri CSV template (`employee_code_or_pin, date, time, direction`). Verify the exact `.dat` column order against a real file from a K40/K50 before finalising the parser; make the parser tolerant of extra columns.
+- Tenant page "Import from USB". Accepts ZKTeco `*_attlog.dat` (header-less, tab-separated: PIN, `YYYY-MM-DD HH:MM:SS`, status, verify, workcode…) and a Haziri CSV template (`employee_code_or_pin, date, time, direction`). Verify the exact `.dat` column order against a real file from a K40/K50 before finalising the parser; make the parser tolerant of extra columns.
 - Preview step shows: rows parsed, duplicates, unmapped PINs (with inline "map to employee" dropdown), date range. Then import.
 - Stored in `usb_imports` with a downloadable log.
 
@@ -442,7 +442,7 @@ Events: `LeaveRequested`, `LeaveDecided`, `CorrectionDecided`, `EmployeeAbsentNo
 
 All calls server-side through `App\Services\Ai\AnthropicClient` (model ID in `config/hazri.php`, key in `.env`). Every call logs prompt/response metadata in `ai_queries`. Hard rules: AI never writes to attendance/leave/payroll tables; AI outputs are shown as suggestions with a human confirm step.
 
-1. **Ask Hazri (NL → report)**: user types "who in Sales was late more than 3 times in August?". Pipeline: (a) prompt with a *curated read-only schema* (views: `v_attendance_days`, `v_employees`, `v_leave`, `v_punches_summary`) and the tenant's status codes; (b) model returns SQL in a JSON envelope; (c) validator: single `SELECT`, only whitelisted views, no subquery into other schemas, `LIMIT ≤ 5000`, runs under a **read-only DB user** scoped to the tenant DB with a 5 s timeout; (d) render table + "export" + "save as report"; (e) thumbs up/down stored. On validation failure, ask the model once to repair, then fail gracefully.
+1. **Ask Haziri (NL → report)**: user types "who in Sales was late more than 3 times in August?". Pipeline: (a) prompt with a *curated read-only schema* (views: `v_attendance_days`, `v_employees`, `v_leave`, `v_punches_summary`) and the tenant's status codes; (b) model returns SQL in a JSON envelope; (c) validator: single `SELECT`, only whitelisted views, no subquery into other schemas, `LIMIT ≤ 5000`, runs under a **read-only DB user** scoped to the tenant DB with a 5 s timeout; (d) render table + "export" + "save as report"; (e) thumbs up/down stored. On validation failure, ask the model once to repair, then fail gracefully.
 2. **Monthly narrative**: after period lock, generate a 200–300-word plain-English (and Urdu) summary from the period snapshot JSON: attendance rate, top lates, absentee patterns, leave usage, OT, comparison with previous month. Stored with the period, editable, sendable to owner.
 3. **Anomaly flags** (rule-based detection, AI-written explanation): buddy punching (two PINs punching within 5 s on the same device on ≥ N days), ghost employee (active, salaried, zero punches for 30 days), sudden pattern shift (avg arrival moved > 45 min vs prior 4 weeks), impossible sequences (in at branch A and B within 20 min). Each flag has a one-line generated explanation and a "dismiss / investigate" action.
 4. **Missing-punch suggestions**: for `missing_out` days, suggest an out time from the employee's median out time over the last 20 working days; shown in the corrections queue as a one-click accept (no model call needed; keep it statistical).
@@ -535,7 +535,7 @@ Environment keys to define in `.env.example`: `HAZRI_MODE`, `HAZRI_DEDICATED_TEN
 
 | Decision | Options | Default if unanswered |
 |---|---|---|
-| Product name + domain | — | `Hazri`, `hazri.pk` |
+| Product name + domain | — | `Haziri`, `hazri.pk` |
 | Filament vs custom Livewire UI | Filament / Livewire | Filament |
 | Device package | `msaied/zkteco` / `tanemrahman/zkteco-adms` | evaluate `msaied/zkteco` first |
 | WhatsApp provider | Meta Cloud API direct / local BSP | Meta Cloud API |

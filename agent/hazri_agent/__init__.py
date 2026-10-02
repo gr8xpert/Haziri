@@ -1,1 +1,1 @@
-"""Hazri bridge agent package."""
+"""Haziri bridge agent package."""

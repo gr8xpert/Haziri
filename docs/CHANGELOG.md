@@ -15,7 +15,7 @@
 - **Multi-branch**: users limited to branches (global scope in the admin panel), Branch manager role, dashboard branch
   switcher and "Branches today" comparison.
 - **White-label 100%**: Brand helper; app name, AI assistant name, logo, app icon, colour, email name; super-admin can set
-  and lock; `HAZRI_NEUTRAL_DOMAIN`; no billing for white-label clients; guard test for any visible "Hazri".
+  and lock; `HAZRI_NEUTRAL_DOMAIN`; no billing for white-label clients; guard test for any visible "Haziri".
 - **Payroll Full**: income tax (editable slabs, 2025-26 pre-filled — verify), EOBI / PESSI-SESSI, provident fund ledger,
   gratuity, bonuses / one-off items, final settlement with PDF, bank letter, payroll rules page.
 - **Face recognition** on the kiosk (@vladmandic/human): enrolment page, head-turn + anti-spoof liveness on the tablet,
@@ -54,7 +54,7 @@
   `white_label`. Punch-photo gallery ("all punches for PIN 47 this week").
 - `deploy/`: `deploy.sh`, `cron.txt`, `backup.sh`, `plesk-notes.md`; project `README.md`.
 - Security (review finding): SQL guard now checks every item of comma-joined FROM lists, including after derived
-  tables; Ask Hazri **requires** the read-only DB user (SELECT on the four views only) — verified by a DB-level test.
+  tables; Ask Haziri **requires** the read-only DB user (SELECT on the four views only) — verified by a DB-level test.
 - Tests: 182 PHP + 5 Python passing.
 
 ## 2026-10-01 — Milestone 10c: public API + webhooks (§13.3)
@@ -111,7 +111,7 @@
 
 ## 2026-10-01 — Milestones 3–5: ingestion, ADMS receiver, bridge agent (§17 steps 6–8)
 
-- USB import page: ZKTeco `*_attlog.dat` (tolerant parser) and Hazri CSV/XLSX template; preview with duplicates,
+- USB import page: ZKTeco `*_attlog.dat` (tolerant parser) and Haziri CSV/XLSX template; preview with duplicates,
   unmapped PINs (inline mapping) and date range; import history (`usb_imports`).
 - ADMS/iClock push via `tanemrahman/zkteco-adms`, tenant resolved per device serial (`ResolveAdmsTenant`);
   punches → `IngestPunchAction`; USERINFO → unmapped PINs with device names; unknown serials recorded centrally and refused.

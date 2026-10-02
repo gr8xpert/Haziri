@@ -2,17 +2,17 @@
 
 Bridge for ZKTeco machines **without** ADMS/cloud push (K40, K50, older MB models). It runs on any always-on PC or
 Raspberry Pi in the office LAN, pulls punches over TCP 4370 with [pyzk](https://github.com/fananimi/pyzk), and pushes
-them to Hazri's agent API (spec §6.2).
+them to Haziri's agent API (spec §6.2).
 
 - Only punches newer than the last successful upload are sent (SQLite watermark). Resending is harmless — the server dedupes.
 - The device log is never cleared unless `clear_after_sync: true`.
 - Weekly it uploads the device's user list (PIN + name only) so unmapped PINs are easy to match. **Fingerprint/face templates are never read or sent.**
-- It executes remote commands queued in Hazri (push employee PIN/name, delete user, sync time, reboot) and reports the result.
-- Every poll it sends a heartbeat, so Hazri shows "online / offline" and the last error per device.
+- It executes remote commands queued in Haziri (push employee PIN/name, delete user, sync time, reboot) and reports the result.
+- Every poll it sends a heartbeat, so Haziri shows "online / offline" and the last error per device.
 
 ## Setup
 
-1. In Hazri: **Devices → New device**, type **agent**, with the machine's serial number (Menu → System Info → Device Info).
+1. In Haziri: **Devices → New device**, type **agent**, with the machine's serial number (Menu → System Info → Device Info).
 2. **Devices → New agent key** — copy the key (shown once).
 3. Put `hazri-agent.exe` (or `hazri-agent` on Linux) and `agent.yaml` (from `agent.example.yaml`) in one folder.
 4. Test: `hazri-agent -c agent.yaml --once` → exit code 0 when every device was reached and uploaded.

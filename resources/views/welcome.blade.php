@@ -4,11 +4,11 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="description" content="Hazri is attendance software for Pakistani businesses: ZKTeco machines, mobile punch, kiosk, leave and month-end reports.">
+    <meta name="description" content="Haziri is attendance software for Pakistani businesses: ZKTeco machines, mobile punch, kiosk, leave and month-end reports.">
     <meta name="theme-color" content="#047857">
     <meta name="color-scheme" content="light dark">
     <link rel="icon" href="/hazri-icon.svg" type="image/svg+xml">
-    <title>Hazri | Attendance and leave for growing teams</title>
+    <title>Haziri | Attendance and leave for growing teams</title>
     @fonts
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
@@ -17,7 +17,7 @@
     <header class="sticky top-0 z-30 border-b border-zinc-950/[0.06] bg-white/80 backdrop-blur-lg dark:border-white/[0.06] dark:bg-zinc-950/80">
         <nav class="mx-auto flex h-16 max-w-6xl items-center gap-8 px-4 sm:px-6">
             <a href="/" class="flex items-center gap-2.5 font-semibold tracking-tight">
-                <img src="/hazri-icon.svg" alt="" class="size-8 rounded-lg"> Hazri
+                <img src="/hazri-icon.svg" alt="" class="size-8 rounded-lg"> Haziri
             </a>
             <div class="hidden items-center gap-6 text-sm text-zinc-600 md:flex dark:text-zinc-400">
                 <a href="#features" class="transition hover:text-zinc-950 dark:hover:text-white">Features</a>
@@ -56,7 +56,7 @@
                         <div class="flex h-8 items-center gap-1.5 border-b border-zinc-950/[0.06] bg-zinc-50 px-3 dark:border-white/[0.06] dark:bg-zinc-900" aria-hidden="true">
                             <span class="size-2.5 rounded-full bg-zinc-300 dark:bg-zinc-700"></span><span class="size-2.5 rounded-full bg-zinc-300 dark:bg-zinc-700"></span><span class="size-2.5 rounded-full bg-zinc-300 dark:bg-zinc-700"></span>
                         </div>
-                        <img src="/images/marketing/hazri-dashboard.jpg" width="1440" height="900" alt="The Hazri dashboard showing who is present, late and absent today" class="block w-full" fetchpriority="high">
+                        <img src="/images/marketing/hazri-dashboard.jpg" width="1440" height="900" alt="The Haziri dashboard showing who is present, late and absent today" class="block w-full" fetchpriority="high">
                     </div>
                 </figure>
             </div>
@@ -73,7 +73,7 @@
                         <h3 class="text-lg font-semibold">A self-service app for every employee</h3>
                         <p class="mt-2 max-w-[44ch] text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">Punch in with location and a selfie, check the month, apply for leave and fix a missed punch. It installs from the browser, no app store needed.</p>
                         <div class="mt-6 flex justify-center md:justify-end">
-                            <img src="/images/marketing/hazri-app.jpg" width="390" height="780" loading="lazy" alt="The Hazri employee app on a phone, showing today's in and out times"
+                            <img src="/images/marketing/hazri-app.jpg" width="390" height="780" loading="lazy" alt="The Haziri employee app on a phone, showing today's in and out times"
                                  class="w-56 rounded-[2rem] shadow-[0_20px_50px_-20px_rgb(15_23_42/0.35)] ring-8 ring-zinc-900 md:-mb-24 md:w-64 dark:ring-zinc-800">
                         </div>
                     </article>
@@ -88,7 +88,7 @@
                         <p class="mt-2 text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">Requests, approvals and balances, with your own leave year and pay cycle.</p>
                     </article>
                     <article class="relative overflow-hidden rounded-2xl bg-zinc-900 text-white md:col-span-3 dark:ring-1 dark:ring-white/10">
-                        <img src="/images/marketing/hazri-kiosk.jpg" width="1280" height="800" loading="lazy" alt="The Hazri reception kiosk with a PIN keypad" class="aspect-[16/10] w-full object-cover opacity-90">
+                        <img src="/images/marketing/hazri-kiosk.jpg" width="1280" height="800" loading="lazy" alt="The Haziri reception kiosk with a PIN keypad" class="aspect-[16/10] w-full object-cover opacity-90">
                         <div class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-zinc-950/90 via-zinc-950/60 to-transparent p-6 pt-16">
                             <h3 class="text-lg font-semibold">A kiosk on any tablet</h3>
                             <p class="mt-1 text-sm text-zinc-300">PIN or QR badge with a photo. Keeps working when the internet drops.</p>
@@ -114,11 +114,11 @@
             <div class="mx-auto grid max-w-6xl gap-12 px-4 sm:px-6 lg:grid-cols-2 lg:gap-16">
                 <div>
                     <h2 class="text-3xl font-semibold tracking-tight text-balance md:text-4xl">Keep the fingerprint machines you already have.</h2>
-                    <p class="mt-4 max-w-[52ch] text-zinc-600 dark:text-zinc-400">Hazri reads ZKTeco devices three ways, so older and newer machines both work. Unknown PINs wait in a queue until you map them, so no punch is lost.</p>
+                    <p class="mt-4 max-w-[52ch] text-zinc-600 dark:text-zinc-400">Haziri reads ZKTeco devices three ways, so older and newer machines both work. Unknown PINs wait in a queue until you map them, so no punch is lost.</p>
                 </div>
                 <ol class="grid gap-3">
                     @foreach ([
-                        ['heroicon-o-cloud-arrow-up', 'Cloud push', 'Newer machines send punches straight to Hazri over the internet.'],
+                        ['heroicon-o-cloud-arrow-up', 'Cloud push', 'Newer machines send punches straight to Haziri over the internet.'],
                         ['heroicon-o-server-stack', 'Bridge agent', 'A small program on an office PC collects punches from machines on the local network.'],
                         ['heroicon-o-arrow-down-tray', 'USB import', 'Export the attlog file from any machine and upload it. Duplicates are skipped.'],
                     ] as [$icon, $title, $body])
@@ -140,7 +140,7 @@
                 <div class="grid items-center gap-10 lg:grid-cols-2">
                     <div class="min-w-0">
                         <h2 class="text-3xl font-semibold tracking-tight text-balance">Sign in to your company</h2>
-                        <p class="mt-3 max-w-[46ch] text-emerald-100/75">Enter the address your company uses on Hazri. Admins land in the dashboard, employees can open the app at the same address followed by /me.</p>
+                        <p class="mt-3 max-w-[46ch] text-emerald-100/75">Enter the address your company uses on Haziri. Admins land in the dashboard, employees can open the app at the same address followed by /me.</p>
                     </div>
                     <form x-data="{ slug: '' }"
                           @submit.prevent="if (slug.trim()) window.location.href = `${location.protocol}//${slug.trim().toLowerCase()}.{{ $domain }}${location.port ? ':' + location.port : ''}/admin`"
@@ -162,8 +162,8 @@
 
     <footer class="border-t border-zinc-950/[0.06] dark:border-white/[0.06]">
         <div class="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-4 py-8 text-sm text-zinc-500 sm:px-6 dark:text-zinc-400">
-            <span class="flex items-center gap-2"><img src="/hazri-icon.svg" alt="" class="size-5 rounded"> Hazri</span>
-            <span>&copy; {{ date('Y') }} Hazri</span>
+            <span class="flex items-center gap-2"><img src="/hazri-icon.svg" alt="" class="size-5 rounded"> Haziri</span>
+            <span>&copy; {{ date('Y') }} Haziri</span>
         </div>
     </footer>
 </body>

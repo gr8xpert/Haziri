@@ -1,12 +1,12 @@
 # Copy to agent.yaml next to hazri-agent.exe and fill in.
-server: https://api.hazri.pk          # your Hazri API address
+server: https://api.hazri.pk          # your Haziri API address
 api_key: hz_xxxxxxxxxxxxxxxxxxxxxxxx   # Devices → New agent key (shown once)
 poll_seconds: 60
 state_file: hazri-agent.sqlite         # remembers what was already sent
 verify_tls: true
 
 devices:
-  - serial: ZK1234567        # must exist in Hazri → Devices with type "agent"
+  - serial: ZK1234567        # must exist in Haziri → Devices with type "agent"
     ip: 192.168.1.201
     port: 4370
     password: 0              # device comm key (Comm. → Comm Key), 0 if none

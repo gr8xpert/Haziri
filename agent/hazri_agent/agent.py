@@ -1,4 +1,4 @@
-"""Hazri bridge agent: pulls punches from ZKTeco devices on the LAN (pyzk) and pushes them to Hazri.
+"""Haziri bridge agent: pulls punches from ZKTeco devices on the LAN (pyzk) and pushes them to Haziri.
 
 Spec §6.2. Safe to re-run: the server dedupes, and the local watermark only advances after a 2xx.
 """
@@ -95,7 +95,7 @@ class Agent:
 
     # ------------------------------------------------------------------ loop
     def run_forever(self) -> None:
-        log.info("Hazri agent %s started for %d device(s)", __version__, len(self.config.devices))
+        log.info("Haziri agent %s started for %d device(s)", __version__, len(self.config.devices))
         while True:
             self.poll_once()
             time.sleep(self.config.poll_seconds)

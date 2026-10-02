@@ -50,7 +50,7 @@ final class OtpService
 
         $channel = $this->channels->resolve('whatsapp') ?? $this->channels->resolve('sms');
         $to = new Recipient($user->name, null, $phone, $user->locale ?? 'en', $user->id);
-        $channel?->send($to, new RenderedMessage('otp', null, __('Your Hazri login code is :code. It expires in 5 minutes.', ['code' => $code]), ['code' => $code]));
+        $channel?->send($to, new RenderedMessage('otp', null, __('Your Haziri login code is :code. It expires in 5 minutes.', ['code' => $code]), ['code' => $code]));
     }
 
     public function verify(string $phone, string $code): ?User

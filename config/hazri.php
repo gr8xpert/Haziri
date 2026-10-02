@@ -13,7 +13,7 @@ return [
 
     'central_domain' => env('HAZRI_CENTRAL_DOMAIN', 'hazri.localhost'),
     // Product name shown to clients without white-label.
-    'platform_name' => env('APP_NAME', 'Hazri'),
+    'platform_name' => env('APP_NAME', 'Haziri'),
     // A second domain with no platform name in it, pointing at the same server. White-label clients see it instead of
     // ours: CNAME target for their own domain, and adms.<it> / api.<it> for machines and the sync agent
     // (those endpoints find the company by device serial / agent key, so any host works). Empty = our domains.
@@ -87,7 +87,7 @@ return [
         'due_days' => (int) env('HAZRI_BILLING_DUE_DAYS', 10),
         'grace_days' => (int) env('HAZRI_BILLING_GRACE_DAYS', 15),
         // Shown to company owners on the Billing page (spec §4.1: manual bank / JazzCash / Easypaisa).
-        'payment_instructions' => env('HAZRI_PAYMENT_INSTRUCTIONS', 'Bank: Meezan Bank · Title: Hazri · IBAN: PKxx MEZN xxxx xxxx xxxx xxxx · JazzCash / Easypaisa: 03xx-xxxxxxx. Put the invoice number in the reference.'),
+        'payment_instructions' => env('HAZRI_PAYMENT_INSTRUCTIONS', 'Bank: Meezan Bank · Title: Haziri · IBAN: PKxx MEZN xxxx xxxx xxxx xxxx · JazzCash / Easypaisa: 03xx-xxxxxxx. Put the invoice number in the reference.'),
     ],
 
     'notifications' => [

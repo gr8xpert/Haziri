@@ -2,7 +2,7 @@
 #   sudo mkdir -p /opt/hazri-agent && sudo cp dist/hazri-agent agent.yaml /opt/hazri-agent/
 #   sudo cp hazri-agent.service /etc/systemd/system/ && sudo systemctl enable --now hazri-agent
 [Unit]
-Description=Hazri ZKTeco bridge agent
+Description=Haziri ZKTeco bridge agent
 After=network-online.target
 Wants=network-online.target
 

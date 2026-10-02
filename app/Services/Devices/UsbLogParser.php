@@ -11,7 +11,7 @@ use App\Support\Excel\Spreadsheet;
  * Parses USB exports (spec §6.3):
  *  - ZKTeco `*_attlog.dat`: header-less, tab (or space) separated: PIN, "YYYY-MM-DD HH:MM:SS", status, verify, workcode, …
  *    Extra/missing trailing columns are tolerated (K40/K50 firmwares differ).
- *  - Hazri CSV/XLSX template: employee_code_or_pin, date, time, direction
+ *  - Haziri CSV/XLSX template: employee_code_or_pin, date, time, direction
  *
  * Returned timestamps are device-local wall-clock strings; the importer converts them with the device timezone.
  */

@@ -26,7 +26,7 @@ final class Brand
     public static function name(): string
     {
         if (! self::whiteLabel()) {
-            return (string) config('hazri.platform_name', 'Hazri');
+            return (string) config('hazri.platform_name', 'Haziri');
         }
 
         return self::setting('app_name') ?? (string) (tenant('company_name') ?: __('Attendance'));

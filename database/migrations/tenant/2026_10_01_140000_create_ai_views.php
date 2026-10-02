@@ -5,7 +5,7 @@ declare(strict_types=1);
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Facades\DB;
 
-/** Curated read-only schema for "Ask Hazri" (spec §12.1). The AI only ever sees these four views. */
+/** Curated read-only schema for "Ask Haziri" (spec §12.1). The AI only ever sees these four views. */
 return new class extends Migration
 {
     public function up(): void

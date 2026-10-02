@@ -9,7 +9,7 @@
    HTTP open on `adms.` or enable "HTTPS" on the device). Custom company domains: CNAME to `{slug}.hazri.pk`, then add the
    domain to the subscription's certificate.
 4. **MySQL/MariaDB**: app user with `CREATE DATABASE` and `GRANT OPTION` (it creates `hazri_t_*` and grants the AI user);
-   read-only user for Ask Hazri: `CREATE USER 'hazri_ai'@'localhost' IDENTIFIED BY '…';` — grants are added per tenant by
+   read-only user for Ask Haziri: `CREATE USER 'hazri_ai'@'localhost' IDENTIFIED BY '…';` — grants are added per tenant by
    provisioning and `php artisan hazri:ai:grant-readonly`. Raise `max_connections` for many tenant DBs.
 5. **Cron**: see `cron.txt` (scheduler + queue worker every minute, nightly backup).
 6. **Storage**: `php artisan storage:link`; tenant files live under `storage/tenant{id}/app/…` (stancl filesystem bootstrapper).

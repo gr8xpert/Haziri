@@ -27,11 +27,11 @@ final class MachineSyncServiceProvider extends ServiceProvider
         Route::aliasMiddleware('zkteco.adms.device', ResolveAdmsTenant::class);
 
         config([
-            // Hazri owns the business rules: keep every punch (the device may have been offline for weeks),
+            // Haziri owns the business rules: keep every punch (the device may have been offline for weeks),
             // don't auto-queue the package's own processing, and never trust a per-request default key.
             'zkteco-adms.attendance.retention_days' => 0,
             'zkteco-adms.attendance.queue_processing' => false,
-            'zkteco-adms.options.server_name' => 'Hazri',
+            'zkteco-adms.options.server_name' => 'Haziri',
         ]);
 
         Event::listen(TransactionsReceived::class, IngestAdmsTransactions::class);

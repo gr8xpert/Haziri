@@ -8,12 +8,13 @@ use App\Contracts\NotificationChannel;
 use App\Services\Notifications\DeliveryResult;
 use App\Services\Notifications\Recipient;
 use App\Services\Notifications\RenderedMessage;
+use App\Services\SelfService\OtpService;
 use App\Services\Settings\TenantSettings;
 use Illuminate\Support\Facades\Http;
 
 /**
  * WhatsApp through Meta's Cloud API (spec §16 default): POST https://graph.facebook.com/{version}/{phone_number_id}/messages.
- * Business-initiated messages must use an approved template: when the Hazri template has a `provider_template`,
+ * Business-initiated messages must use an approved template: when the Haziri template has a `provider_template`,
  * its {{ placeholders }} become the template's body parameters in order. Otherwise a plain text message is sent
  * (only delivered inside a 24-hour customer-service window).
  *
@@ -42,7 +43,7 @@ final class MetaWhatsAppChannel implements NotificationChannel
             return DeliveryResult::failed('WhatsApp is not configured (token / phone number id missing).');
         }
         $version = (string) $this->settings->get('whatsapp_meta_api_version', 'v21.0');
-        $phone = \App\Services\SelfService\OtpService::normalise((string) $to->phone);
+        $phone = OtpService::normalise((string) $to->phone);
 
         $payload = ['messaging_product' => 'whatsapp', 'recipient_type' => 'individual', 'to' => $phone];
         if ($message->providerTemplate) {
@@ -70,7 +71,7 @@ final class MetaWhatsAppChannel implements NotificationChannel
         return DeliveryResult::failed('Meta ' . $response->status() . ': ' . ($response->json('error.message') ?? $response->body()));
     }
 
-    /** Values for the template's {{1}}, {{2}}… in the order the placeholders appear in the Hazri template body. */
+    /** Values for the template's {{1}}, {{2}}… in the order the placeholders appear in the Haziri template body. */
     private function orderedParameters(RenderedMessage $message): array
     {
         $body = (string) config("notification_templates.{$message->event}.en.1", '');

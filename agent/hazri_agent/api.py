@@ -1,4 +1,4 @@
-"""HTTP client for the Hazri agent API (spec §13.1)."""
+"""HTTP client for the Haziri agent API (spec §13.1)."""
 
 from __future__ import annotations
 

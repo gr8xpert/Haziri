@@ -1,5 +1,5 @@
 /*
- | Hazri panel theme (tenant + central). Compiled by Vite so the Tailwind classes used in
+ | Haziri panel theme (tenant + central). Compiled by Vite so the Tailwind classes used in
  | resources/views/filament and app/Filament are generated (Filament's prebuilt CSS only
  | contains the classes Filament itself uses).
  */
@@ -183,7 +183,7 @@
     @apply text-xl font-semibold tracking-tight;
 }
 
-/* ------------------------------------------------------------------ Hazri custom pages
+/* ------------------------------------------------------------------ Haziri custom pages
  | Shared building blocks for the hand-written Blade pages (daily sheet, roster, reports, etc.).
  */
 

@@ -32,7 +32,7 @@ class CentralPanelProvider extends PanelProvider
             ->path('')
             ->login()
             ->authGuard('super_admin')
-            ->brandName('Hazri Admin')
+            ->brandName('Haziri Admin')
             ->favicon('/hazri-icon.svg')
             ->font('Instrument Sans')
             ->viteTheme('resources/css/filament/app/theme.css')

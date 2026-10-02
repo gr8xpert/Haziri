@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 
 /**
- * "Ask Hazri" — natural language → SQL over the curated views (spec §12.1).
+ * "Ask Haziri" — natural language → SQL over the curated views (spec §12.1).
  * Model writes SQL in a JSON envelope → SqlGuard → read-only execution (5 s) → table. One repair attempt on failure.
  */
 final class AskHazri
@@ -29,7 +29,7 @@ final class AskHazri
     {
         // Spec §12.1c: generated SQL only ever runs as the read-only user (SELECT on the four views, nothing else).
         if (! config('hazri.ai.readonly_db_username')) {
-            return ['ok' => false, 'error' => __('Ask Hazri needs the read-only database user (AI_DB_READONLY_USERNAME). Please contact support.')];
+            return ['ok' => false, 'error' => __('Ask Haziri needs the read-only database user (AI_DB_READONLY_USERNAME). Please contact support.')];
         }
         $statuses = implode(', ', array_map(fn (AttendanceStatus $s) => $s->value, AttendanceStatus::cases()));
         $system = "You translate HR questions about attendance into one MariaDB SELECT statement.\n"
@@ -37,7 +37,7 @@ final class AskHazri
             . "attendance status values: {$statuses}. employee status: active, on_leave, left. leave status: pending, approved, rejected, cancelled.\n"
             . 'Dates are Y-m-d. Today is ' . now(tenant('timezone'))->format('Y-m-d') . ".\n"
             . 'Rules: a single SELECT (CTEs allowed), no comments, no semicolons, no other tables, human-readable column aliases, '
-            . 'LIMIT at most ' . SqlGuard::MAX_ROWS . ". If the question cannot be answered from these views, set sql to an empty string and explain in note.";
+            . 'LIMIT at most ' . SqlGuard::MAX_ROWS . '. If the question cannot be answered from these views, set sql to an empty string and explain in note.';
         $schema = [
             'type' => 'object',
             'properties' => ['sql' => ['type' => 'string'], 'note' => ['type' => 'string']],

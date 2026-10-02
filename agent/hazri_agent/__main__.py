@@ -13,7 +13,7 @@ from .agent import Agent, AgentConfig, __version__
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(prog="hazri-agent", description="Hazri ZKTeco bridge agent")
+    parser = argparse.ArgumentParser(prog="hazri-agent", description="Haziri ZKTeco bridge agent")
     parser.add_argument("-c", "--config", default="agent.yaml")
     parser.add_argument("--once", action="store_true", help="poll once and exit (for testing / Task Scheduler)")
     parser.add_argument("--log", default="hazri-agent.log")

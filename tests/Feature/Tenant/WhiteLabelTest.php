@@ -62,7 +62,8 @@ it('shows no platform name or icon anywhere a white-label client can look', func
     ];
     foreach ($pages as $name => $request) {
         $html = $request()->assertOk()->getContent();
-        expect(stripos(visibleText($html), 'hazri'))->toBeFalse("\"Hazri\" is visible on the {$name} page")
+        // The platform name, old (Hazri) or current (Haziri) spelling.
+        expect(preg_match('/haz(i)?ri/i', visibleText($html)))->toBe(0, "\"Haziri\" is visible on the {$name} page")
             ->and(str_contains($html, Brand::PLATFORM_ICON))->toBeFalse("the platform icon is used on the {$name} page");
         auth()->logout();
     }
@@ -76,10 +77,10 @@ it('shows no platform name or icon anywhere a white-label client can look', func
 it('uses the platform brand for ordinary clients', function () {
     whiteLabel(false);
 
-    expect(Brand::name())->toBe('Hazri')
-        ->and(Brand::assistantName())->toBe('Ask Hazri')
+    expect(Brand::name())->toBe('Haziri')
+        ->and(Brand::assistantName())->toBe('Ask Haziri')
         ->and(Brand::iconUrl())->toBe(Brand::PLATFORM_ICON);
-    $this->get("{$this->base}/me/login")->assertSee('Powered by Hazri');
+    $this->get("{$this->base}/me/login")->assertSee('Powered by Haziri');
 });
 
 it('serves the client\'s uploaded icon and hides billing from white-label clients', function () {

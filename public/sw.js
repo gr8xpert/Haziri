@@ -1,4 +1,4 @@
-/* Hazri service worker: cache the app shell (built assets) so /me and the kiosk open without a network.
+/* Haziri service worker: cache the app shell (built assets) so /me and the kiosk open without a network.
    API calls always go to the network; the kiosk keeps its own IndexedDB queue for offline punches. */
 const CACHE = 'hazri-shell-v1';
 

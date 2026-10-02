@@ -1,4 +1,4 @@
-# Hazri — multi-tenant attendance SaaS
+# Haziri — multi-tenant attendance SaaS
 
 Laravel 13 · PHP 8.4 · Filament 5 · stancl/tenancy 3 (DB per company) · MariaDB/MySQL · Pest.
 Full specification: `ATTENDANCE_SPEC.md`. Decisions: `docs/adr/`. History: `docs/CHANGELOG.md`. Settings: `docs/settings.md`.

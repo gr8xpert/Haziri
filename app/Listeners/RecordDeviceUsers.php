@@ -11,7 +11,7 @@ use TanemRahman\ZktecoAdms\Events\UsersSynced;
 use TanemRahman\ZktecoAdms\Models\ZktecoDeviceUser;
 
 /**
- * USERINFO from a device: PINs enrolled on the machine but unknown to Hazri are listed as unmapped,
+ * USERINFO from a device: PINs enrolled on the machine but unknown to Haziri are listed as unmapped,
  * with the device-side name to make mapping easy (spec §6.1). Biometric templates are never stored.
  */
 final class RecordDeviceUsers
