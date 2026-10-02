@@ -26,6 +26,8 @@ read through `App\Services\Settings\TenantSettings`. Feature flags are stored as
 | `geofence_default_radius_m` | 150 | Mobile punch geofence when the branch has none |
 | `mobile_max_accuracy_m` | 0 | Reject mobile punches whose GPS accuracy is worse than this (0 = off) |
 | `mobile_require_selfie` | false | Mobile punch needs a selfie |
+| `face_match_threshold` | 0.6 | Kiosk face recognition: minimum similarity (0..1, same formula as the Human library) |
+| `face_match_margin` | 0.05 | …and how far ahead of the next closest person the best match must be |
 | `allow_future_manual_punch` | false | |
 | `employee_can_see_others` | false | |
 | `leave_approval_chain` | `["manager","hr"]` | Approval steps; a missing manager is skipped |

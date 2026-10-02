@@ -39,3 +39,4 @@ agent/*.sqlite
 agent/*.log
 agent/agent.yaml
 /storage/tenant*/
+/public/models/human

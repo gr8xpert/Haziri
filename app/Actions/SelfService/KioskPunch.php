@@ -16,8 +16,10 @@ use App\Enums\VerifyType;
 use App\Models\Employee;
 use App\Models\Kiosk;
 use App\Models\Punch;
+use App\Services\SelfService\FaceMatcher;
 use App\Services\SelfService\PunchPhotoStore;
 use App\Services\SelfService\QrBadge;
+use App\Services\Settings\TenantSettings;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
@@ -33,7 +35,12 @@ final class KioskPunch
         private readonly IngestPunchAction $ingest,
         private readonly PunchPhotoStore $photos,
         private readonly QrBadge $qr,
+        private readonly FaceMatcher $faces,
+        private readonly TenantSettings $settings,
     ) {}
+
+    /** @var array{employee_id: ?int, similarity: float, runner_up: float}|null last face match, recorded on the punch */
+    private ?array $faceMatch = null;
 
     /**
      * @param  array{mode: string, pin?: ?string, kiosk_pin?: ?string, qr?: ?string, direction?: ?string, photo?: ?string,
@@ -65,11 +72,12 @@ final class KioskPunch
             deviceSerial: 'kiosk:' . $kiosk->id,
             direction: $direction,
             verifyType: match ($input['mode']) {
-                'qr' => VerifyType::Card, default => VerifyType::Pin,
+                'qr' => VerifyType::Card, 'face' => VerifyType::Face, default => VerifyType::Pin,
             },
             photoPath: $this->photos->store($input['photo'] ?? null),
             externalId: $input['client_id'] ?? null,
-            meta: array_filter(['client_time' => $input['client_time'] ?? null, 'mode' => $input['mode'], 'offline' => ! empty($input['offline'])]),
+            meta: array_filter(['client_time' => $input['client_time'] ?? null, 'mode' => $input['mode'], 'offline' => ! empty($input['offline']),
+                'face_similarity' => $this->faceMatch['similarity'] ?? null, 'face_runner_up' => $this->faceMatch['runner_up'] ?? null]),
         ));
 
         $kiosk->device?->forceFill(['last_seen_at' => now(), 'status' => 'online', 'last_sync_at' => now()])->saveQuietly();
@@ -86,6 +94,25 @@ final class KioskPunch
             ->orderByDesc('punched_at')->first();
     }
 
+    /** Face mode: the tablet checked liveness and sends the face descriptor; we match it against enrolled faces. */
+    private function identifyFace(Kiosk $kiosk, array $input): ?Employee
+    {
+        if (! $this->settings->featureEnabled('kiosk_face')) {
+            throw ValidationException::withMessages(['mode' => __('Face recognition is not enabled for your company.')]);
+        }
+        $descriptor = FaceMatcher::clean($input['face'] ?? null);
+        if ($descriptor === null || empty($input['liveness_passed'])) {
+            throw ValidationException::withMessages(['face' => __('Face not captured. Look at the camera and try again.')]);
+        }
+        $match = $this->faces->identify($descriptor, $kiosk->branch_id);
+        $this->faceMatch = $match;
+        if ($match['employee_id'] === null) {
+            throw ValidationException::withMessages(['face' => __('Face not recognised. Please use your PIN.')]);
+        }
+
+        return Employee::query()->find($match['employee_id']);
+    }
+
     private function identify(Kiosk $kiosk, array $input): Employee
     {
         $fail = fn () => throw ValidationException::withMessages(['pin' => __('Not recognised. Please try again.')]);
@@ -97,6 +124,7 @@ final class KioskPunch
         $employee = match ($mode) {
             'pin' => Employee::query()->where('device_pin', (string) ($input['pin'] ?? ''))->first(),
             'qr' => ($id = $this->qr->verify((string) ($input['qr'] ?? ''))) ? Employee::query()->find($id) : null,
+            'face' => $this->identifyFace($kiosk, $input),
             default => null,
         };
         if ($employee === null || $employee->status === EmployeeStatus::Left) {

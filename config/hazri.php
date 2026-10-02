@@ -63,6 +63,8 @@ return [
         'geofence_default_radius_m' => 150,
         'mobile_max_accuracy_m' => 0,         // reject mobile punches with a worse GPS fix (0 = off)
         'mobile_require_selfie' => false,
+        'face_match_threshold' => 0.6,        // kiosk face recognition: minimum similarity (0..1)
+        'face_match_margin' => 0.05,          // … and how far ahead of the next closest person
         'allow_future_manual_punch' => false,
         'employee_can_see_others' => false,
         'leave_approval_chain' => ['manager', 'hr'],

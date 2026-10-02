@@ -11,6 +11,7 @@ export default defineConfig({
                 'resources/js/app.js',
                 'resources/js/me.js',
                 'resources/js/kiosk.js',
+                'resources/js/face-enroll.js',
                 'resources/css/filament/app/theme.css',
             ],
             refresh: true,

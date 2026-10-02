@@ -23,7 +23,9 @@ final class KioskController
     {
         $kiosk = $this->kiosk($token, $settings);
 
-        return view('kiosk.show', ['kiosk' => $kiosk, 'token' => $token, 'company' => tenant('company_name')]);
+        $modes = array_values(array_filter($kiosk->allowed_modes ?? ['pin'], fn ($m) => $m !== 'face' || $settings->featureEnabled('kiosk_face')));
+
+        return view('kiosk.show', ['kiosk' => $kiosk, 'token' => $token, 'company' => tenant('company_name'), 'modes' => $modes ?: ['pin']]);
     }
 
     public function config(Request $request, string $token, TenantSettings $settings, KioskDeviceGuard $guard): JsonResponse
@@ -34,7 +36,7 @@ final class KioskController
         return response()->json([
             'access' => $access,
             'company' => tenant('company_name'),
-            'modes' => $kiosk->allowed_modes ?? ['pin'],
+            'modes' => array_values(array_filter($kiosk->allowed_modes ?? ['pin'], fn ($m) => $m !== 'face' || $settings->featureEnabled('kiosk_face'))),
             'require_photo' => $kiosk->require_photo,
             'branch' => $kiosk->branch?->name,
             'server_time' => now()->toIso8601String(),
@@ -49,7 +51,7 @@ final class KioskController
             return response()->json(['ok' => false, 'access' => $access, 'message' => $access['message']], 403);
         }
         $data = $request->validate([
-            'mode' => ['required', Rule::in(['pin', 'qr'])],
+            'mode' => ['required', Rule::in(['pin', 'qr', 'face'])],
             'pin' => ['nullable', 'string', 'max:20'],
             'kiosk_pin' => ['nullable', 'digits:4'],
             'qr' => ['nullable', 'string', 'max:200'],
@@ -59,6 +61,9 @@ final class KioskController
             'client_id' => ['nullable', 'uuid'],
             'offline' => ['nullable', 'boolean'],
             'device_key' => ['nullable', 'string', 'max:128'],
+            'face' => ['nullable', 'array', 'size:1024'],
+            'face.*' => ['numeric'],
+            'liveness_passed' => ['nullable', 'boolean'],
         ]);
 
         try {

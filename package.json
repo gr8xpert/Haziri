@@ -3,7 +3,7 @@
     "private": true,
     "type": "module",
     "scripts": {
-        "build": "vite build",
+        "build": "node scripts/copy-face-models.mjs && vite build",
         "dev": "vite"
     },
     "devDependencies": {
@@ -17,6 +17,7 @@
         "@laravel/multiplex": "^0.4.1"
     },
     "dependencies": {
+        "@vladmandic/human": "^3.3.6",
         "alpinejs": "^3.17.4"
     }
 }

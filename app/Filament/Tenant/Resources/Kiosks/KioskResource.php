@@ -53,7 +53,8 @@ class KioskResource extends Resource
         return $schema->columns(2)->components([
             TextInput::make('name')->required()->default('Reception tablet')->visibleOn('create'),
             Select::make('branch_id')->relationship('branch', 'name')->helperText('Employees of other branches are refused'),
-            CheckboxList::make('allowed_modes')->options(['pin' => 'Employee PIN (+ optional 4-digit kiosk PIN)', 'qr' => 'QR badge from the phone'])
+            CheckboxList::make('allowed_modes')->options(fn () => ['pin' => 'Employee PIN (+ optional 4-digit kiosk PIN)', 'qr' => 'QR badge from the phone']
+                + (app(TenantSettings::class)->featureEnabled('kiosk_face') ? ['face' => 'Face recognition (enrol faces under People → Face enrolment)'] : []))
                 ->default(['pin', 'qr'])->required(),
             Toggle::make('require_photo')->default(true)->helperText('Take a selfie with every punch'),
             Toggle::make('lock_to_device')->label('Only approved tablets')->default(true)

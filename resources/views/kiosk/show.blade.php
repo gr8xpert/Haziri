@@ -11,7 +11,7 @@
     @vite(['resources/css/app.css', 'resources/js/kiosk.js'])
 </head>
 <body class="min-h-dvh overflow-x-hidden bg-brand-deep text-white select-none"
-      x-data="kiosk({ token: @js($token), requirePhoto: @js($kiosk->require_photo), modes: @js($kiosk->allowed_modes ?? ['pin']) })">
+      x-data="kiosk({ token: @js($token), requirePhoto: @js($kiosk->require_photo), modes: @js($modes) })">
     <div aria-hidden="true" class="pointer-events-none fixed inset-0 bg-[radial-gradient(45%_55%_at_20%_15%,rgb(16_185_129/0.20),transparent),radial-gradient(40%_50%_at_85%_90%,rgb(5_150_105/0.16),transparent)]"></div>
 
     <div class="relative flex min-h-dvh flex-col px-5 pt-[max(env(safe-area-inset-top),1.25rem)] pb-[max(env(safe-area-inset-bottom),1.25rem)] sm:px-8">
@@ -87,14 +87,17 @@
                         <div class="flex items-start justify-between gap-4">
                             <div>
                                 <h1 class="text-2xl font-semibold tracking-tight">Punch in or out</h1>
-                                <p class="mt-1 text-white/60" x-text="mode === 'qr' ? @js(__('Scan the QR badge from your :app app', ['app' => \App\Support\Brand::name()])) : (askKioskPin ? 'Now enter your 4-digit kiosk PIN' : 'Enter your employee PIN')"></p>
+                                <p class="mt-1 text-white/60" x-text="mode === 'face' ? 'Look at the camera' : (mode === 'qr' ? @js(__('Scan the QR badge from your :app app', ['app' => \App\Support\Brand::name()])) : (askKioskPin ? 'Now enter your 4-digit kiosk PIN' : 'Enter your employee PIN'))"></p>
                             </div>
-                            <div x-show="modes.length > 1" class="grid shrink-0 grid-cols-2 rounded-xl bg-white/[0.06] p-1 text-sm font-medium ring-1 ring-white/10">
-                                <button @click="mode = 'pin'" :aria-pressed="mode === 'pin'" :class="mode === 'pin' ? 'bg-white text-brand-deep shadow' : 'text-white/65'" class="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 transition">
+                            <div x-show="modes.length > 1" class="grid shrink-0 auto-cols-fr grid-flow-col rounded-xl bg-white/[0.06] p-1 text-sm font-medium ring-1 ring-white/10">
+                                <button x-show="modes.includes('pin')" @click="setMode('pin')" :aria-pressed="mode === 'pin'" :class="mode === 'pin' ? 'bg-white text-brand-deep shadow' : 'text-white/65'" class="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 transition">
                                     @svg('heroicon-m-hashtag', 'size-4') PIN
                                 </button>
-                                <button @click="mode = 'qr'; scanLoop()" :aria-pressed="mode === 'qr'" :class="mode === 'qr' ? 'bg-white text-brand-deep shadow' : 'text-white/65'" class="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 transition">
+                                <button x-show="modes.includes('qr')" @click="setMode('qr')" :aria-pressed="mode === 'qr'" :class="mode === 'qr' ? 'bg-white text-brand-deep shadow' : 'text-white/65'" class="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 transition">
                                     @svg('heroicon-m-qr-code', 'size-4') QR
+                                </button>
+                                <button x-show="modes.includes('face')" @click="setMode('face')" :aria-pressed="mode === 'face'" :class="mode === 'face' ? 'bg-white text-brand-deep shadow' : 'text-white/65'" class="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 transition">
+                                    @svg('heroicon-m-face-smile', 'size-4') Face
                                 </button>
                             </div>
                         </div>
@@ -103,6 +106,16 @@
                             <span class="kiosk-float flex size-20 items-center justify-center rounded-3xl bg-emerald-400/15 ring-1 ring-emerald-300/30">@svg('heroicon-o-qr-code', 'size-10 text-emerald-300')</span>
                             <p class="mt-6 text-2xl font-semibold">Show your QR badge</p>
                             <p class="mt-2 max-w-xs text-white/60">{{ __('Open the :app app on your phone and hold the badge up to the camera.', ['app' => \App\Support\Brand::name()]) }}</p>
+                        </div>
+
+                        <div x-show="mode === 'face'" class="mt-5 flex flex-1 flex-col items-center justify-center rounded-3xl bg-white/[0.04] px-8 py-12 text-center ring-1 ring-white/10" aria-live="polite">
+                            <span class="flex size-20 items-center justify-center rounded-3xl bg-emerald-400/15 ring-1 ring-emerald-300/30"
+                                  :class="faceStep === 'turn' && 'kiosk-float'">@svg('heroicon-o-face-smile', 'size-10 text-emerald-300')</span>
+                            <p class="mt-6 text-2xl font-semibold" x-text="faceHint"></p>
+                            <p class="mt-2 max-w-xs text-white/60" x-show="faceStep === 'turn'">Turn your head slowly to the left and to the right.</p>
+                            <p class="mt-2 max-w-xs text-white/60" x-show="faceStep === 'loading'">Starting face recognition…</p>
+                            <button type="button" @click="setMode(modes.includes('pin') ? 'pin' : 'qr')" x-show="modes.length > 1"
+                                    class="mt-8 text-sm text-white/55 underline underline-offset-4">Use PIN instead</button>
                         </div>
 
                         <div x-show="mode === 'pin'" class="mt-5 flex flex-1 flex-col">
