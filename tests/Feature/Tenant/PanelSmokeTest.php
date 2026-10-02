@@ -62,3 +62,14 @@ it('stops a receptionist from opening organisation settings', function () {
 
     $this->actingAs($rec)->get($this->base . '/admin/branches')->assertForbidden();
 });
+
+it('links the panel to real, global CSS/JS files (not tenant asset URLs)', function () {
+    $html = $this->get($this->base . '/admin/login')->assertOk()->getContent();
+
+    preg_match_all('#(?:href|src)="https?://[^/"]+(/(?:css|js)/filament/[^"?]+)#', $html, $m);
+    expect($html)->not->toContain('/tenancy/assets/')
+        ->and($m[1])->not->toBeEmpty();
+    foreach ($m[1] as $path) {
+        expect(file_exists(public_path($path)))->toBeTrue("missing published asset {$path} — run php artisan filament:assets");
+    }
+});

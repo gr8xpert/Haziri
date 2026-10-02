@@ -23,6 +23,7 @@ $PHP artisan config:cache
 $PHP artisan route:cache
 $PHP artisan view:cache
 $PHP artisan event:cache
+$PHP artisan filament:assets       # panel CSS/JS into public/ (the panel is unstyled without them)
 $PHP artisan filament:optimize
 $PHP artisan storage:link || true
 echo "Deployed $(git rev-parse --short HEAD)"
