@@ -71,6 +71,17 @@ it('blocks new employees beyond the plan limit', function () {
     Employee::create(['code' => 'OVER', 'first_name' => 'Over', 'joined_on' => '2025-01-01']);
 })->throws(ValidationException::class);
 
+it('follows the plan\'s employee limit when the company has none of its own', function () {
+    $this->plan->update(['limits' => ['employees' => 2]]);
+    tenant()->unsetRelation('plan'); // loaded by the employees created in beforeEach
+
+    try {
+        Employee::create(['code' => 'OVER', 'first_name' => 'Over', 'joined_on' => '2025-01-01']);
+    } finally {
+        $this->plan->update(['limits' => ['employees' => 25]]);
+    }
+})->throws(ValidationException::class);
+
 it('attaches an unknown ADMS device to a company', function () {
     UnknownDevice::record('NEWSN1', '1.2.3.4');
 

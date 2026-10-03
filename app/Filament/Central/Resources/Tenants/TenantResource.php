@@ -12,6 +12,7 @@ use App\Filament\Central\FeatureToggles;
 use App\Models\Central\Plan;
 use App\Models\Central\Tenant;
 use App\Models\User;
+use App\Services\Features\FeatureCatalog;
 use App\Services\Settings\TenantSettings;
 use Filament\Actions\Action;
 use Filament\Actions\EditAction;
@@ -23,6 +24,9 @@ use Filament\Forms\Components\Toggle;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Grid;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
@@ -47,11 +51,27 @@ class TenantResource extends Resource
                 ->disabledOn('edit'),
             TextInput::make('admin_email')->email()->required()->visibleOn('create')->dehydrated(false)->label('Owner email'),
             TextInput::make('admin_name')->visibleOn('create')->dehydrated(false)->label('Owner name'),
-            Select::make('plan_id')->options(fn () => Plan::pluck('name', 'id'))->label('Plan'),
-            TextInput::make('employee_limit')->numeric()->integer()->minValue(1)->helperText('Blank = plan limit'),
+            Select::make('plan_id')->options(fn () => Plan::pluck('name', 'id'))->label('Plan')
+                ->live()->afterStateUpdated(function (?string $state, string $operation, Set $set) {
+                    // A new plan brings its feature switches; they are saved with the form.
+                    $plan = $operation === 'edit' && $state ? Plan::find($state) : null;
+                    if ($plan !== null) {
+                        $set('flags', FeatureCatalog::fromConfig()->normalise($plan->feature_flags ?? []));
+                        Notification::make()->info()->title("Features set to the {$plan->name} plan's. Save to apply.")->send();
+                    }
+                }),
+            TextInput::make('employee_limit')->numeric()->integer()->minValue(1)
+                ->helperText(function (Get $get) {
+                    $limit = Plan::find($get('plan_id'))?->limits['employees'] ?? null;
+
+                    return 'Blank = the plan\'s limit (' . ($limit ?? 'unlimited') . ')';
+                }),
             Select::make('timezone')->options(fn () => array_combine(timezone_identifiers_list(), timezone_identifiers_list()))
                 ->searchable()->default(config('hazri.default_timezone'))->required(),
             Select::make('status')->options(TenantStatus::class)->visibleOn('edit')->required(),
+            Section::make('Features')->visibleOn('edit')->columnSpanFull()
+                ->description('Connected features follow automatically; data is kept when a feature is off.')
+                ->schema(FeatureToggles::schema('flags')),
         ]);
     }
 
@@ -111,14 +131,6 @@ class TenantResource extends Resource
                         $r->run(fn () => app(SaveBranding::class)(array_intersect_key($data, array_flip(SaveBranding::TEXT_KEYS)), $logo, $icon,
                             (bool) ($data['branding_locked'] ?? false)));
                         Notification::make()->success()->title('Branding saved')->send();
-                    }),
-                Action::make('features')->icon(Heroicon::OutlinedCog6Tooth)->color('gray')->modalWidth('3xl')
-                    ->modalDescription('Switch features on or off for this company. Connected features follow automatically; data is kept when a feature is off.')
-                    ->fillForm(fn (Tenant $r) => ['flags' => SetTenantFeatureFlags::current($r)])
-                    ->schema(FeatureToggles::schema('flags'))
-                    ->action(function (Tenant $r, array $data, SetTenantFeatureFlags $setFlags) {
-                        $setFlags($r, array_map('boolval', $data['flags'] ?? []));
-                        Notification::make()->success()->title('Features saved')->send();
                     }),
                 Action::make('suspend')->icon(Heroicon::OutlinedExclamationTriangle)->color('danger')->requiresConfirmation()
                     ->visible(fn (Tenant $r) => $r->status !== TenantStatus::Suspended)

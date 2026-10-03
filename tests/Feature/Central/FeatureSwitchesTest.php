@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Actions\Tenants\SetTenantFeatureFlags;
 use App\Filament\Central\Resources\Plans\Pages\ManagePlans;
+use App\Filament\Central\Resources\Tenants\Pages\EditTenant;
 use App\Filament\Central\Resources\Tenants\Pages\ListTenants;
 use App\Models\Central\Plan;
 use App\Models\Central\SuperAdmin;
@@ -33,21 +34,47 @@ it('switches connected features together while editing a plan', function () {
         ->assertSet('mountedActions.0.data.feature_flags.payroll_tax', false);
 });
 
-it('opens a company\'s feature switches and saves them with connected changes', function () {
+it('saves a company\'s feature switches with connected changes on its edit page', function () {
     $tenant = Tenant::where('slug', 'pest')->first() ?? $this->markTestSkipped('needs the pest tenant');
     $original = SetTenantFeatureFlags::current($tenant);
+    app(SetTenantFeatureFlags::class)($tenant, ['kiosk' => false, 'kiosk_face' => false]);
 
     try {
-        Livewire::test(ListTenants::class)
-            ->mountTableAction('features', $tenant)
-            ->set('mountedActions.0.data.flags.kiosk_face', true)
-            ->assertSet('mountedActions.0.data.flags.kiosk', true)
-            ->callMountedTableAction()
-            ->assertHasNoTableActionErrors();
+        Livewire::test(EditTenant::class, ['record' => $tenant->getRouteKey()])
+            ->assertSet('data.flags.kiosk', false)
+            ->set('data.flags.kiosk_face', true)
+            ->assertSet('data.flags.kiosk', true)
+            ->call('save')
+            ->assertHasNoFormErrors();
 
-        expect(SetTenantFeatureFlags::current($tenant))->toMatchArray(['kiosk' => true, 'kiosk_face' => true]);
+        expect(SetTenantFeatureFlags::current($tenant))->toMatchArray(['kiosk' => true, 'kiosk_face' => true])
+            ->and($tenant->fresh()->getAttributes())->not->toHaveKey('flags');
     } finally {
         app(SetTenantFeatureFlags::class)($tenant, $original);
+    }
+});
+
+it('gives a company the new plan\'s features when its plan is changed', function () {
+    $tenant = Tenant::where('slug', 'pest')->first() ?? $this->markTestSkipped('needs the pest tenant');
+    $original = ['flags' => SetTenantFeatureFlags::current($tenant), 'plan_id' => $tenant->plan_id];
+    $plan = Plan::create(['code' => 'pest-move', 'name' => 'Pest move', 'price_per_employee' => 0,
+        'feature_flags' => ['visitors' => true, 'leave' => false]]);
+    app(SetTenantFeatureFlags::class)($tenant, ['visitors' => false, 'leave' => true]);
+
+    try {
+        Livewire::test(EditTenant::class, ['record' => $tenant->getRouteKey()])
+            ->set('data.plan_id', (string) $plan->id)
+            ->assertSet('data.flags.visitors', true)
+            ->assertSet('data.flags.leave', false)
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        expect($tenant->fresh()->plan_id)->toBe($plan->id)
+            ->and(SetTenantFeatureFlags::current($tenant))->toMatchArray(['visitors' => true, 'leave' => false]);
+    } finally {
+        $tenant->update(['plan_id' => $original['plan_id']]);
+        app(SetTenantFeatureFlags::class)($tenant, $original['flags']);
+        $plan->delete();
     }
 });
 

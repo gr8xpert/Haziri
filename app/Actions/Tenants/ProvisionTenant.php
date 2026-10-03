@@ -51,7 +51,6 @@ final class ProvisionTenant
             'slug' => $slug,
             'company_name' => $companyName,
             'plan_id' => $plan?->id,
-            'employee_limit' => $plan?->limits['employees'] ?? null,
         ]);
         // Subdomain identification: the domain row holds just the subdomain; custom domains hold the full host.
         $tenant->domains()->create(['domain' => $slug]);
