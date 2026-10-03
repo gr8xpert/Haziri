@@ -32,7 +32,7 @@ class PlanResource extends Resource
             TextInput::make('price_fixed')->numeric()->integer()->prefix('Rs')->required()->default(0),
             TextInput::make('limits.employees')->numeric()->integer()->label('Employee limit')->helperText('Blank = unlimited'),
             Toggle::make('is_active')->default(true),
-            // Stored as {feature: bool}: the defaults a new company on this plan starts with.
+            // Stored as {feature: bool}; changes reach every company on the plan (ApplyPlanFeatureChanges).
             Group::make(FeatureToggles::schema('feature_flags'))->columnSpanFull(),
         ]);
     }

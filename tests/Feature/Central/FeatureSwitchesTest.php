@@ -64,6 +64,27 @@ it('saves a plan with every feature switch present', function () {
     Plan::where('code', 'pest-plan')->delete();
 });
 
+it('applies a plan\'s changed switches to its companies and keeps their own extras', function () {
+    $tenant = Tenant::where('slug', 'pest')->first() ?? $this->markTestSkipped('needs the pest tenant');
+    $original = ['flags' => SetTenantFeatureFlags::current($tenant), 'plan_id' => $tenant->plan_id];
+    $plan = Plan::create(['code' => 'pest-sync', 'name' => 'Pest sync', 'price_per_employee' => 0,
+        'feature_flags' => ['visitors' => false, 'leave' => false]]);
+    $tenant->update(['plan_id' => $plan->id]);
+    app(SetTenantFeatureFlags::class)($tenant, ['visitors' => false, 'leave' => true]); // leave: this company's own extra
+
+    try {
+        Livewire::test(ManagePlans::class)
+            ->callTableAction('edit', $plan, data: ['feature_flags' => ['visitors' => true, 'leave' => false]])
+            ->assertHasNoTableActionErrors();
+
+        expect(SetTenantFeatureFlags::current($tenant))->toMatchArray(['visitors' => true, 'leave' => true]);
+    } finally {
+        $tenant->update(['plan_id' => $original['plan_id']]);
+        app(SetTenantFeatureFlags::class)($tenant, $original['flags']);
+        $plan->delete();
+    }
+});
+
 it('sets a white-label client\'s branding from the super-admin panel', function () {
     $tenant = Tenant::where('slug', 'pest')->first() ?? $this->markTestSkipped('needs the pest tenant');
     $original = SetTenantFeatureFlags::current($tenant);
