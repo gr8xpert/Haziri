@@ -10,9 +10,9 @@ use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
 
-/** Central (not per tenant): --invoice on the 1st, --enforce daily. */
+/** Central (not per tenant): --invoice on the 1st, --enforce daily (non-payment and ended trials). */
 #[Signature('hazri:billing {--invoice} {--enforce}')]
-#[Description('Generate monthly invoices and/or suspend tenants past due + grace')]
+#[Description('Generate monthly invoices and/or suspend tenants past due + grace or at the end of their trial')]
 final class BillingCommand extends Command
 {
     public function handle(BillingService $billing): int
@@ -23,6 +23,7 @@ final class BillingCommand extends Command
         }
         if ($this->option('enforce')) {
             $this->info($billing->enforce($now) . ' tenant(s) suspended for non-payment.');
+            $this->info($billing->endTrials($now) . ' tenant(s) suspended at the end of their trial.');
         }
 
         return self::SUCCESS;

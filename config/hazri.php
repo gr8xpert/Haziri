@@ -84,6 +84,8 @@ return [
     ],
 
     'billing' => [
+        // New companies start on a trial; when it ends they are suspended until the super-admin activates them.
+        'trial_days' => (int) env('HAZRI_TRIAL_DAYS', 15),
         'due_days' => (int) env('HAZRI_BILLING_DUE_DAYS', 10),
         'grace_days' => (int) env('HAZRI_BILLING_GRACE_DAYS', 15),
         // Shown to company owners on the Billing page (spec §4.1: manual bank / JazzCash / Easypaisa).

@@ -15,7 +15,7 @@ use Symfony\Component\HttpFoundation\Response;
  * Tenant identification for every tenant route and the tenant panel.
  * shared mode:    {slug}.{central domain} or a custom domain (stancl DomainOrSubdomain).
  * dedicated mode: every non-central host is the single HAZRI_DEDICATED_TENANT (spec §3.2).
- * Suspended tenants get a 403 page.
+ * Suspended tenants, and trials past their end date, get a 403 page.
  */
 final class IdentifyTenant
 {
@@ -39,6 +39,12 @@ final class IdentifyTenant
 
     private function guard(?Tenant $tenant, Request $request, Closure $next): Response
     {
+        // Checked live so access stops when the trial ends, not at the next daily hazri:billing --enforce run.
+        $trialOver = config('hazri.mode') !== 'dedicated'
+            && $tenant?->status === TenantStatus::Trial && $tenant->trial_ends_at?->isPast();
+        if ($trialOver || ($tenant?->status === TenantStatus::Suspended && $tenant->suspension_reason === 'trial_ended')) {
+            abort(403, __('Your free trial has ended. Please contact support to continue.'));
+        }
         if ($tenant?->status === TenantStatus::Suspended) {
             abort(403, __('This account is suspended. Please contact support.'));
         }

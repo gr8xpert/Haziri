@@ -35,11 +35,15 @@ class PlatformStats extends StatsOverviewWidget
         $overdue = (clone $open)->whereDate('due_on', '<', now()->format('Y-m-d'))->count();
         $toConfirm = Payment::query()->where('status', 'submitted')->count();
         $waiting = UnknownDeviceResource::getNavigationBadge();
+        $endingTrials = Tenant::query()->where('status', TenantStatus::Trial)->where('trial_ends_at', '<=', now()->addDays(3))->count();
 
         return [
             Stat::make('Companies', $byStatus->sum())->icon(Heroicon::OutlinedBuildingOffice2)
                 ->description("{$count(TenantStatus::Active)} active · {$count(TenantStatus::Trial)} trial · {$count(TenantStatus::Suspended)} suspended")
                 ->color($count(TenantStatus::Suspended) ? 'warning' : 'gray')->url(TenantResource::getUrl()),
+            Stat::make('Trials ending soon', $endingTrials)->icon(Heroicon::OutlinedCalendarDays)
+                ->description($endingTrials ? 'Ending within 3 days: follow up' : 'None in the next 3 days')
+                ->color($endingTrials ? 'warning' : 'gray')->url(TenantResource::getUrl()),
             Stat::make('Active employees', number_format(self::activeEmployees()))->icon(Heroicon::OutlinedUsers)
                 ->description('Across all companies (refreshed every 10 minutes)')->color('gray'),
             Stat::make('Billed this month', 'Rs ' . number_format((int) $billed->sum('amount')))->icon(Heroicon::OutlinedBanknotes)

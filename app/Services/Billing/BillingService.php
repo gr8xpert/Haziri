@@ -72,6 +72,24 @@ final class BillingService
         return $n;
     }
 
+    /** Suspend companies whose trial has run out; the super-admin activates them once they sign up. */
+    public function endTrials(CarbonImmutable $now): int
+    {
+        if (config('hazri.mode') === 'dedicated') {
+            return 0;
+        }
+        $n = 0;
+        foreach (Tenant::query()->where('status', TenantStatus::Trial)->where('trial_ends_at', '<=', $now)->get() as $tenant) {
+            $tenant->status = TenantStatus::Suspended;
+            $tenant->suspended_at = now();
+            $tenant->suspension_reason = 'trial_ended';
+            $tenant->save();
+            $n++;
+        }
+
+        return $n;
+    }
+
     public function confirm(Payment $payment, SuperAdmin $by): Invoice
     {
         return DB::connection('central')->transaction(function () use ($payment, $by) {

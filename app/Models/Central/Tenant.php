@@ -6,7 +6,6 @@ namespace App\Models\Central;
 
 use App\Enums\TenantStatus;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Support\Str;
 use Stancl\Tenancy\Contracts\TenantWithDatabase;
 use Stancl\Tenancy\Database\Concerns\HasDatabase;
 use Stancl\Tenancy\Database\Concerns\HasDomains;
@@ -27,6 +26,7 @@ class Tenant extends BaseTenant implements TenantWithDatabase
 
     protected $casts = [
         'status' => TenantStatus::class,
+        'trial_ends_at' => 'datetime',
         'suspended_at' => 'datetime',
     ];
 
@@ -34,7 +34,7 @@ class Tenant extends BaseTenant implements TenantWithDatabase
     public static function getCustomColumns(): array
     {
         return [
-            'id', 'slug', 'company_name', 'timezone', 'status', 'plan_id', 'employee_limit', 'suspended_at',
+            'id', 'slug', 'company_name', 'timezone', 'status', 'plan_id', 'employee_limit', 'trial_ends_at', 'suspended_at',
             'created_at', 'updated_at',
         ];
     }
@@ -43,6 +43,9 @@ class Tenant extends BaseTenant implements TenantWithDatabase
     {
         static::creating(function (self $tenant) {
             $tenant->status ??= TenantStatus::Trial;
+            if ($tenant->status === TenantStatus::Trial) {
+                $tenant->trial_ends_at ??= now()->addDays((int) config('hazri.billing.trial_days', 15));
+            }
             $tenant->timezone ??= config('hazri.default_timezone');
             if (! $tenant->getInternal('db_name')) {
                 $tenant->setInternal('db_name', config('hazri.tenant_db_prefix') . str_replace('-', '_', $tenant->slug));

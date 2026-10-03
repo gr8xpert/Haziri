@@ -17,6 +17,7 @@ use App\Services\Settings\TenantSettings;
 use Filament\Actions\Action;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\ColorPicker;
+use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -69,7 +70,11 @@ class TenantResource extends Resource
                 }),
             Select::make('timezone')->options(fn () => array_combine(timezone_identifiers_list(), timezone_identifiers_list()))
                 ->searchable()->default(config('hazri.default_timezone'))->required(),
-            Select::make('status')->options(TenantStatus::class)->visibleOn('edit')->required(),
+            Select::make('status')->options(TenantStatus::class)->visibleOn('edit')->required()->live(),
+            DateTimePicker::make('trial_ends_at')->label('Trial ends')->seconds(false)
+                ->visible(fn (Get $get, string $operation) => $operation === 'edit' && self::isTrial($get('status')))
+                ->required(fn (Get $get) => self::isTrial($get('status')))
+                ->helperText('Move it later to extend the trial. When it passes, the company is locked until you activate it.'),
             Section::make('Features')->visibleOn('edit')->columnSpanFull()
                 ->description('Connected features follow automatically; data is kept when a feature is off.')
                 ->schema(FeatureToggles::schema('flags')),
@@ -89,6 +94,8 @@ class TenantResource extends Resource
                     TenantStatus::Active => 'success', TenantStatus::Trial => 'info', TenantStatus::Suspended => 'danger',
                 }),
                 TextColumn::make('employee_limit')->placeholder('plan'),
+                TextColumn::make('trial_ends_at')->label('Trial ends')->date()->sortable()->placeholder('—')
+                    ->color(fn (Tenant $r) => $r->status === TenantStatus::Trial && $r->trial_ends_at?->lt(now()->addDays(3)) ? 'danger' : null),
                 TextColumn::make('created_at')->date()->sortable(),
             ])
             ->filters([SelectFilter::make('status')->options(TenantStatus::class)])
@@ -138,7 +145,7 @@ class TenantResource extends Resource
                     ->action(fn (Tenant $r) => $r->update(['status' => TenantStatus::Suspended, 'suspended_at' => now()])),
                 Action::make('activate')->icon(Heroicon::OutlinedShieldCheck)->color('success')
                     ->visible(fn (Tenant $r) => $r->status !== TenantStatus::Active)
-                    ->action(fn (Tenant $r) => $r->update(['status' => TenantStatus::Active, 'suspended_at' => null])),
+                    ->action(fn (Tenant $r) => $r->update(['status' => TenantStatus::Active, 'suspended_at' => null, 'suspension_reason' => null])),
                 Action::make('resetOwnerPassword')->label('Reset owner password')->icon(Heroicon::OutlinedKey)->color('gray')
                     ->requiresConfirmation()->modalDescription('Makes a new password for the company owner and shows it to you once. This is recorded in the audit log.')
                     ->action(function (Tenant $r) {
@@ -177,6 +184,12 @@ class TenantResource extends Resource
                             . '/impersonate/' . $token->token);
                     }),
             ]);
+    }
+
+    /** The status field holds the enum or its value, depending on whether it was just changed. */
+    private static function isTrial(mixed $status): bool
+    {
+        return ($status instanceof TenantStatus ? $status : TenantStatus::tryFrom((string) $status)) === TenantStatus::Trial;
     }
 
     public static function getPages(): array

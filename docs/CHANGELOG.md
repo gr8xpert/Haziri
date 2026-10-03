@@ -14,6 +14,9 @@
 - **Super-admin dashboard**: companies by status, active employees, billed this month, unpaid / overdue, payments to
   confirm, unknown machines, recently added companies.
 - Fixed: the central audit log could not record entries about a company, so "Log in as owner" failed.
+- **Trials end after 15 days** (`HAZRI_TRIAL_DAYS`): the company is locked the moment its trial ends ("Your free trial
+  has ended") and suspended by the daily `hazri:billing --enforce` until the super-admin activates it. "Trial ends" is
+  editable on the company to extend it; dashboard card "Trials ending soon" (3 days). Existing trials got 15 days from today.
 
 ## 2026-10-03 — Review round: feature switches, kiosk, anti-fraud, multi-branch, white-label, full payroll, face recognition
 

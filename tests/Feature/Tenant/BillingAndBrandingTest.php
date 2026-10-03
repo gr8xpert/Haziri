@@ -31,7 +31,8 @@ beforeEach(function () {
 
 afterEach(function () {
     Invoice::where('tenant_id', $this->tenant->id)->delete();
-    $this->tenant->update(['plan_id' => null, 'status' => TenantStatus::Trial, 'employee_limit' => null, 'suspended_at' => null]);
+    $this->tenant->update(['plan_id' => null, 'status' => TenantStatus::Trial, 'employee_limit' => null, 'suspended_at' => null,
+        'suspension_reason' => null, 'trial_ends_at' => now()->addDays(15)]);
     UnknownDevice::where('serial_number', 'NEWSN1')->delete();
     DeviceRegistry::where('serial_number', 'NEWSN1')->delete();
 });
@@ -105,6 +106,19 @@ it('validates custom domains and applies white-label settings', function () {
     app(TenantSettings::class)->flush();
     $this->get('http://pest.' . config('hazri.central_domain') . '/admin')->assertOk();
     expect(FilamentColor::getColor('primary'))->not->toBeNull();
+});
+
+it('locks a company the moment its trial ends and suspends it in the daily run', function () {
+    $this->tenant->update(['status' => TenantStatus::Trial, 'trial_ends_at' => now()->subMinute()]);
+    $login = 'http://pest.' . config('hazri.central_domain') . '/admin/login';
+
+    $this->get($login)->assertForbidden()->assertSee('Your free trial has ended');
+    expect(app(BillingService::class)->endTrials(CarbonImmutable::now()))->toBe(1)
+        ->and($this->tenant->fresh()->status)->toBe(TenantStatus::Suspended);
+    $this->get($login)->assertForbidden()->assertSee('Your free trial has ended');
+
+    $this->tenant->update(['status' => TenantStatus::Trial, 'trial_ends_at' => now()->addDays(5), 'suspended_at' => null]);
+    $this->get($login)->assertOk(); // extended by the super-admin
 });
 
 it('invoices and auto-suspends a white-label client like any other', function () {

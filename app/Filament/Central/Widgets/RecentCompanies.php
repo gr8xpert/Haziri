@@ -31,6 +31,7 @@ class RecentCompanies extends TableWidget
                 TextColumn::make('status')->badge()->color(fn (TenantStatus $state) => match ($state) {
                     TenantStatus::Active => 'success', TenantStatus::Trial => 'info', TenantStatus::Suspended => 'danger',
                 }),
+                TextColumn::make('trial_ends_at')->label('Trial ends')->date()->placeholder('—'),
                 TextColumn::make('created_at')->label('Added')->since(),
             ])
             ->recordUrl(fn (Tenant $record) => TenantResource::getUrl('edit', ['record' => $record]));
