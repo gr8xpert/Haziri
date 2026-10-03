@@ -54,6 +54,7 @@ it('shows no platform name or icon anywhere a white-label client can look', func
         'dashboard' => fn () => $this->actingAs($this->owner)->get("{$this->base}/admin"),
         'AI assistant' => fn () => $this->actingAs($this->owner)->get("{$this->base}/admin/ask"),
         'branding' => fn () => $this->actingAs($this->owner)->get("{$this->base}/admin/branding"),
+        'billing' => fn () => $this->actingAs($this->owner)->get("{$this->base}/admin/billing"),
         'devices' => fn () => $this->actingAs($this->owner)->get("{$this->base}/admin/devices/create"),
         'employee app login' => fn () => $this->get("{$this->base}/me/login"),
         'employee app' => fn () => $this->actingAs($staff)->get("{$this->base}/me"),

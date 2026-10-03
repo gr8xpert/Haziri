@@ -61,6 +61,8 @@ Set on the client's **Branding** page or by the super-admin (Companies → Brand
 Env `HAZRI_NEUTRAL_DOMAIN`: a domain without the platform name pointing at the same server; white-label clients are
 told to CNAME to it and to use `adms.<it>` / `api.<it>` for machines and the sync agent. White-label only changes the
 branding: those clients are invoiced, see their Billing page and are suspended for non-payment like everyone else.
+Their "How to pay" text comes from env `HAZRI_PAYMENT_INSTRUCTIONS_WHITE_LABEL` (others: `HAZRI_PAYMENT_INSTRUCTIONS`)
+and must not name the platform; invoice numbers keep the `HZ-` prefix.
 
 ## Payroll Full (features payroll_tax, payroll_social, payroll_pf, payroll_gratuity, payroll_adjustments, payroll_settlement)
 

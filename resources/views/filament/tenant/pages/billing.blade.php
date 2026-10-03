@@ -1,6 +1,6 @@
 <x-filament-panels::page>
     <x-filament::section :heading="__('How to pay')" icon="heroicon-o-banknotes">
-        <p class="max-w-3xl text-sm leading-relaxed whitespace-pre-line text-gray-700 dark:text-gray-300">{{ config('hazri.billing.payment_instructions') }}</p>
+        <p class="max-w-3xl text-sm leading-relaxed whitespace-pre-line text-gray-700 dark:text-gray-300">{{ $this->getPaymentInstructions() }}</p>
     </x-filament::section>
 
     <div class="hz-table-wrap">

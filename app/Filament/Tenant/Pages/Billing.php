@@ -7,6 +7,7 @@ namespace App\Filament\Tenant\Pages;
 use App\Filament\Tenant\NavigationGroup;
 use App\Models\Central\Invoice;
 use App\Models\Central\Payment;
+use App\Support\Brand;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Support\Icons\Heroicon;
@@ -29,6 +30,11 @@ class Billing extends Page
     public static function canAccess(): bool
     {
         return config('hazri.mode') !== 'dedicated' && (bool) auth()->user()?->can('billing.manage');
+    }
+
+    public function getPaymentInstructions(): string
+    {
+        return (string) config(Brand::whiteLabel() ? 'hazri.billing.payment_instructions_white_label' : 'hazri.billing.payment_instructions');
     }
 
     /** @return Collection<int, Invoice> */

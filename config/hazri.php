@@ -88,6 +88,8 @@ return [
         'grace_days' => (int) env('HAZRI_BILLING_GRACE_DAYS', 15),
         // Shown to company owners on the Billing page (spec §4.1: manual bank / JazzCash / Easypaisa).
         'payment_instructions' => env('HAZRI_PAYMENT_INSTRUCTIONS', 'Bank: Meezan Bank · Title: Haziri · IBAN: PKxx MEZN xxxx xxxx xxxx xxxx · JazzCash / Easypaisa: 03xx-xxxxxxx. Put the invoice number in the reference.'),
+        // The same for white-label clients: must not name the platform (no account title by default).
+        'payment_instructions_white_label' => env('HAZRI_PAYMENT_INSTRUCTIONS_WHITE_LABEL', 'Bank: Meezan Bank · IBAN: PKxx MEZN xxxx xxxx xxxx xxxx · JazzCash / Easypaisa: 03xx-xxxxxxx. Put the invoice number in the reference.'),
     ],
 
     'notifications' => [
