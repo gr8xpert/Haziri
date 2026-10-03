@@ -1,5 +1,20 @@
 # Changelog
 
+## 2026-10-04 — Super-admin review round
+
+- **White label is branding only**: white-label clients are invoiced, see Billing and are suspended for non-payment like
+  everyone else. Their Billing page uses `HAZRI_PAYMENT_INSTRUCTIONS_WHITE_LABEL` (no platform name; `HZ-` numbers stay).
+- **Plans**: editing a plan's feature switches updates every company on it (only the changed switches, so a
+  company's own extras stay).
+- **Companies**: feature switches moved from the row pop-up to the edit page; picking another plan there brings its
+  switches. The employee limit is now a hand-set override only; blank follows the plan (migration clears old copies).
+- **Password recovery**: "Forgot password?" on the company login (mail in the client's name), profile page to change
+  your own password, super-admin "Reset owner password" (shown once, audit-logged).
+- **Unknown machines**: Block / Unblock, check-ins recorded at most once a minute, unblocked rows pruned after 30 days.
+- **Super-admin dashboard**: companies by status, active employees, billed this month, unpaid / overdue, payments to
+  confirm, unknown machines, recently added companies.
+- Fixed: the central audit log could not record entries about a company, so "Log in as owner" failed.
+
 ## 2026-10-03 — Review round: feature switches, kiosk, anti-fraud, multi-branch, white-label, full payroll, face recognition
 
 - **Feature switches** (super-admin): 19 features under Attendance / Payroll Lite / Payroll Full / Add-ons, per plan and per
