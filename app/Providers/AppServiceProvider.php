@@ -7,6 +7,7 @@ namespace App\Providers;
 use App\Contracts\AiModel;
 use App\Listeners\NotificationSubscriber;
 use App\Models\Employee;
+use App\Notifications\PanelResetPassword;
 use App\Services\Ai\AnthropicAiModel;
 use App\Services\Billing\BillingService;
 use App\Services\Notifications\ChannelRegistry;
@@ -14,6 +15,7 @@ use App\Services\Notifications\Channels\HttpSmsChannel;
 use App\Services\Notifications\Channels\MetaWhatsAppChannel;
 use App\Services\Settings\TenantSettings;
 use App\Support\BranchAccess;
+use Filament\Auth\Notifications\ResetPassword as FilamentResetPassword;
 use Illuminate\Queue\Events\JobExceptionOccurred;
 use Illuminate\Queue\Events\JobFailed;
 use Illuminate\Queue\Events\JobProcessed;
@@ -52,6 +54,9 @@ class AppServiceProvider extends ServiceProvider
         foreach ([JobProcessed::class, JobFailed::class, JobExceptionOccurred::class] as $done) {
             Event::listen($done, fn () => BranchAccess::resume());
         }
+        // Password-reset mail sent in the request with the client's branding, not queued (PanelResetPassword).
+        $this->app->bind(FilamentResetPassword::class, fn ($app, array $params) => new PanelResetPassword($params['token']));
+
         // Plan limit on active employees (spec §9 phase 4: usage enforcement).
         Employee::creating(fn () => BillingService::assertEmployeeCapacity());
     }

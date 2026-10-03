@@ -13,8 +13,12 @@ use App\Models\Employee;
 use App\Models\Kiosk;
 use App\Models\Setting;
 use App\Models\User;
+use App\Notifications\PanelResetPassword;
 use App\Services\Settings\TenantSettings;
 use App\Support\Brand;
+use Filament\Auth\Pages\PasswordReset\RequestPasswordReset;
+use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Support\Facades\Notification;
 
 /* A white-labelled client (AASML) must never see the platform's name or icon. */
 
@@ -55,6 +59,8 @@ it('shows no platform name or icon anywhere a white-label client can look', func
         'AI assistant' => fn () => $this->actingAs($this->owner)->get("{$this->base}/admin/ask"),
         'branding' => fn () => $this->actingAs($this->owner)->get("{$this->base}/admin/branding"),
         'billing' => fn () => $this->actingAs($this->owner)->get("{$this->base}/admin/billing"),
+        'profile' => fn () => $this->actingAs($this->owner)->get("{$this->base}/admin/profile"),
+        'forgot password' => fn () => $this->get("{$this->base}/admin/password-reset/request"),
         'devices' => fn () => $this->actingAs($this->owner)->get("{$this->base}/admin/devices/create"),
         'employee app login' => fn () => $this->get("{$this->base}/me/login"),
         'employee app' => fn () => $this->actingAs($staff)->get("{$this->base}/me"),
@@ -93,6 +99,22 @@ it('serves the client\'s uploaded icon and keeps billing for white-label clients
 
     $this->actingAs($this->owner);
     expect(Billing::canAccess())->toBeTrue();
+});
+
+it('sends the forgot-password mail straight away under the client\'s name', function () {
+    Notification::fake();
+    Filament\Facades\Filament::setCurrentPanel(Filament\Facades\Filament::getPanel('tenant'));
+
+    Livewire\Livewire::test(RequestPasswordReset::class)
+        ->set('data.email', 'owner@pest.test')->call('request')->assertHasNoErrors();
+
+    Notification::assertSentTo($this->owner, PanelResetPassword::class, function (PanelResetPassword $sent) {
+        $mail = $sent->toMail($this->owner);
+
+        return ! $sent instanceof ShouldQueue
+            && $mail->from[1] === 'AASML Attendance'
+            && str_contains($mail->actionUrl, 'pest.');
+    });
 });
 
 it('stops the client from changing branding the provider locked', function () {

@@ -33,6 +33,7 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class TenantResource extends Resource
 {
@@ -138,6 +139,26 @@ class TenantResource extends Resource
                 Action::make('activate')->icon(Heroicon::OutlinedShieldCheck)->color('success')
                     ->visible(fn (Tenant $r) => $r->status !== TenantStatus::Active)
                     ->action(fn (Tenant $r) => $r->update(['status' => TenantStatus::Active, 'suspended_at' => null])),
+                Action::make('resetOwnerPassword')->label('Reset owner password')->icon(Heroicon::OutlinedKey)->color('gray')
+                    ->requiresConfirmation()->modalDescription('Makes a new password for the company owner and shows it to you once. This is recorded in the audit log.')
+                    ->action(function (Tenant $r) {
+                        $password = Str::password(16, symbols: false);
+                        $owner = $r->run(function () use ($password) {
+                            $owner = User::role(Role::Owner->value)->orderBy('id')->first();
+                            $owner?->update(['password' => $password]);
+
+                            return $owner;
+                        });
+                        if ($owner === null) {
+                            Notification::make()->danger()->title('This company has no owner user')->send();
+
+                            return;
+                        }
+                        activity('central')->causedBy(auth('super_admin')->user())->performedOn($r)
+                            ->event('owner_password_reset')->log("Reset the password of owner #{$owner->id}");
+                        Notification::make()->success()->persistent()->title('Owner password reset')
+                            ->body("Owner login: {$owner->email} / {$password} (shown once)")->send();
+                    }),
                 Action::make('impersonate')->label('Log in as owner')->icon(Heroicon::OutlinedIdentification)->color('warning')
                     ->requiresConfirmation()->modalDescription('This is recorded in the audit log.')
                     ->action(function (Tenant $r) {

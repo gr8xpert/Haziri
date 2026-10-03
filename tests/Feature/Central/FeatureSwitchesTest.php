@@ -10,9 +10,11 @@ use App\Models\Central\Plan;
 use App\Models\Central\SuperAdmin;
 use App\Models\Central\Tenant;
 use App\Models\Setting;
+use App\Models\User;
 use Filament\Facades\Filament;
 use Illuminate\Support\Facades\Schema;
 use Livewire\Livewire;
+use Spatie\Activitylog\Models\Activity;
 
 beforeEach(function () {
     if (! Schema::hasTable('super_admins')) {
@@ -109,6 +111,21 @@ it('applies a plan\'s changed switches to its companies and keeps their own extr
         $tenant->update(['plan_id' => $original['plan_id']]);
         app(SetTenantFeatureFlags::class)($tenant, $original['flags']);
         $plan->delete();
+    }
+});
+
+it('resets a company owner\'s password, shows it once and logs it', function () {
+    $tenant = Tenant::where('slug', 'pest')->first() ?? $this->markTestSkipped('needs the pest tenant');
+    $originalHash = $tenant->run(fn () => User::where('email', 'owner@pest.test')->value('password'));
+
+    try {
+        Livewire::test(ListTenants::class)->callTableAction('resetOwnerPassword', $tenant)->assertNotified('Owner password reset');
+
+        expect($tenant->run(fn () => User::where('email', 'owner@pest.test')->value('password')))->not->toBe($originalHash)
+            ->and(Activity::where('event', 'owner_password_reset')->where('subject_id', $tenant->id)->exists())->toBeTrue();
+    } finally {
+        $tenant->run(fn () => User::where('email', 'owner@pest.test')->toBase()->update(['password' => $originalHash]));
+        Activity::where('event', 'owner_password_reset')->where('subject_id', $tenant->id)->delete();
     }
 });
 

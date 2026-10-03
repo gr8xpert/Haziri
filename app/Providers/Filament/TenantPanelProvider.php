@@ -56,6 +56,8 @@ class TenantPanelProvider extends PanelProvider
             ->id('tenant')
             ->path('admin')
             ->login()
+            ->passwordReset()
+            ->profile(isSimple: false)
             ->brandName(fn () => tenant('company_name') ?? Brand::name())
             ->userMenuItems([
                 Action::make('switchCompany')->label(__('Switch company'))
