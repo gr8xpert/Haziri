@@ -83,7 +83,7 @@ it('uses the platform brand for ordinary clients', function () {
     $this->get("{$this->base}/me/login")->assertSee('Powered by Haziri');
 });
 
-it('serves the client\'s uploaded icon and hides billing from white-label clients', function () {
+it('serves the client\'s uploaded icon and keeps billing for white-label clients', function () {
     $png = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==');
     app(SaveBranding::class)([], null, $png);
 
@@ -91,7 +91,7 @@ it('serves the client\'s uploaded icon and hides billing from white-label client
     $this->get("{$this->base}/app-icon")->assertOk()->assertHeader('Content-Type', 'image/png');
 
     $this->actingAs($this->owner);
-    expect(Billing::canAccess())->toBeFalse();
+    expect(Billing::canAccess())->toBeTrue();
 });
 
 it('stops the client from changing branding the provider locked', function () {

@@ -96,18 +96,17 @@ it('validates custom domains and applies white-label settings', function () {
     expect(FilamentColor::getColor('primary'))->not->toBeNull();
 });
 
-it('never invoices or auto-suspends a white-label client, who is billed outside the app', function () {
+it('invoices and auto-suspends a white-label client like any other', function () {
     $flags = app(SetTenantFeatureFlags::class);
     $original = SetTenantFeatureFlags::current($this->tenant);
     $billing = app(BillingService::class);
 
     try {
-        $billing->invoiceMonth(CarbonImmutable::parse('2026-07-01')); // an old open invoice from before white-label
         $flags($this->tenant, ['white_label' => true]);
 
-        expect($billing->invoiceMonth(CarbonImmutable::parse('2026-08-01')))->toBe(0)
-            ->and($billing->enforce(CarbonImmutable::parse('2026-09-01')))->toBe(0)
-            ->and($this->tenant->fresh()->status)->toBe(TenantStatus::Active);
+        expect($billing->invoiceMonth(CarbonImmutable::parse('2026-08-01')))->toBe(1)
+            ->and($billing->enforce(CarbonImmutable::parse('2026-09-01')))->toBe(1)
+            ->and($this->tenant->fresh()->status)->toBe(TenantStatus::Suspended);
     } finally {
         $flags($this->tenant, $original);
     }

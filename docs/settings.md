@@ -59,8 +59,8 @@ Set on the client's **Branding** page or by the super-admin (Companies → Brand
 | `branding_locked` | Super-admin only: the client cannot change the above |
 
 Env `HAZRI_NEUTRAL_DOMAIN`: a domain without the platform name pointing at the same server; white-label clients are
-told to CNAME to it and to use `adms.<it>` / `api.<it>` for machines and the sync agent. White-label clients have no
-Billing page, are never invoiced by the app and are never suspended automatically.
+told to CNAME to it and to use `adms.<it>` / `api.<it>` for machines and the sync agent. White-label only changes the
+branding: those clients are invoiced, see their Billing page and are suspended for non-payment like everyone else.
 
 ## Payroll Full (features payroll_tax, payroll_social, payroll_pf, payroll_gratuity, payroll_adjustments, payroll_settlement)
 
