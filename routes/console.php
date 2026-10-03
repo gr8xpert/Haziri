@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\Central\UnknownDevice;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
@@ -28,3 +29,6 @@ Schedule::command('tenants:run hazri:anomalies:detect')->dailyAt('06:00');
 // Billing (central): invoices on the 1st, suspension check daily.
 Schedule::command('hazri:billing --invoice')->monthlyOn(1, '07:00');
 Schedule::command('hazri:billing --enforce')->dailyAt('07:30');
+
+// Unknown ADMS machines not seen for 30 days (blocked ones are kept).
+Schedule::command('model:prune', ['--model' => [UnknownDevice::class]])->dailyAt('04:00');

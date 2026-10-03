@@ -47,6 +47,7 @@ final class DeviceRegistrar
             ['tenant_id' => tenant('id'), 'type' => $device->type->value, 'comm_key' => $device->comm_key],
         );
         UnknownDevice::query()->where('serial_number', $device->serial_number)->delete();
+        UnknownDevice::forgetSerial($device->serial_number);
     }
 
     public function forget(Device $device): void

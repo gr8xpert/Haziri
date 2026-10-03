@@ -16,9 +16,10 @@ use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
 
-/** Devices that pushed to adms.* with an unregistered serial; attach one to a company in one click (spec §6.1). */
+/** Devices that pushed to adms.* with an unregistered serial; attach one to a company in one click (spec §6.1) or block it. */
 class UnknownDeviceResource extends Resource
 {
     protected static ?string $model = UnknownDevice::class;
@@ -27,7 +28,7 @@ class UnknownDeviceResource extends Resource
 
     public static function getNavigationBadge(): ?string
     {
-        $n = UnknownDevice::count();
+        $n = UnknownDevice::whereNull('blocked_at')->count();
 
         return $n ? (string) $n : null;
     }
@@ -39,9 +40,14 @@ class UnknownDeviceResource extends Resource
             ->columns([
                 TextColumn::make('serial_number')->searchable(),
                 TextColumn::make('ip'),
-                TextColumn::make('hits'),
+                TextColumn::make('hits')->label('Check-ins')->tooltip('Counted at most once a minute'),
                 TextColumn::make('first_seen_at')->since(),
                 TextColumn::make('last_seen_at')->since(),
+                TextColumn::make('blocked_at')->label('Blocked')->since()->placeholder('—'),
+            ])
+            ->filters([
+                TernaryFilter::make('blocked')->label('Blocked')->nullable()->attribute('blocked_at')
+                    ->trueLabel('Blocked only')->falseLabel('Waiting only')->placeholder('All')->default(false),
             ])
             ->recordActions([
                 Action::make('attach')->label('Attach to company')->icon(Heroicon::OutlinedBuildingOffice2)
@@ -57,6 +63,13 @@ class UnknownDeviceResource extends Resource
                         ]));
                         Notification::make()->success()->title('Device attached')->send();
                     }),
+                Action::make('block')->icon(Heroicon::OutlinedNoSymbol)->color('danger')->requiresConfirmation()
+                    ->modalDescription('The machine is turned away straight away and no longer recorded. Unblock it any time from the "Blocked only" filter.')
+                    ->visible(fn (UnknownDevice $record) => $record->blocked_at === null)
+                    ->action(fn (UnknownDevice $record) => $record->block()),
+                Action::make('unblock')->icon(Heroicon::OutlinedCheckCircle)->color('gray')
+                    ->visible(fn (UnknownDevice $record) => $record->blocked_at !== null)
+                    ->action(fn (UnknownDevice $record) => $record->unblock()),
                 DeleteAction::make(),
             ]);
     }

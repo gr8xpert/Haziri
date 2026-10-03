@@ -6,6 +6,7 @@ use App\Enums\AttendanceStatus;
 use App\Enums\DevicePunchSourceType;
 use App\Enums\PunchSource;
 use App\Enums\PunchStatus;
+use App\Events\DeviceWentOffline;
 use App\Models\AttendanceDay;
 use App\Models\Central\AgentKey;
 use App\Models\Central\DeviceRegistry;
@@ -18,6 +19,10 @@ use App\Models\UnmappedPin;
 use App\Models\User;
 use App\Services\Devices\DeviceCommander;
 use App\Services\Devices\UsbImporter;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Validation\ValidationException;
 use TanemRahman\ZktecoAdms\Models\ZktecoDeviceCommand;
 use TanemRahman\ZktecoAdms\Models\ZktecoDeviceUser;
 
@@ -39,9 +44,9 @@ beforeEach(function () {
 afterEach(function () {
     // Central rows are outside the tenant transaction.
     DeviceRegistry::query()->whereIn('serial_number', ['ZKADMS01', 'ZKAGENT01'])->delete();
-    UnknownDevice::query()->where('serial_number', 'ZKNOBODY')->delete();
+    UnknownDevice::query()->whereIn('serial_number', ['ZKNOBODY', 'ZKBLOCKED'])->delete();
     AgentKey::query()->where('label', 'pest agent')->delete();
-    Illuminate\Support\Facades\DB::connection('central')->table('tenants')->where('id', 'other-co-id')->delete();
+    DB::connection('central')->table('tenants')->where('id', 'other-co-id')->delete();
 });
 
 it('registers ADMS devices centrally and refuses serials owned by another company', function () {
@@ -50,12 +55,12 @@ it('registers ADMS devices centrally and refuses serials owned by another compan
     expect(DeviceRegistry::where('serial_number', 'ZKADMS01')->value('tenant_id'))->toBe($this->tenant->id);
 
     // Another company (raw central row: no DB is created for it).
-    Illuminate\Support\Facades\DB::connection('central')->table('tenants')->insertOrIgnore([
+    DB::connection('central')->table('tenants')->insertOrIgnore([
         'id' => 'other-co-id', 'slug' => 'other-co', 'company_name' => 'Other', 'created_at' => now(), 'updated_at' => now(),
     ]);
     DeviceRegistry::where('serial_number', 'ZKADMS01')->update(['tenant_id' => 'other-co-id']);
     expect(fn () => Device::create(['name' => 'Dup', 'serial_number' => 'ZKADMS01', 'type' => DevicePunchSourceType::Adms]))
-        ->toThrow(Illuminate\Validation\ValidationException::class);
+        ->toThrow(ValidationException::class);
 });
 
 it('accepts an ADMS handshake and ATTLOG push, ingesting punches into the tenant', function () {
@@ -87,13 +92,43 @@ it('refuses unknown ADMS devices without saying OK and records them for the supe
         ->and(UnknownDevice::where('serial_number', 'ZKNOBODY')->value('hits'))->toBe(1);
 });
 
+it('records a stray machine\'s check-ins at most once a minute', function () {
+    $this->get("{$this->adms}/iclock/getrequest?SN=ZKNOBODY")->assertStatus(403);
+    $this->get("{$this->adms}/iclock/getrequest?SN=ZKNOBODY")->assertStatus(403);
+
+    expect(UnknownDevice::where('serial_number', 'ZKNOBODY')->value('hits'))->toBe(1);
+});
+
+it('turns a blocked machine away without recording it, and lets it in once a company adds it', function () {
+    $this->get("{$this->adms}/iclock/getrequest?SN=ZKNOBODY");
+    $row = UnknownDevice::where('serial_number', 'ZKNOBODY')->firstOrFail();
+    $row->block();
+    $this->travel(5)->minutes();
+
+    $this->get("{$this->adms}/iclock/getrequest?SN=ZKNOBODY")->assertStatus(403);
+    expect($row->fresh()->hits)->toBe(1);
+
+    Device::create(['name' => 'Back gate', 'serial_number' => 'ZKNOBODY', 'type' => DevicePunchSourceType::Adms]);
+    $this->get("{$this->adms}/iclock/getrequest?SN=ZKNOBODY")->assertOk();
+    DeviceRegistry::where('serial_number', 'ZKNOBODY')->delete();
+});
+
+it('prunes machines not seen for 30 days but keeps blocked ones', function () {
+    UnknownDevice::create(['serial_number' => 'ZKNOBODY', 'first_seen_at' => now()->subDays(40), 'last_seen_at' => now()->subDays(31)]);
+    UnknownDevice::create(['serial_number' => 'ZKBLOCKED', 'first_seen_at' => now()->subDays(40), 'last_seen_at' => now()->subDays(31), 'blocked_at' => now()->subDays(31)]);
+
+    $this->artisan('model:prune', ['--model' => [UnknownDevice::class]]);
+
+    expect(UnknownDevice::whereIn('serial_number', ['ZKNOBODY', 'ZKBLOCKED'])->pluck('serial_number')->all())->toBe(['ZKBLOCKED']);
+});
+
 it('lists device users as unmapped PINs and never stores templates', function () {
     Device::create(['name' => 'Front', 'serial_number' => 'ZKADMS01', 'type' => DevicePunchSourceType::Adms]);
     $this->call('POST', "{$this->adms}/iclock/cdata?SN=ZKADMS01&table=OPERLOG", [], [], [], ['CONTENT_TYPE' => 'text/plain'], hazriFixture('adms/operlog.txt'))->assertOk();
 
     expect(UnmappedPin::where('device_pin', '99')->value('device_user_name'))->toBe('New Guard')
         ->and(UnmappedPin::where('device_pin', '47')->exists())->toBeFalse();
-    $columns = Illuminate\Support\Facades\Schema::getColumnListing('zkteco_device_users');
+    $columns = Schema::getColumnListing('zkteco_device_users');
     expect($columns)->not->toContain('template')->not->toContain('tmp')
         ->and(json_encode(ZktecoDeviceUser::all()->toArray()))->not->toContain('AAAABBBBCCCC');
 });
@@ -169,11 +204,11 @@ it('imports a USB attlog.dat, skipping junk lines and deduping re-imports', func
 it('marks silent devices offline once', function () {
     $device = Device::create(['name' => 'Front', 'serial_number' => 'ZKADMS01', 'type' => DevicePunchSourceType::Adms,
         'status' => 'online', 'last_seen_at' => now()->subMinutes(30)]);
-    Illuminate\Support\Facades\Event::fake([App\Events\DeviceWentOffline::class]);
+    Event::fake([DeviceWentOffline::class]);
 
     $this->artisan('hazri:devices:check')->assertSuccessful();
     $this->artisan('hazri:devices:check')->assertSuccessful();
 
     expect($device->fresh()->status)->toBe('offline');
-    Illuminate\Support\Facades\Event::assertDispatchedTimes(App\Events\DeviceWentOffline::class, 1);
+    Event::assertDispatchedTimes(DeviceWentOffline::class, 1);
 });

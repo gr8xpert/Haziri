@@ -21,7 +21,8 @@ use TanemRahman\ZktecoAdms\Http\Middleware\AdmsDevice;
  * initialise tenancy (so the package's tables and our punches live in the tenant DB), apply the device's
  * comm key / timezone, then hand over to the package's own device middleware.
  *
- * Unknown serials are recorded for the super-admin and refused (never "OK": the device would drop its buffer).
+ * Unknown serials are recorded for the super-admin and refused (never "OK": the device would drop its buffer);
+ * serials the super-admin blocked are refused before any lookup.
  */
 final class ResolveAdmsTenant
 {
@@ -30,6 +31,10 @@ final class ResolveAdmsTenant
         $serial = trim((string) $request->query('SN', $request->query('sn', '')));
         if ($serial === '') {
             return app(AdmsDevice::class)->handle($request, $next); // package answers 400
+        }
+
+        if (UnknownDevice::isBlocked($serial)) {
+            return response('Error: unknown device', 403)->header('Content-Type', 'text/plain');
         }
 
         $tenant = $this->tenantFor($serial);
