@@ -1,5 +1,36 @@
 # Changelog
 
+## 2026-10-04 — Owner panel review round
+
+- **Readable labels everywhere**: no more internal codes (add_punch, pending, official_duty) in badges, dropdowns and
+  filters; also punch sources, anomaly types, audit events, notification channels and role names.
+- **Day-first dates** in every form (30/09/2026 whatever the browser language) and table (30 Sep 2026).
+- **Required fields** marked with a large bold red star; the employee form says "Fields marked * are required".
+- **Manual Entry**: the "Daily attendance sheet" is renamed (it is bulk hand entry, not a report); the punch log's
+  single-punch button is now "Add one punch".
+- **Corrections & OD/WFH**: details in plain words ("Out punch at 18:10"; fixed: they were shown twice), Requested by,
+  Approval ("Waiting for manager / HR"), and a one-line explanation under Type in the request form.
+- **Months (lock) → View**: new Month summary report (also under Reports): one line per employee — present, late,
+  half day, leave, OD/WFH, absent, overtime, deduction and payable days — from the lock snapshot for locked months, live
+  otherwise; each name opens that employee's day-by-day Monthly attendance report. The page explains Open → Review → Locked.
+- **Employee form**: main fields on top (code, machine PIN, name, department, designation, joining date, shift, type,
+  status), the rest under "More details"; fields of switched-off features are hidden (payroll ID, kiosk PIN, phone punch,
+  photo, contractor, branch when there is only one — the employee is put in it).
+- **Employee import**: works with the client's own sheet — columns guessed from common names and confirmed by HR
+  (remembered), Pakistani formats (dd/mm/yyyy, CNIC with dashes, M/F, Y/N, one Name column split), branch/department by
+  code or name, "Create missing departments"; template with drop-downs, an Instructions sheet and the company's codes;
+  optional "Suggest with AI" sends only the column headings.
+- **Face check on PIN, QR and phone punches** (company setting, needs face recognition): the photo's face is compared with
+  the enrolled one; wrong face, no face or not enrolled → the punch waits in Punch approvals (new "Why" column). Kiosk data
+  is only trusted from approved tablets; on phones it deters casual buddy punching but can be fooled by a tech-savvy user.
+  Punch photos shows match % and has a "Suspicious only" filter.
+- **Announcements**: scheduled ones notify when they publish (fixed: they notified on save); channels per announcement
+  (in-app / email / WhatsApp / SMS) with reach counts; shown on the kiosk after a punch with "I have read it"; printable
+  A4 notice (English + Urdu heading).
+- Security fixes: the import page could be pointed at any file on the server; spreadsheet exports wrote text starting
+  with "=" as a live formula.
+- Tenant migrations: `announcements.notified_at`, `announcements.channels` (run `php artisan tenants:migrate`).
+
 ## 2026-10-04 — Super-admin review round
 
 - **White label is branding only**: white-label clients are invoiced, see Billing and are suspended for non-payment like
