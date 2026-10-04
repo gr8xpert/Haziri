@@ -27,6 +27,8 @@ class ListCorrections extends ListRecords
 {
     protected static string $resource = CorrectionResource::class;
 
+    protected static ?string $title = 'Corrections & OD/WFH';
+
     protected function getHeaderActions(): array
     {
         $is = fn (Get $get, CorrectionType ...$types) => in_array(
@@ -40,6 +42,8 @@ class ListCorrections extends ListRecords
                         ->options(fn () => $this->employeeOptions()),
                     DatePicker::make('date')->required()->live(),
                     Select::make('type')->options(CorrectionType::class)->required()->live()
+                        ->helperText(fn (Get $get) => ($get('type') instanceof CorrectionType ? $get('type') : CorrectionType::tryFrom((string) $get('type')))?->hint()
+                            ?? __('Pick what needs fixing; a short explanation appears here.'))
                         ->afterStateUpdated(function (Get $get, Set $set, $state) {
                             // Missing punch-out? Offer the employee's usual out time (spec §12.4).
                             if ((string) ($state instanceof CorrectionType ? $state->value : $state) === 'add_punch' && $get('employee_id')) {
@@ -51,9 +55,10 @@ class ListCorrections extends ListRecords
                         ->helperText('Pre-filled with the employee\'s usual out time when available'),
                     Select::make('direction')->options(['in' => 'In', 'out' => 'Out'])->visible(fn (Get $get) => $is($get, CorrectionType::AddPunch)),
                     Select::make('punch_id')->label('Punch to remove')->visible(fn (Get $get) => $is($get, CorrectionType::RemovePunch))
+                        ->helperText(fn (Get $get) => $get('employee_id') && $get('date') ? null : __('Choose the employee and date first.'))
                         ->options(fn (Get $get) => $get('employee_id') && $get('date')
                             ? Punch::where('employee_id', $get('employee_id'))->whereDate('local_date', $get('date'))->get()
-                                ->mapWithKeys(fn (Punch $p) => [$p->id => $p->punched_at->setTimezone(tenant('timezone'))->format('H:i:s') . " ({$p->source->value})"])
+                                ->mapWithKeys(fn (Punch $p) => [$p->id => $p->punched_at->setTimezone(tenant('timezone'))->format('H:i:s') . " ({$p->source->getLabel()})"])
                             : []),
                     Select::make('status')->options(AttendanceStatus::class)->visible(fn (Get $get) => $is($get, CorrectionType::ChangeStatus)),
                     Textarea::make('reason')->required(),

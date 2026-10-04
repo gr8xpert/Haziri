@@ -15,6 +15,7 @@ use App\Enums\LeaveDayPart;
 use App\Enums\PeriodStatus;
 use App\Enums\RequestStatus;
 use App\Enums\Role;
+use App\Filament\Tenant\Resources\Corrections\Pages\ListCorrections;
 use App\Models\AttendanceDay;
 use App\Models\Employee;
 use App\Models\Holiday;
@@ -25,7 +26,9 @@ use App\Models\User;
 use App\Services\Attendance\MissingPunchSuggester;
 use App\Services\Leave\LeaveBalanceService;
 use Carbon\CarbonImmutable;
+use Filament\Facades\Filament;
 use Illuminate\Validation\ValidationException;
+use Livewire\Livewire;
 
 function person(string $code, array $attrs = []): Employee
 {
@@ -156,6 +159,35 @@ it('applies approved corrections automatically', function () {
     $st = $submit($this->emp, '2026-09-10', CorrectionType::ChangeStatus, ['status' => 'wfh'], 'worked from home', $this->hr);
     ($decide)($st, $this->hr, true);
     expect(dayStatus($this->emp, '2026-09-10'))->toBe(AttendanceStatus::Wfh);
+});
+
+it('describes a correction in plain words: what, who asked and where it waits', function () {
+    $submit = app(SubmitCorrection::class);
+    $add = $submit($this->emp, '2026-09-08', CorrectionType::AddPunch, ['time' => '18:10', 'direction' => 'out'], 'forgot', $this->self);
+
+    expect($add->detailsText())->toBe('Out punch at 18:10')
+        ->and($add->requestedByText())->toBe('emp@pest.test (self)')
+        ->and($add->stageText())->toBe('Waiting for manager');
+
+    app(DecideCorrection::class)($add, $this->manager, true);
+    expect($add->fresh()->stageText())->toBe('Waiting for HR');
+
+    app(DecideCorrection::class)($add->fresh(), $this->hr, true);
+    expect($add->fresh()->stageText())->toBe('Approved by hr@pest.test');
+
+    $status = $submit($this->emp, '2026-09-10', CorrectionType::ChangeStatus, ['status' => 'present'], 'was in', $this->hr);
+    expect($status->detailsText())->toBe('Change to Present')
+        ->and($status->requestedByText())->toBe('hr@pest.test');
+});
+
+it('lists a correction once, in plain words', function () {
+    Filament::setCurrentPanel(Filament::getPanel('tenant'));
+    app(SubmitCorrection::class)($this->emp, '2026-09-08', CorrectionType::AddPunch, ['time' => '18:10', 'direction' => 'out'], 'forgot', $this->self);
+    $this->actingAs($this->hr);
+
+    Livewire::test(ListCorrections::class)
+        ->assertSee('Out punch at 18:10')->assertSee('Add punch')->assertSee('Waiting for manager')
+        ->assertDontSee('time: 18:10')->assertDontSee('add_punch');
 });
 
 it('stops managers from requesting for people outside their team', function () {

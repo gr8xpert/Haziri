@@ -51,7 +51,7 @@ class CorrectionResource extends Resource
 
     public static function getEloquentQuery(): Builder
     {
-        return self::scopeToTeam(parent::getEloquentQuery()->with('employee'), 'corrections.approve_final');
+        return self::scopeToTeam(parent::getEloquentQuery()->with(['employee', 'requester']), 'corrections.approve_final');
     }
 
     public static function table(Table $table): Table
@@ -62,12 +62,12 @@ class CorrectionResource extends Resource
                 TextColumn::make('date')->date()->sortable(),
                 TextColumn::make('employee.first_name')->label('Employee')->formatStateUsing(fn (AttendanceCorrection $r) => $r->employee?->fullName()),
                 TextColumn::make('type')->badge(),
-                TextColumn::make('payload')->label('Details')->formatStateUsing(fn (AttendanceCorrection $r) => collect($r->payload ?? [])
-                    ->map(fn ($v, $k) => "{$k}: {$v}")->implode(', ')),
-                TextColumn::make('reason')->limit(30),
-                TextColumn::make('status')->badge()->color(fn (RequestStatus $state) => match ($state) {
-                    RequestStatus::Pending => 'warning', RequestStatus::Approved => 'success', default => 'gray',
-                }),
+                // payload is an array, so a payload column would format once per item; build the text from the record instead.
+                TextColumn::make('details')->label('Details')->state(fn (AttendanceCorrection $r) => $r->detailsText()),
+                TextColumn::make('reason')->limit(30)->tooltip(fn (AttendanceCorrection $r) => $r->reason),
+                TextColumn::make('requested_by')->label('Requested by')->state(fn (AttendanceCorrection $r) => $r->requestedByText()),
+                TextColumn::make('status')->badge(),
+                TextColumn::make('stage')->label('Approval')->state(fn (AttendanceCorrection $r) => $r->stageText())->color('gray'),
             ])
             ->filters([SelectFilter::make('status')->options(RequestStatus::class)->default(RequestStatus::Pending->value)])
             ->recordActions([self::decision('approve', true), self::decision('reject', false)]);
