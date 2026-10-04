@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Filament\Tenant\Pages\Reports;
 
 use App\Reports\BranchSummaryReport;
-use App\Services\Settings\TenantSettings;
 
 class BranchSummary extends ReportPage
 {
@@ -15,8 +14,9 @@ class BranchSummary extends ReportPage
 
     protected static ?int $navigationSort = 27;
 
-    public static function canAccess(): bool
+    /** Merged into another report (Reports simplification): old links and bookmarks land on the replacement. */
+    public function mount(): void
     {
-        return app(TenantSettings::class)->featureEnabled('multi_branch') && parent::canAccess();
+        $this->redirect(MonthSummary::getUrl(['filters' => ['group_by' => 'branch']]));
     }
 }

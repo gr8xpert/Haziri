@@ -47,7 +47,9 @@ it('renders every tenant panel page for the owner', function () {
     }
 
     foreach (array_unique($urls) as $path) {
-        $this->actingAs($this->owner)->get($this->base . $path)->assertOk();
+        $response = $this->actingAs($this->owner)->get($this->base . $path);
+        // Reports merged into another one only redirect there (old links keep working); everything else renders.
+        $response->isRedirect() ? expect($response->headers->get('Location'))->toContain('/admin/reports/') : $response->assertOk();
     }
     expect(count($urls))->toBeGreaterThan(3);
 });

@@ -16,7 +16,7 @@ final class MonthlySheetReport extends Report
 {
     public function title(): string
     {
-        return __('Monthly attendance sheet');
+        return __('Monthly grid – all staff');
     }
 
     public function filterSchema(): array

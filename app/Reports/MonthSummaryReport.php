@@ -8,6 +8,7 @@ use App\Actions\Periods\PeriodActions;
 use App\Enums\PeriodStatus;
 use App\Filament\Tenant\Pages\Reports\MonthlyAttendance;
 use App\Models\AttendancePeriod;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 
 /**
@@ -19,17 +20,22 @@ final class MonthSummaryReport extends Report
 {
     public function title(): string
     {
-        return __('Month summary');
+        return __('Monthly totals');
     }
 
     public function filterSchema(): array
     {
-        return [TextInput::make('month')->type('month')->required(), ...$this->orgFilters()];
+        return [
+            TextInput::make('month')->type('month')->required(),
+            Select::make('group_by')->label(__('One line per'))->required()->default('employee')
+                ->options(['employee' => __('Employee'), 'department' => __('Department'), 'branch' => __('Branch')]),
+            ...$this->orgFilters(),
+        ];
     }
 
     public function defaults(): array
     {
-        return ['month' => $this->currentCycleMonth()];
+        return ['month' => $this->currentCycleMonth(), 'group_by' => 'employee'];
     }
 
     public function ready(array $filters): bool
@@ -58,9 +64,15 @@ final class MonthSummaryReport extends Report
 
     public function columns(array $filters): array
     {
-        return [
-            'code' => 'Emp No', 'name' => 'Employee name', 'present' => 'Present', 'late' => 'Late', 'half' => 'Half day',
-            'leave' => 'Leave', 'od_wfh' => 'OD / WFH', 'absent' => 'Absent', 'overtime' => 'Overtime (h)',
+        $first = match ($filters['group_by'] ?? 'employee') {
+            'department' => ['name' => 'Department', 'employees' => 'Employees'],
+            'branch' => ['name' => 'Branch', 'employees' => 'Employees'],
+            default => ['code' => 'Emp No', 'name' => 'Employee name'],
+        };
+
+        return $first + [
+            'present' => 'Present', 'late' => 'Late', 'half' => 'Half day', 'leave' => 'Leave', 'od_wfh' => 'OD / WFH',
+            'absent' => 'Absent', 'off' => 'Off days', 'holiday' => 'Holidays', 'overtime' => 'Overtime (h)',
             'deduction' => 'Deduction days', 'payable' => 'Payable days',
         ];
     }
@@ -69,7 +81,7 @@ final class MonthSummaryReport extends Report
     {
         $month = (string) $filters['month'];
         $period = $this->period($month);
-        $employees = $this->employees($filters)->get()->keyBy('id');
+        $employees = $this->employees($filters)->with(['department', 'branch'])->get()->keyBy('id');
         $summaries = $period?->status === PeriodStatus::Locked && isset($period->summary['employees'])
             ? $period->summary['employees']
             : app(PeriodActions::class)->snapshot($period ?? $this->unsavedPeriod($month))['employees'];
@@ -89,21 +101,49 @@ final class MonthSummaryReport extends Report
                 'leave' => ($s['paidLeaveDays'] + $s['unpaidLeaveDays']) ?: null,
                 'od_wfh' => ($s['officialDutyDays'] + $s['wfhDays']) ?: null,
                 'absent' => $s['absentDays'] ?: null,
+                'off' => ($s['weeklyOffs'] ?? 0) ?: null,
+                'holiday' => ($s['holidays'] ?? 0) ?: null,
                 'overtime' => $s['overtimeMinutes'] ? round($s['overtimeMinutes'] / 60, 1) : null,
                 'deduction' => (float) $s['deductionDays'] ?: null,
                 'payable' => (float) $s['payableDays'],
                 '_url' => MonthlyAttendance::getUrl(['month' => $month, 'employee' => $employee->id]),
+                '_department' => $employee->department?->name ?? __('No department'),
+                '_branch' => $employee->branch?->name ?? __('No branch'),
             ];
         }
         usort($rows, fn (array $a, array $b) => strnatcasecmp((string) $a['code'], (string) $b['code']));
 
-        return $rows;
+        $by = $filters['group_by'] ?? 'employee';
+
+        return $by === 'employee' ? $rows : self::grouped($rows, "_{$by}");
+    }
+
+    /**
+     * Department or branch lines: the employee lines added up.
+     *
+     * @param  list<array<string, mixed>>  $rows
+     * @return list<array<string, mixed>>
+     */
+    private static function grouped(array $rows, string $key): array
+    {
+        $sum = ['present', 'late', 'half', 'leave', 'od_wfh', 'absent', 'off', 'holiday', 'overtime', 'deduction', 'payable'];
+        $out = [];
+        foreach (collect($rows)->groupBy($key)->sortKeys() as $name => $members) {
+            $line = ['name' => $name, 'employees' => $members->count()];
+            foreach ($sum as $column) {
+                $total = round((float) $members->sum($column), 1);
+                $line[$column] = $total ?: null;
+            }
+            $out[] = $line;
+        }
+
+        return $out;
     }
 
     public function summary(array $filters, array $rows): array
     {
         return [
-            'Employees' => count($rows),
+            'Employees' => ($filters['group_by'] ?? 'employee') === 'employee' ? count($rows) : array_sum(array_column($rows, 'employees')),
             'Absent days' => array_sum(array_column($rows, 'absent')),
             'Lates' => array_sum(array_column($rows, 'late')),
             'Deduction days' => array_sum(array_column($rows, 'deduction')),

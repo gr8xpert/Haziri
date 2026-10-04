@@ -11,6 +11,7 @@ use App\Models\Branch;
 use App\Models\Department;
 use App\Models\Employee;
 use App\Reports\EmployeeStatementReport;
+use App\Reports\ReportCatalog;
 use App\Reports\ReportExporter;
 use App\Services\Attendance\Period\PayCycle;
 use App\Services\Reports\MonthlyAttendanceExport;
@@ -40,7 +41,20 @@ class MonthlyAttendance extends Page
 
     protected static ?int $navigationSort = 22;
 
-    protected static ?string $title = 'Monthly attendance report';
+    protected static ?string $title = 'Employee monthly report (detailed)';
+
+    protected static bool $shouldRegisterNavigation = false;
+
+    public function getSubheading(): ?string
+    {
+        return ReportCatalog::description(static::class);
+    }
+
+    /** @return array<string, string> */
+    public function getBreadcrumbs(): array
+    {
+        return [ReportsHub::getUrl() => __('Reports'), $this->getTitle()];
+    }
 
     public string $month = '';
 

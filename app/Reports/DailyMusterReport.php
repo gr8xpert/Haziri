@@ -15,7 +15,7 @@ final class DailyMusterReport extends Report
 {
     public function title(): string
     {
-        return __('Daily muster roll');
+        return __('Daily attendance');
     }
 
     public function filterSchema(): array

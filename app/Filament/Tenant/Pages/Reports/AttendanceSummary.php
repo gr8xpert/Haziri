@@ -13,4 +13,10 @@ class AttendanceSummary extends ReportPage
     protected static ?string $slug = 'reports/attendance-summary';
 
     protected static ?int $navigationSort = 25;
+
+    /** Merged into another report (Reports simplification): old links and bookmarks land on the replacement. */
+    public function mount(): void
+    {
+        $this->redirect(MonthSummary::getUrl(['filters' => ['group_by' => 'employee']]));
+    }
 }

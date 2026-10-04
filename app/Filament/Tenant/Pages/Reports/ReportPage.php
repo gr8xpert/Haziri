@@ -6,6 +6,7 @@ namespace App\Filament\Tenant\Pages\Reports;
 
 use App\Filament\Tenant\NavigationGroup;
 use App\Reports\Report;
+use App\Reports\ReportCatalog;
 use App\Reports\ReportExporter;
 use Filament\Actions\Action;
 use Filament\Pages\Page;
@@ -27,6 +28,9 @@ abstract class ReportPage extends Page
 
     protected static string | \BackedEnum | null $navigationIcon = Heroicon::OutlinedDocumentChartBar;
 
+    /** Reports are opened from the one Reports page (ReportsHub), not listed one by one in the menu. */
+    protected static bool $shouldRegisterNavigation = false;
+
     /** @var array<string, mixed> */
     public ?array $filters = [];
 
@@ -45,6 +49,18 @@ abstract class ReportPage extends Page
     public function getTitle(): string
     {
         return static::report()->title();
+    }
+
+    /** What this report shows and when to use it (ReportCatalog). */
+    public function getSubheading(): ?string
+    {
+        return ReportCatalog::description(static::class);
+    }
+
+    /** @return array<string, string> */
+    public function getBreadcrumbs(): array
+    {
+        return [ReportsHub::getUrl() => __('Reports'), $this->getTitle()];
     }
 
     public static function report(): Report

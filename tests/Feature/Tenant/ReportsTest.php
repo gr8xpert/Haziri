@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 use App\Actions\Periods\PeriodActions;
 use App\Enums\AttendanceStatus;
-use App\Filament\Tenant\Pages\Reports\EmployeeStatement;
+use App\Filament\Tenant\Pages\Reports\LateRegister;
 use App\Filament\Tenant\Pages\Reports\MonthlyAttendance;
+use App\Filament\Tenant\Pages\Reports\ReportsHub;
 use App\Models\AttendanceDay;
+use App\Models\Department;
 use App\Models\Employee;
 use App\Models\User;
 use App\Reports\AbsentRegisterReport;
@@ -117,7 +119,41 @@ it('downloads a report PDF and Excel from the report page buttons', function () 
     Filament::setCurrentPanel(Filament::getPanel('tenant'));
 
     // The PDF used to come back as a plain response whose bytes broke Livewire's JSON reply ("Malformed UTF-8").
-    Livewire::test(EmployeeStatement::class)->set('filters.employee_id', $this->e->id)->set('filters.month', '2026-08')
+    Livewire::test(LateRegister::class)->set('filters.from', '2026-08-01')->set('filters.to', '2026-08-31')
         ->callAction('pdf')->assertFileDownloaded()
         ->callAction('xlsx')->assertFileDownloaded();
+});
+
+it('lists the reports in five groups', function () {
+    Filament::setCurrentPanel(Filament::getPanel('tenant'));
+
+    $groups = Livewire::test(ReportsHub::class)->instance()->getGroups();
+    expect(array_keys($groups))->toBe(['Daily', 'Monthly', 'Leave', 'People & audit', 'Payroll'])
+        ->and(collect($groups['Monthly'])->pluck('title')->all())->toContain('Employee monthly report (detailed)', 'Monthly grid – all staff', 'Monthly totals');
+});
+
+it('sends old links of merged reports to the replacement', function (string $old, string $new, string $preset) {
+    Filament::setCurrentPanel(Filament::getPanel('tenant'));
+    $base = 'http://pest.' . config('hazri.central_domain');
+
+    $location = urldecode((string) $this->get("{$base}{$old}")->assertRedirect()->headers->get('Location'));
+
+    expect($location)->toContain($new)->toContain($preset);
+})->with([
+    'early-out register' => ['/admin/reports/early-out-register', '/admin/reports/late-register', 'filters[kind]=early'],
+    'branch summary' => ['/admin/reports/branch-summary', '/admin/reports/month-summary', 'filters[group_by]=branch'],
+    'department summary' => ['/admin/reports/department-summary', '/admin/reports/month-summary', 'filters[group_by]=department'],
+]);
+
+it('merges late and early-out, and groups monthly totals by department', function () {
+    Filament::setCurrentPanel(Filament::getPanel('tenant'));
+    $dept = Department::create(['name' => 'Sales', 'code' => 'SAL']);
+    $this->e->forceFill(['department_id' => $dept->id])->saveQuietly(); // no recompute: the days are set up by hand
+
+    expect(count((new LateRegisterReport)->rows(['from' => '2026-08-01', 'to' => '2026-08-31', 'kind' => 'late'])))->toBe(3)
+        ->and((new LateRegisterReport)->columns(['kind' => 'early']))->toHaveKey('shift_end');
+
+    $byDept = (new MonthSummaryReport)->rows(['month' => '2026-08', 'group_by' => 'department']);
+    $sales = collect($byDept)->firstWhere('name', 'Sales');
+    expect($sales['employees'])->toBe(1)->and($sales['absent'])->toEqual(4)->and($sales['off'])->toEqual(1);
 });
