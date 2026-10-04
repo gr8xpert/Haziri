@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Actions\Tenants\SetTenantFeatureFlags;
 use App\Filament\Central\Resources\Plans\Pages\ManagePlans;
+use App\Filament\Central\Resources\Tenants\Pages\CreateTenant;
 use App\Filament\Central\Resources\Tenants\Pages\EditTenant;
 use App\Filament\Central\Resources\Tenants\Pages\ListTenants;
 use App\Models\Central\Plan;
@@ -146,5 +147,27 @@ it('sets a white-label client\'s branding from the super-admin panel', function 
     } finally {
         $tenant->run(fn () => Setting::whereIn('key', ['app_name', 'brand_color', 'branding_locked'])->delete());
         app(SetTenantFeatureFlags::class)($tenant, $original);
+    }
+});
+
+it('shows the plan\'s feature switches when adding a company and keeps changes made there', function () {
+    $plan = Plan::create(['code' => 'pest-new', 'name' => 'Pest new', 'price_per_employee' => 0,
+        'feature_flags' => ['visitors' => true, 'leave' => false]]);
+    $tenant = null;
+
+    try {
+        Livewire::test(CreateTenant::class)
+            ->set('data.plan_id', (string) $plan->id)
+            ->assertSet('data.flags.visitors', true)->assertSet('data.flags.leave', false)
+            ->set('data.flags.leave', true) // switched on for this company only
+            ->set('data.company_name', 'Pest New Co')->set('data.slug', 'pestnewco')->set('data.admin_email', 'owner@pestnewco.test')
+            ->call('create')
+            ->assertHasNoFormErrors();
+
+        $tenant = Tenant::where('slug', 'pestnewco')->firstOrFail();
+        expect(SetTenantFeatureFlags::current($tenant))->toMatchArray(['visitors' => true, 'leave' => true]);
+    } finally {
+        $tenant?->delete();
+        $plan->delete();
     }
 });

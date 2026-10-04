@@ -55,11 +55,13 @@ class TenantResource extends Resource
             TextInput::make('admin_name')->visibleOn('create')->dehydrated(false)->label('Owner name'),
             Select::make('plan_id')->options(fn () => Plan::pluck('name', 'id'))->label('Plan')
                 ->live()->afterStateUpdated(function (?string $state, string $operation, Set $set) {
-                    // A new plan brings its feature switches; they are saved with the form.
-                    $plan = $operation === 'edit' && $state ? Plan::find($state) : null;
+                    // A plan brings its feature switches (adjustable below); they are saved with the form.
+                    $plan = $state ? Plan::find($state) : null;
                     if ($plan !== null) {
                         $set('flags', FeatureCatalog::fromConfig()->normalise($plan->feature_flags ?? []));
-                        Notification::make()->info()->title("Features set to the {$plan->name} plan's. Save to apply.")->send();
+                        if ($operation === 'edit') {
+                            Notification::make()->info()->title("Features set to the {$plan->name} plan's. Save to apply.")->send();
+                        }
                     }
                 }),
             TextInput::make('employee_limit')->numeric()->integer()->minValue(1)
@@ -75,8 +77,10 @@ class TenantResource extends Resource
                 ->visible(fn (Get $get, string $operation) => $operation === 'edit' && self::isTrial($get('status')))
                 ->required(fn (Get $get) => self::isTrial($get('status')))
                 ->helperText('Move it later to extend the trial. When it passes, the company is locked until you activate it.'),
-            Section::make('Features')->visibleOn('edit')->columnSpanFull()
-                ->description('Connected features follow automatically; data is kept when a feature is off.')
+            Section::make('Features')->columnSpanFull()
+                ->description(fn (string $operation) => $operation === 'create'
+                    ? 'Filled in from the plan; switch any on or off for this company before creating it. Connected features follow automatically.'
+                    : 'Connected features follow automatically; data is kept when a feature is off.')
                 ->schema(FeatureToggles::schema('flags')),
         ]);
     }
