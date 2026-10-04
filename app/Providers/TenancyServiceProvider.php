@@ -4,14 +4,22 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Http\Middleware\IdentifyTenant;
+use App\Services\Settings\TenantSettings;
+use App\Support\Tenancy\TenantUrl;
+use Illuminate\Contracts\Http\Kernel;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
+use Spatie\Permission\PermissionRegistrar;
 use Stancl\JobPipeline\JobPipeline;
 use Stancl\Tenancy\Events;
 use Stancl\Tenancy\Jobs;
 use Stancl\Tenancy\Listeners;
 use Stancl\Tenancy\Middleware;
+use Stancl\Tenancy\Middleware\InitializeTenancyByDomain;
+use Stancl\Tenancy\Middleware\InitializeTenancyBySubdomain;
 
 class TenancyServiceProvider extends ServiceProvider
 {
@@ -81,19 +89,27 @@ class TenancyServiceProvider extends ServiceProvider
             Events\TenancyBootstrapped::class => [
                 // spatie/permission caches all roles under one key; the file cache is shared across tenants.
                 function (Events\TenancyBootstrapped $event) {
-                    $registrar = app(\Spatie\Permission\PermissionRegistrar::class);
+                    $registrar = app(PermissionRegistrar::class);
                     $registrar->cacheKey = 'spatie.permission.cache.tenant.' . $event->tenancy->tenant->getTenantKey();
                     $registrar->clearPermissionsCollection();
-                    app()->forgetInstance(\App\Services\Settings\TenantSettings::class);
+                    app()->forgetInstance(TenantSettings::class);
+                    // Outside a web request (queue worker, scheduler) url() / route() would point at APP_URL:
+                    // links in notifications and exports must use the company's own address.
+                    if (app()->runningInConsole()) {
+                        URL::forceRootUrl(TenantUrl::base($event->tenancy->tenant));
+                    }
                 },
             ],
             Events\RevertingToCentralContext::class => [],
             Events\RevertedToCentralContext::class => [
                 function () {
-                    $registrar = app(\Spatie\Permission\PermissionRegistrar::class);
+                    $registrar = app(PermissionRegistrar::class);
                     $registrar->cacheKey = config('permission.cache.key');
                     $registrar->clearPermissionsCollection();
-                    app()->forgetInstance(\App\Services\Settings\TenantSettings::class);
+                    app()->forgetInstance(TenantSettings::class);
+                    if (app()->runningInConsole()) {
+                        URL::forceRootUrl(null);
+                    }
                 },
             ],
 
@@ -119,8 +135,8 @@ class TenancyServiceProvider extends ServiceProvider
 
         // Unknown subdomain / custom domain → plain 404 instead of an exception page.
         // (InitializeTenancyByDomainOrSubdomain delegates to these two.)
-        \Stancl\Tenancy\Middleware\InitializeTenancyByDomain::$onFail = fn () => abort(404);
-        \Stancl\Tenancy\Middleware\InitializeTenancyBySubdomain::$onFail = fn () => abort(404);
+        InitializeTenancyByDomain::$onFail = fn () => abort(404);
+        InitializeTenancyBySubdomain::$onFail = fn () => abort(404);
 
         $this->makeTenancyMiddlewareHighestPriority();
     }
@@ -154,16 +170,16 @@ class TenancyServiceProvider extends ServiceProvider
             // Even higher priority than the initialization middleware
             Middleware\PreventAccessFromCentralDomains::class,
 
-            \App\Http\Middleware\IdentifyTenant::class,
-            Middleware\InitializeTenancyByDomain::class,
-            Middleware\InitializeTenancyBySubdomain::class,
+            IdentifyTenant::class,
+            InitializeTenancyByDomain::class,
+            InitializeTenancyBySubdomain::class,
             Middleware\InitializeTenancyByDomainOrSubdomain::class,
             Middleware\InitializeTenancyByPath::class,
             Middleware\InitializeTenancyByRequestData::class,
         ];
 
         foreach (array_reverse($tenancyMiddleware) as $middleware) {
-            $this->app[\Illuminate\Contracts\Http\Kernel::class]->prependToMiddlewarePriority($middleware);
+            $this->app[Kernel::class]->prependToMiddlewarePriority($middleware);
         }
     }
 }
