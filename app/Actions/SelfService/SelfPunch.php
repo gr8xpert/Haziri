@@ -14,6 +14,7 @@ use App\Enums\VerifyType;
 use App\Enums\WorkMode;
 use App\Models\Employee;
 use App\Models\Punch;
+use App\Services\SelfService\FaceMatcher;
 use App\Services\SelfService\GeoFence;
 use App\Services\SelfService\PunchPhotoStore;
 use App\Services\Settings\TenantSettings;
@@ -23,7 +24,8 @@ use Symfony\Component\HttpFoundation\IpUtils;
 
 /**
  * Mobile self-punch from /me (spec §6.6): GPS + accuracy + selfie. Inside the geofence → valid;
- * outside → stored as pending (flag geofence_fail) for HR approval. One punch per 60 s per employee.
+ * outside → stored as pending (flag geofence_fail) for HR approval; so is a selfie that fails the face check (when on).
+ * One punch per 60 s per employee.
  */
 final class SelfPunch
 {
@@ -32,10 +34,15 @@ final class SelfPunch
         private readonly GeoFence $fence,
         private readonly PunchPhotoStore $photos,
         private readonly TenantSettings $settings,
+        private readonly FaceMatcher $faces,
     ) {}
 
-    /** @return array{result: IngestResult, direction: PunchDirection, geofence: array<string, mixed>} */
-    public function __invoke(Employee $employee, float $lat, float $lng, ?int $accuracyM, ?string $photo, ?PunchDirection $direction = null, ?string $ip = null): array
+    /**
+     * @param  list<float>|null  $face  descriptor of the face in the selfie, worked out on the phone (face check)
+     * @return array{result: IngestResult, direction: PunchDirection, geofence: array<string, mixed>, face_check: ?array{result: string, similarity: ?float}}
+     */
+    public function __invoke(Employee $employee, float $lat, float $lng, ?int $accuracyM, ?string $photo, ?PunchDirection $direction = null,
+        ?string $ip = null, ?array $face = null): array
     {
         if (! $this->settings->featureEnabled('mobile_punch')) {
             throw ValidationException::withMessages(['punch' => __('Mobile punching is not enabled for your company.')]);
@@ -62,6 +69,8 @@ final class SelfPunch
         $geo['office_network'] = $officeIps === [] || $employee->work_mode === WorkMode::Field
             ? null : ($ip !== null && IpUtils::checkIp($ip, $officeIps));
         $direction ??= self::nextDirection($employee->id);
+        // Someone logged in as a colleague: check the selfie's face against the enrolled one.
+        $faceCheck = $this->faces->checkPunch($employee, $face);
 
         $result = ($this->ingest)(new PunchData(
             punchedAt: $now,
@@ -74,11 +83,11 @@ final class SelfPunch
             lng: $lng,
             accuracyM: $accuracyM,
             photoPath: $this->photos->store($photo),
-            meta: ['geofence_fail' => ! $geo['inside'], 'geofence' => $geo, 'ip' => $ip],
-            requiresApproval: ! $geo['inside'] || $geo['office_network'] === false,
+            meta: array_filter(['geofence_fail' => ! $geo['inside'], 'geofence' => $geo, 'ip' => $ip, 'face_check' => $faceCheck], fn ($v) => $v !== null),
+            requiresApproval: ! $geo['inside'] || $geo['office_network'] === false || ($faceCheck !== null && $faceCheck['result'] !== 'match'),
         ));
 
-        return ['result' => $result, 'direction' => $direction, 'geofence' => $geo];
+        return ['result' => $result, 'direction' => $direction, 'geofence' => $geo, 'face_check' => $faceCheck];
     }
 
     /** An "in" older than this no longer counts as open, so a forgotten punch-out never makes the next arrival an "out". */

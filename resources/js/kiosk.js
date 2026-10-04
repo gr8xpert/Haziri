@@ -47,6 +47,8 @@ Alpine.data('kiosk', ({ token, requirePhoto, modes }) => ({
     faceStep: 'idle', // idle | loading | look | turn | matching
     faceHint: '',
     faceRunning: false,
+    faceCheck: false, // PIN / QR punches also send the face descriptor (company setting)
+    checkingFace: false,
     pin: '',
     kioskPin: '',
     askKioskPin: false,
@@ -158,6 +160,8 @@ Alpine.data('kiosk', ({ token, requirePhoto, modes }) => ({
         try {
             const cfg = await fetch(`/kiosk/${this.token}/config?device_key=${encodeURIComponent(deviceKey())}`, { headers: { Accept: 'application/json' } }).then((r) => r.json());
             this.lock(cfg.access);
+            this.faceCheck = !!cfg.face_check;
+            if (this.faceCheck) loadFaceEngine().catch(() => {}); // warm up, so the first punch isn't slow
         } catch (e) {
             /* offline: keep the current state; punches queue as usual */
         }
@@ -208,8 +212,32 @@ Alpine.data('kiosk', ({ token, requirePhoto, modes }) => ({
         this.scanning = false;
     },
 
+    /**
+     * Face check for PIN / QR punches: the descriptor of the face in front of the camera (null if none within ~3 s).
+     * The server compares it with the employee's enrolled face; no match sends the punch to HR for approval.
+     */
+    async faceForCheck() {
+        if (!this.faceCheck || !this.$refs.video?.srcObject) return null;
+        this.checkingFace = true;
+        try {
+            const human = await loadFaceEngine();
+            for (let i = 0; i < 12; i++) {
+                const f = await readFace(human, this.$refs.video).catch(() => ({ ok: false }));
+                if (f.ok) return f.embedding;
+                await new Promise((r) => setTimeout(r, 250));
+            }
+        } catch (e) {
+            /* engine failed to load: punch without it, the server sends it to approval */
+        } finally {
+            this.checkingFace = false;
+        }
+        return null;
+    },
+
     async submit(extra = {}) {
         if (this.mode === 'pin' && !this.pin && !extra.mode) return;
+        // Read the face first, so the saved photo is taken at the same moment.
+        const face = extra.mode === 'face' ? null : await this.faceForCheck();
         const payload = {
             mode: this.mode,
             pin: this.mode === 'pin' ? this.pin : null,
@@ -220,6 +248,7 @@ Alpine.data('kiosk', ({ token, requirePhoto, modes }) => ({
             client_time: new Date().toISOString(),
             client_id: crypto.randomUUID(),
             device_key: deviceKey(),
+            ...(face ? { face } : {}),
             ...extra,
         };
         if (this.requirePhoto && !payload.photo) {

@@ -41,6 +41,7 @@ final class MeController
             'employee' => $employee,
             'company' => tenant('company_name'),
             'canPunch' => $settings->featureEnabled('mobile_punch') && (bool) $employee?->mobile_punch_allowed,
+            'faceCheck' => $settings->featureEnabled('kiosk_face') && (bool) $settings->get('face_check_photo_punches'),
             'rtl' => app()->getLocale() === 'ur',
             'leaveTypes' => LeaveType::where('is_active', true)->get(['id', 'name', 'code', 'allow_half_day']),
         ]);
@@ -101,9 +102,11 @@ final class MeController
             'accuracy' => ['nullable', 'integer', 'min:0', 'max:100000'],
             'photo' => ['nullable', 'string', 'max:2100000'],
             'direction' => ['nullable', Rule::enum(PunchDirection::class)],
+            'face' => ['nullable', 'array', 'size:1024'],
+            'face.*' => ['numeric'],
         ]);
         $r = $punch($request->user()->employee, (float) $data['lat'], (float) $data['lng'], isset($data['accuracy']) ? (int) $data['accuracy'] : null,
-            $data['photo'] ?? null, isset($data['direction']) ? PunchDirection::from($data['direction']) : null, $request->ip());
+            $data['photo'] ?? null, isset($data['direction']) ? PunchDirection::from($data['direction']) : null, $request->ip(), $data['face'] ?? null);
 
         return response()->json([
             'outcome' => $r['result']->outcome->value,
@@ -112,6 +115,7 @@ final class MeController
             'inside_geofence' => $r['geofence']['inside'],
             'office_network' => $r['geofence']['office_network'],
             'distance_m' => $r['geofence']['distance_m'],
+            'face_check' => $r['face_check']['result'] ?? null,
         ]);
     }
 

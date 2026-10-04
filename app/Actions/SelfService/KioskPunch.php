@@ -44,7 +44,7 @@ final class KioskPunch
 
     /**
      * @param  array{mode: string, pin?: ?string, kiosk_pin?: ?string, qr?: ?string, direction?: ?string, photo?: ?string,
-     *               client_time?: ?string, client_id?: ?string, offline?: bool}  $input
+     *               client_time?: ?string, client_id?: ?string, offline?: bool, face?: ?list<float>}  $input
      * @return array{result: IngestResult, employee: Employee, direction: PunchDirection, at: CarbonImmutable, kept: ?Punch} kept = the earlier punch when this one was a double tap
      */
     public function __invoke(Kiosk $kiosk, array $input): array
@@ -63,6 +63,8 @@ final class KioskPunch
         }
 
         $direction = PunchDirection::tryFrom((string) ($input['direction'] ?? '')) ?? SelfPunch::nextDirection($employee->id, $at);
+        // PIN / QR: someone else may know the PIN or hold the card. Check the face in the photo against the enrolled one.
+        $faceCheck = $input['mode'] === 'face' ? null : $this->faces->checkPunch($employee, $input['face'] ?? null);
 
         $result = ($this->ingest)(new PunchData(
             punchedAt: $at,
@@ -77,7 +79,9 @@ final class KioskPunch
             photoPath: $this->photos->store($input['photo'] ?? null),
             externalId: $input['client_id'] ?? null,
             meta: array_filter(['client_time' => $input['client_time'] ?? null, 'mode' => $input['mode'], 'offline' => ! empty($input['offline']),
-                'face_similarity' => $this->faceMatch['similarity'] ?? null, 'face_runner_up' => $this->faceMatch['runner_up'] ?? null]),
+                'face_similarity' => $this->faceMatch['similarity'] ?? null, 'face_runner_up' => $this->faceMatch['runner_up'] ?? null,
+                'face_check' => $faceCheck]),
+            requiresApproval: $faceCheck !== null && $faceCheck['result'] !== 'match',
         ));
 
         $kiosk->device?->forceFill(['last_seen_at' => now(), 'status' => 'online', 'last_sync_at' => now()])->saveQuietly();

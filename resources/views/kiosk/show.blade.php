@@ -102,6 +102,10 @@
                             </div>
                         </div>
 
+                        <div x-show="checkingFace" class="mt-5 flex items-center justify-center gap-3 rounded-2xl bg-emerald-400/15 px-6 py-4 text-2xl font-semibold text-emerald-100 ring-1 ring-emerald-300/30" role="status">
+                            @svg('heroicon-o-face-smile', 'size-8') {{ __('Look at the camera') }}
+                        </div>
+
                         <div x-show="mode === 'qr'" class="mt-5 flex flex-1 flex-col items-center justify-center rounded-3xl bg-white/[0.04] px-8 py-12 text-center ring-1 ring-white/10">
                             <span class="kiosk-float flex size-20 items-center justify-center rounded-3xl bg-emerald-400/15 ring-1 ring-emerald-300/30">@svg('heroicon-o-qr-code', 'size-10 text-emerald-300')</span>
                             <p class="mt-6 text-2xl font-semibold">Show your QR badge</p>
@@ -172,6 +176,9 @@
                             <span x-show="result.direction" class="rounded-full px-4 py-1 text-xl font-bold tracking-wide"
                                   :class="result.direction === 'out' ? 'bg-amber-300 text-amber-950' : 'bg-emerald-300 text-emerald-950'"
                                   x-text="result.direction === 'out' ? 'OUT' : 'IN'"></span>
+                        </div>
+                        <div x-show="result.pending" class="mt-6 inline-flex items-center gap-2 rounded-full bg-amber-400/15 px-4 py-2 text-amber-200 ring-1 ring-amber-300/30">
+                            @svg('heroicon-m-shield-exclamation', 'size-5') {{ __('Saved. HR will check this punch.') }}
                         </div>
                         <div x-show="result.queued" class="mt-6 inline-flex items-center gap-2 rounded-full bg-amber-400/15 px-4 py-2 text-amber-200 ring-1 ring-amber-300/30">
                             @svg('heroicon-m-wifi', 'size-5') Offline. It will sync automatically.

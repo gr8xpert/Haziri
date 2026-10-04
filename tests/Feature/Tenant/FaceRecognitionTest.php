@@ -2,10 +2,14 @@
 
 declare(strict_types=1);
 
+use App\Actions\SelfService\SelfPunch;
 use App\Enums\DevicePunchSourceType;
+use App\Enums\PunchStatus;
 use App\Enums\VerifyType;
 use App\Filament\Tenant\Pages\FaceEnrollment;
+use App\Filament\Tenant\Pages\PunchPhotos;
 use App\Filament\Tenant\Resources\Kiosks\Pages\ManageKiosks;
+use App\Filament\Tenant\Resources\PendingPunches\PendingPunchResource;
 use App\Models\Branch;
 use App\Models\Central\DeviceRegistry;
 use App\Models\Device;
@@ -138,4 +142,69 @@ it('will not save a kiosk with face mode unless it is locked to approved tablets
     Livewire::test(ManageKiosks::class)
         ->callAction('create', data: ['name' => 'Gate tablet', 'allowed_modes' => ['pin', 'face'], 'require_photo' => true, 'lock_to_device' => false])
         ->assertHasActionErrors(['lock_to_device']);
+});
+
+it('checks the face on PIN punches when the company turns it on, and sends doubtful ones to approval', function () {
+    $this->asma->update(['device_pin' => '501']);
+    $this->kiosk->update(['allowed_modes' => ['pin']]);
+    $carol = Employee::create(['code' => 'FR3', 'first_name' => 'Carol', 'joined_on' => '2025-01-01', 'device_pin' => '503']); // not enrolled
+    $punch = function (string $pin, ?array $face, int $minute) {
+        $this->travelTo(CarbonImmutable::parse(sprintf('2026-09-08 10:%02d', $minute), 'Asia/Karachi')); // past the double-tap window
+
+        return $this->postJson("{$this->url}/punch", array_filter(['mode' => 'pin', 'pin' => $pin, 'device_key' => $this->tablet, 'photo' => $this->photo, 'face' => $face]));
+    };
+    $last = fn (Employee $e) => Punch::where('employee_id', $e->id)->latest('id')->firstOrFail();
+
+    // Setting off: nothing is checked.
+    $punch('501', faceOf(2), 1)->assertOk()->assertJsonPath('pending', false);
+    expect($last($this->asma)->status)->toBe(PunchStatus::Valid)->and($last($this->asma)->meta)->not->toHaveKey('face_check');
+
+    Setting::updateOrCreate(['key' => 'face_check_photo_punches'], ['value' => true]);
+    app(TenantSettings::class)->flush();
+    $this->getJson("{$this->url}/config?device_key={$this->tablet}")->assertJsonPath('face_check', true);
+
+    $punch('501', faceOf(1, 0.1, 9), 20)->assertOk()->assertJsonPath('pending', false);
+    expect($last($this->asma)->meta['face_check']['result'])->toBe('match');
+
+    $punch('501', faceOf(2, 0.1, 9), 40)->assertOk()->assertJsonPath('pending', true); // Bina's face on Asma's PIN
+    expect($last($this->asma)->status)->toBe(PunchStatus::Pending)->and($last($this->asma)->meta['face_check']['result'])->toBe('mismatch')
+        ->and(PendingPunchResource::reasons($last($this->asma)))->toBe(['Face does not match']);
+
+    $punch('503', faceOf(3), 50)->assertOk()->assertJsonPath('pending', true);
+    expect($last($carol)->meta['face_check']['result'])->toBe('not_enrolled');
+
+    $punch('501', null, 59)->assertOk()->assertJsonPath('pending', true);
+    expect($last($this->asma)->meta['face_check']['result'])->toBe('no_face');
+});
+
+it('checks the selfie face on phone punches', function () {
+    Setting::updateOrCreate(['key' => 'feature.mobile_punch'], ['value' => true]);
+    Setting::updateOrCreate(['key' => 'face_check_photo_punches'], ['value' => true]);
+    app(TenantSettings::class)->flush();
+    $office = Branch::create(['name' => 'Office', 'code' => 'OF', 'lat' => 31.5204, 'lng' => 74.3587, 'geofence_radius_m' => 150]);
+    $this->asma->update(['branch_id' => $office->id, 'mobile_punch_allowed' => true]);
+
+    $r = app(SelfPunch::class)($this->asma->fresh(), 31.5204, 74.3587, 10, null, null, null, faceOf(2, 0.1, 9));
+
+    expect($r['face_check']['result'])->toBe('mismatch')
+        ->and(Punch::where('employee_id', $this->asma->id)->latest('id')->value('status'))->toBe(PunchStatus::Pending);
+});
+
+it('shows face results on punch photos and filters the suspicious ones', function () {
+    Filament::setCurrentPanel(Filament::getPanel('tenant'));
+    $this->actingAs(User::where('email', 'owner@pest.test')->firstOrFail());
+    $make = fn (array $meta, int $hour) => Punch::create([
+        'employee_id' => $this->asma->id, 'punched_at' => "2026-09-08 0{$hour}:00:00", 'local_date' => '2026-09-08', 'source' => 'kiosk',
+        'direction' => 'in', 'status' => 'valid', 'photo_path' => "punch-photos/x{$hour}.jpg", 'meta' => $meta, 'dedupe_hash' => "fc-{$hour}",
+    ]);
+    $make(['face_check' => ['result' => 'match', 'similarity' => 0.91]], 1);
+    $make(['face_check' => ['result' => 'mismatch', 'similarity' => 0.31]], 2);
+    $make(['geofence_fail' => true], 3);
+
+    $page = Livewire::test(PunchPhotos::class)->set('from', '2026-09-01')->set('to', '2026-09-30');
+    expect($page->instance()->getPhotos())->toHaveCount(3);
+    $page->assertSee('Face does not match')->assertSee('31%');
+
+    $page->set('suspiciousOnly', true);
+    expect($page->instance()->getPhotos())->toHaveCount(2);
 });

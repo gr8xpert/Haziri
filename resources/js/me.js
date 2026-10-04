@@ -1,5 +1,6 @@
 import Alpine from 'alpinejs';
 import { captureSelfie, stopCamera, startCamera, api } from './shared';
+import { loadFaceEngine, readFace } from './face';
 
 const CODE_NAMES = {
     P: 'Present', L: 'Late', HD: 'Half day', A: 'Absent', WO: 'Weekly off', H: 'Holiday', OD: 'Official duty',
@@ -31,7 +32,7 @@ function isoDate(d) {
 }
 
 // Employee self-service PWA (spec §6.6). Server data comes from /me/attendance.
-Alpine.data('meApp', ({ canPunch, leaveTypes, locale }) => ({
+Alpine.data('meApp', ({ canPunch, faceCheck, leaveTypes, locale }) => ({
     tab: 'home',
     data: {},
     loaded: false,
@@ -49,6 +50,7 @@ Alpine.data('meApp', ({ canPunch, leaveTypes, locale }) => ({
     selected: null,
     todayIso: isoDate(new Date()),
     canPunch,
+    faceCheck, // company checks the selfie's face against the enrolled one
     leaveTypes,
     locale: locale || undefined,
 
@@ -153,9 +155,11 @@ Alpine.data('meApp', ({ canPunch, leaveTypes, locale }) => ({
             this.camera = true;
             await this.$nextTick();
             let photo = null;
+            let face = null;
             try {
                 await startCamera(this.$refs.video);
                 await new Promise((r) => setTimeout(r, 800)); // let exposure settle
+                if (this.faceCheck) face = await this.readOwnFace();
                 photo = captureSelfie(this.$refs.video);
             } catch (e) {
                 // No camera permission: punch without a photo; HR sees it as unverified.
@@ -168,11 +172,14 @@ Alpine.data('meApp', ({ canPunch, leaveTypes, locale }) => ({
                 lng: position.coords.longitude,
                 accuracy: Math.round(position.coords.accuracy),
                 photo,
+                ...(face ? { face } : {}),
             });
             this.messageOk = r.outcome === 'stored';
             this.message = r.outcome === 'stored'
                 ? `Punched ${r.direction === 'in' ? 'in' : 'out'} at ${r.time}.`
-                : !r.inside_geofence
+                : r.face_check && r.face_check !== 'match'
+                  ? `Saved at ${r.time}, but your face could not be confirmed. HR will review it.`
+                  : !r.inside_geofence
                   ? `Saved at ${r.time}, but you are ${r.distance_m ?? '?'} m from the office. HR will review it.`
                   : `Saved at ${r.time}, but not from the office internet. HR will review it.`;
             await this.load();
@@ -182,6 +189,21 @@ Alpine.data('meApp', ({ canPunch, leaveTypes, locale }) => ({
         } finally {
             this.busy = false;
         }
+    },
+
+    /** Descriptor of the face in the selfie camera (null if none within ~3 s); matching happens on the server. */
+    async readOwnFace() {
+        try {
+            const human = await loadFaceEngine();
+            for (let i = 0; i < 12; i++) {
+                const f = await readFace(human, this.$refs.video).catch(() => ({ ok: false }));
+                if (f.ok) return f.embedding;
+                await new Promise((r) => setTimeout(r, 250));
+            }
+        } catch (e) {
+            /* engine could not load on this phone: the punch goes to HR for review */
+        }
+        return null;
     },
 
     async applyLeave(form) {

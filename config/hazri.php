@@ -65,6 +65,7 @@ return [
         'mobile_require_selfie' => false,
         'face_match_threshold' => 0.6,        // kiosk face recognition: minimum similarity (0..1)
         'face_match_margin' => 0.05,          // … and how far ahead of the next closest person
+        'face_check_photo_punches' => false,  // kiosk PIN / QR and phone punches: check the photo's face (kiosk_face); fail → approval
         'allow_future_manual_punch' => false,
         'employee_can_see_others' => false,
         'leave_approval_chain' => ['manager', 'hr'],

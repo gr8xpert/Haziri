@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\SelfService;
 
 use App\Enums\EmployeeStatus;
+use App\Models\Employee;
 use App\Models\FaceTemplate;
 use App\Services\Settings\TenantSettings;
 
@@ -67,6 +68,47 @@ final class FaceMatcher
             'similarity' => $top,
             'runner_up' => $second,
         ];
+    }
+
+    /** @var array<string, string> face-check results on a punch (meta.face_check.result) */
+    public const CHECK_LABELS = [
+        'match' => 'Face matches', 'mismatch' => 'Face does not match', 'no_face' => 'No face in the photo',
+        'not_enrolled' => 'Face not enrolled',
+    ];
+
+    /**
+     * Face check on a punch made with a PIN, QR card or phone, when the company turned it on (setting
+     * face_check_photo_punches, needs kiosk_face). Null = not checked; anything but "match" sends the punch to approval.
+     *
+     * @return array{result: string, similarity: ?float}|null
+     */
+    public function checkPunch(Employee $employee, mixed $descriptor): ?array
+    {
+        if (! $this->settings->featureEnabled('kiosk_face') || ! $this->settings->get('face_check_photo_punches')) {
+            return null;
+        }
+
+        return $this->verify($employee, $descriptor);
+    }
+
+    /**
+     * 1:1 check: does this face belong to the employee? (Kiosk face mode instead searches everyone, see identify().)
+     *
+     * @return array{result: string, similarity: ?float}
+     */
+    public function verify(Employee $employee, mixed $descriptor): array
+    {
+        $templates = FaceTemplate::query()->where('employee_id', $employee->id)->get();
+        if ($templates->isEmpty()) {
+            return ['result' => 'not_enrolled', 'similarity' => null];
+        }
+        $clean = self::clean($descriptor);
+        if ($clean === null) {
+            return ['result' => 'no_face', 'similarity' => null];
+        }
+        $best = (float) $templates->max(fn (FaceTemplate $t) => self::similarity($clean, $t->descriptor));
+
+        return ['result' => $best >= (float) $this->settings->get('face_match_threshold', 0.6) ? 'match' : 'mismatch', 'similarity' => $best];
     }
 
     /** @return list<float>|null a valid descriptor, or null */

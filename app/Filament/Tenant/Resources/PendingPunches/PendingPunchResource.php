@@ -9,6 +9,7 @@ use App\Enums\PunchStatus;
 use App\Filament\Concerns\AuthorizesByPermission;
 use App\Filament\Tenant\NavigationGroup;
 use App\Models\Punch;
+use App\Services\SelfService\FaceMatcher;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Textarea;
 use Filament\Notifications\Notification;
@@ -20,7 +21,7 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\URL;
 
-/** Out-of-geofence mobile punches waiting for HR (spec §6.6). */
+/** Punches waiting for HR (spec §6.6): phone punches outside the geofence / office internet, and failed face checks. */
 class PendingPunchResource extends Resource
 {
     use AuthorizesByPermission;
@@ -67,6 +68,7 @@ class PendingPunchResource extends Resource
                 TextColumn::make('employee.first_name')->label('Employee')->formatStateUsing(fn (Punch $r) => $r->employee?->fullName()),
                 TextColumn::make('punched_at')->dateTime('d M H:i', $tz),
                 TextColumn::make('direction')->badge(),
+                TextColumn::make('why')->label('Why')->badge()->color('warning')->state(fn (Punch $r) => self::reasons($r)),
                 TextColumn::make('meta.geofence.distance_m')->label('Distance')->suffix(' m'),
                 TextColumn::make('accuracy_m')->label('GPS ±')->suffix(' m'),
                 TextColumn::make('lat')->label('Map')->formatStateUsing(fn () => 'open')
@@ -76,6 +78,19 @@ class PendingPunchResource extends Resource
                 self::decide('approve', true),
                 self::decide('reject', false),
             ]);
+    }
+
+    /** @return list<string> why the punch is waiting, in plain words */
+    public static function reasons(Punch $punch): array
+    {
+        $meta = $punch->meta ?? [];
+        $faceCheck = $meta['face_check']['result'] ?? null;
+
+        return array_values(array_filter([
+            ! empty($meta['geofence_fail']) ? __('Outside the office area') : null,
+            ($meta['geofence']['office_network'] ?? null) === false ? __('Not on the office internet') : null,
+            $faceCheck !== null && $faceCheck !== 'match' ? __(FaceMatcher::CHECK_LABELS[$faceCheck] ?? $faceCheck) : null,
+        ]));
     }
 
     private static function decide(string $name, bool $approve): Action

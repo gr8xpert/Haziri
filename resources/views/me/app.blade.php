@@ -12,7 +12,7 @@
     ];
     $initials = collect(explode(' ', $employee->fullName()))->filter()->take(2)->map(fn ($p) => mb_substr($p, 0, 1))->implode('');
 @endphp
-<div x-data="meApp({ canPunch: @js($canPunch), leaveTypes: @js($leaveTypes), locale: @js(str_replace('_', '-', app()->getLocale())) })" x-init="load()"
+<div x-data="meApp({ canPunch: @js($canPunch), faceCheck: @js($faceCheck ?? false), leaveTypes: @js($leaveTypes), locale: @js(str_replace('_', '-', app()->getLocale())) })" x-init="load()"
      class="mx-auto min-h-dvh max-w-lg pb-[calc(5rem+env(safe-area-inset-bottom))]">
 
     <header class="sticky top-0 z-20 border-b border-zinc-950/[0.06] bg-zinc-100/85 pt-[env(safe-area-inset-top)] backdrop-blur-lg dark:border-white/[0.06] dark:bg-zinc-950/85">

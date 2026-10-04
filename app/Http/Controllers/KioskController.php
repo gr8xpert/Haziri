@@ -38,6 +38,8 @@ final class KioskController
             'company' => tenant('company_name'),
             'modes' => array_values(array_filter($kiosk->allowed_modes ?? ['pin'], fn ($m) => $m !== 'face' || $settings->featureEnabled('kiosk_face'))),
             'require_photo' => $kiosk->require_photo,
+            // PIN / QR punches: send the face descriptor too, it is checked against the enrolled face.
+            'face_check' => $settings->featureEnabled('kiosk_face') && (bool) $settings->get('face_check_photo_punches'),
             'branch' => $kiosk->branch?->name,
             'server_time' => now()->toIso8601String(),
         ]);
@@ -94,6 +96,7 @@ final class KioskController
         return response()->json([
             'ok' => true,
             'replay' => $r['result']->outcome === IngestOutcome::AlreadyStored,
+            'pending' => $r['result']->outcome === IngestOutcome::PendingApproval,
             'name' => $r['employee']->first_name,
             'direction' => $r['direction']->value,
             'time' => $r['at']->setTimezone($tz)->format('H:i'),
