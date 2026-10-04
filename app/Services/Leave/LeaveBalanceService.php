@@ -6,6 +6,7 @@ namespace App\Services\Leave;
 
 use App\Enums\EmployeeStatus;
 use App\Models\Employee;
+use App\Models\EmployeeLeaveRule;
 use App\Models\LeaveBalance;
 use App\Models\LeaveEntitlement;
 use App\Models\LeaveType;
@@ -65,8 +66,8 @@ final class LeaveBalanceService
     }
 
     /**
-     * The leave type's numbers for one employee: the most specific grade / employment-type row wins
-     * (grade + category → grade → category), and a blank value there falls back to the leave type.
+     * The leave type's numbers for one employee: their own special rule first, then the most specific grade /
+     * employment-type row (grade + category → grade → category), then the leave type. A blank value falls through.
      *
      * @return array{quota: float, carry_forward_max: float, max_consecutive_days: ?int}
      */
@@ -79,10 +80,13 @@ final class LeaveBalanceService
             ->sortByDesc(fn (LeaveEntitlement $e) => ($e->grade_id !== null ? 2 : 0) + ($e->employment_type !== null ? 1 : 0))
             ->first();
 
+        $own = EmployeeLeaveRule::query()->where(['employee_id' => $employee->id, 'leave_type_id' => $type->id])->first();
+
         return [
-            'quota' => $match !== null ? $match->days_per_year : (float) $type->annual_quota_days,
-            'carry_forward_max' => (float) ($match?->carry_forward_max ?? $type->carry_forward_max),
-            'max_consecutive_days' => $match?->max_consecutive_days ?? ($type->max_consecutive_days ? (int) $type->max_consecutive_days : null),
+            'quota' => $own?->days_per_year ?? ($match !== null ? $match->days_per_year : (float) $type->annual_quota_days),
+            'carry_forward_max' => (float) ($own?->carry_forward_max ?? $match?->carry_forward_max ?? $type->carry_forward_max),
+            'max_consecutive_days' => $own?->max_consecutive_days ?? $match?->max_consecutive_days
+                ?? ($type->max_consecutive_days ? (int) $type->max_consecutive_days : null),
         ];
     }
 

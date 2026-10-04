@@ -17,9 +17,11 @@ use App\Enums\RequestStatus;
 use App\Enums\Role;
 use App\Filament\Tenant\Pages\LeaveCalendar;
 use App\Filament\Tenant\Resources\Corrections\Pages\ListCorrections;
+use App\Filament\Tenant\Resources\LeaveBalances\Pages\ListLeaveBalances;
 use App\Models\AttendanceDay;
 use App\Models\Branch;
 use App\Models\Employee;
+use App\Models\EmployeeLeaveRule;
 use App\Models\Grade;
 use App\Models\Holiday;
 use App\Models\LeaveBalance;
@@ -31,6 +33,7 @@ use App\Models\User;
 use App\Services\Attendance\MissingPunchSuggester;
 use App\Services\Leave\LeaveBalanceService;
 use Carbon\CarbonImmutable;
+use Filament\Actions\Testing\TestAction;
 use Filament\Facades\Filament;
 use Illuminate\Validation\ValidationException;
 use Livewire\Livewire;
@@ -282,4 +285,24 @@ it("shows who's off with leave names, branch-only holidays, filters, and only th
     $this->actingAs($this->manager);
     $mgr = Livewire::test(LeaveCalendar::class);
     expect(collect($mgr->instance()->getDays()['2026-09-10'])->pluck('name')->all())->toBe(['EMP']);
+});
+
+it('gives one employee a special leave rule that beats the grade row and the leave type', function () {
+    Filament::setCurrentPanel(Filament::getPanel('tenant'));
+    $this->al->update(['carry_forward_max' => 7]);
+    $svc = app(LeaveBalanceService::class);
+    $balance = $svc->balance($this->emp, $this->al, 2026);
+    $this->actingAs($this->hr);
+
+    Livewire::test(ListLeaveBalances::class)
+        ->callAction(TestAction::make('specialRule')->table($balance), data: ['carry_forward_max' => 3, 'days_per_year' => 20, 'reason' => 'Appointment letter'])
+        ->assertHasNoActionErrors();
+
+    expect($svc->rules($this->emp, $this->al))->toBe(['quota' => 20.0, 'carry_forward_max' => 3.0, 'max_consecutive_days' => null])
+        ->and($svc->rules(person('OTHER2'), $this->al)['carry_forward_max'])->toBe(7.0)
+        ->and($balance->fresh()->accrued)->toBe(20.0);
+
+    Livewire::test(ListLeaveBalances::class)
+        ->callAction(TestAction::make('specialRule')->table($balance), data: ['carry_forward_max' => null, 'days_per_year' => null, 'max_consecutive_days' => null, 'reason' => 'Back to normal']);
+    expect(EmployeeLeaveRule::count())->toBe(0);
 });
