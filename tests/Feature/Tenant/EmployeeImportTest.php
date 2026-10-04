@@ -8,7 +8,9 @@ use App\Models\Employee;
 use App\Models\User;
 use App\Services\Employees\EmployeeImporter;
 use Filament\Facades\Filament;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Livewire\Features\SupportLockedProperties\CannotUpdateLockedPropertyException;
 use Livewire\Livewire;
 
 /*
@@ -66,9 +68,9 @@ it('remembers the columns HR matched by hand', function () {
 it('lets HR fix a column on the import page and shows what is still missing', function () {
     Filament::setCurrentPanel(Filament::getPanel('tenant'));
     $this->actingAs(User::where('email', 'owner@pest.test')->firstOrFail());
-    $file = clientSheet("Ref,Staff Name,Joining\nR1,Bilal Ahmed,01/03/2025\n");
+    $upload = UploadedFile::fake()->createWithContent('staff.csv', "Ref,Staff Name,Joining\nR1,Bilal Ahmed,01/03/2025\n");
 
-    $page = Livewire::test(ImportEmployees::class)->set('file', $file)->set('createMissing', true);
+    $page = Livewire::test(ImportEmployees::class)->set('data.file', $upload)->call('check')->set('createMissing', true);
     expect($page->get('mapping'))->toBe(['', 'full_name', ''])
         ->and($page->instance()->getMissingRequired())->toBe(['Employee code', 'Joining date']);
 
@@ -79,6 +81,26 @@ it('lets HR fix a column on the import page and shows what is still missing', fu
     $page->call('import');
     expect(Employee::where('code', 'R1')->exists())->toBeTrue()
         ->and(app(EmployeeImporter::class)->guessMapping(['Ref'])['ref'])->toBe('code');
+});
+
+it('will not let the browser point the import at another file', function () {
+    Filament::setCurrentPanel(Filament::getPanel('tenant'));
+    $this->actingAs(User::where('email', 'owner@pest.test')->firstOrFail());
+
+    Livewire::test(ImportEmployees::class)->set('file', '../../.env');
+})->throws(CannotUpdateLockedPropertyException::class);
+
+it('writes branch or department names starting with = as text, not formulas', function () {
+    Department::create(['name' => '=HYPERLINK("http://evil.test","x")', 'code' => 'EVIL']);
+    $path = tempnam(sys_get_temp_dir(), 'tpl') . '.xlsx';
+
+    app(EmployeeImporter::class)->writeTemplate($path);
+
+    $zip = new ZipArchive;
+    $zip->open($path);
+    $codes = (string) $zip->getFromName('xl/worksheets/sheet3.xml');
+    $zip->close();
+    expect($codes)->not->toContain('<f>')->toContain('HYPERLINK');
 });
 
 it('writes a template with drop-downs, instructions and the company codes', function () {

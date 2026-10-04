@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Support\Excel;
 
+use OpenSpout\Common\Entity\Cell;
+use OpenSpout\Common\Entity\Cell\StringCell;
 use OpenSpout\Common\Entity\Row;
 use OpenSpout\Common\Entity\Style\Style;
 use OpenSpout\Reader\CSV\Reader as CsvReader;
@@ -75,9 +77,9 @@ final class Spreadsheet
     {
         $writer = new XlsxWriter;
         $writer->openToFile($path);
-        $writer->addRow(Row::fromValues($headers, (new Style)->setFontBold()));
+        $writer->addRow(self::row($headers, (new Style)->setFontBold()));
         foreach ($rows as $row) {
-            $writer->addRow(Row::fromValues(array_values($row)));
+            $writer->addRow(self::row(array_values($row)));
         }
         $writer->close();
     }
@@ -98,9 +100,9 @@ final class Spreadsheet
             foreach ($sheet['widths'] ?? [] as $column => $width) {
                 $current->setColumnWidth($width, $column + 1);
             }
-            $writer->addRow(Row::fromValues($sheet['headers'], (new Style)->setFontBold()));
+            $writer->addRow(self::row($sheet['headers'], (new Style)->setFontBold()));
             foreach ($sheet['rows'] as $row) {
-                $writer->addRow(Row::fromValues(array_values($row)));
+                $writer->addRow(self::row(array_values($row)));
             }
         }
         $writer->close();
@@ -148,6 +150,20 @@ final class Spreadsheet
         }
 
         return $letter;
+    }
+
+    /**
+     * A row where text is always text: openspout turns a string starting with "=" into a formula, so a branch or
+     * employee named "=HYPERLINK(…)" would run in Excel when the file is opened (formula injection).
+     *
+     * @param  array<int, scalar|null>  $values
+     */
+    private static function row(array $values, ?Style $style = null): Row
+    {
+        return new Row(array_map(
+            fn ($value) => is_string($value) && str_starts_with($value, '=') ? new StringCell($value, null) : Cell::fromValue($value),
+            array_values($values),
+        ), $style);
     }
 
     private static function stringify(mixed $value): string

@@ -14,6 +14,7 @@ use Filament\Resources\Pages\Page;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Support\Facades\Storage;
+use Livewire\Attributes\Locked;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 /**
@@ -31,7 +32,8 @@ class ImportEmployees extends Page
     /** @var array<string, mixed> */
     public ?array $data = [];
 
-    /** Stored upload being worked on (relative to the local disk). */
+    /** Stored upload being worked on (relative to the local disk). Locked: the browser must not point it at other files. */
+    #[Locked]
     public ?string $file = null;
 
     /** @var list<string> field per column of the file, by position ('' = skip); headings can hold dots, so no keys */
@@ -40,7 +42,8 @@ class ImportEmployees extends Page
     /** Departments named in the file but not in Haziri are created instead of being errors. */
     public bool $createMissing = false;
 
-    /** @var array<string, mixed>|null result of EmployeeImporter::preview() */
+    /** @var array<string, mixed>|null result of EmployeeImporter::preview(); locked, its rows are what gets imported */
+    #[Locked]
     public ?array $preview = null;
 
     public static function canAccess(array $parameters = []): bool
@@ -80,7 +83,14 @@ class ImportEmployees extends Page
     /** Read a newly uploaded file: guess its columns and preview it. */
     public function check(EmployeeImporter $importer): void
     {
-        $this->file = $this->form->getState()['file'];
+        $file = (string) $this->form->getState()['file'];
+        // Only the upload this form just stored under imports/ (never a path from elsewhere on the disk).
+        if (! preg_match('#^imports/[A-Za-z0-9._-]+$#', $file) || str_contains($file, '..') || ! Storage::disk('local')->exists($file)) {
+            Notification::make()->danger()->title(__('Could not read the file'))->send();
+
+            return;
+        }
+        $this->file = $file;
         $this->mapping = [];
         $this->preview = null;
         $this->refreshPreview($importer);
