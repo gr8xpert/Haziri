@@ -2,7 +2,9 @@
 
 declare(strict_types=1);
 
+use App\Actions\Periods\PeriodActions;
 use App\Enums\AttendanceStatus;
+use App\Filament\Tenant\Pages\Reports\MonthlyAttendance;
 use App\Models\AttendanceDay;
 use App\Models\Employee;
 use App\Models\User;
@@ -11,7 +13,10 @@ use App\Reports\DailyMusterReport;
 use App\Reports\EmployeeStatementReport;
 use App\Reports\LateRegisterReport;
 use App\Reports\MonthlySheetReport;
+use App\Reports\MonthSummaryReport;
 use App\Reports\ReportExporter;
+use Filament\Facades\Filament;
+use Livewire\Livewire;
 
 beforeEach(function () {
     $this->actingAs(User::where('email', 'owner@pest.test')->firstOrFail());
@@ -75,4 +80,30 @@ it('exports xlsx and pdf', function () {
     expect(filesize($xlsx->getFile()->getPathname()))->toBeGreaterThan(1000)
         ->and($pdf->headers->get('content-type'))->toBe('application/pdf')
         ->and(strlen($pdf->getContent()))->toBeGreaterThan(1000);
+});
+
+it('shows a month per employee: live while open, the lock snapshot once locked', function () {
+    Filament::setCurrentPanel(Filament::getPanel('tenant'));
+    $live = collect((new MonthSummaryReport)->rows(['month' => '2026-08']))->firstWhere('code', 'R1');
+    expect($live['absent'])->toBe(4)->and($live['late'])->toBe(3)->and($live['deduction'])->toBe(5.0)
+        ->and($live['_url'])->toContain('month=2026-08')->toContain("employee={$this->e->id}");
+
+    $actions = app(PeriodActions::class);
+    $period = $actions->lock($actions->period(2026, 8), User::where('email', 'owner@pest.test')->first());
+    // The page must read what payroll was paid on, not a fresh calculation.
+    $summary = $period->summary;
+    $summary['employees'][$this->e->id]['absentDays'] = 9;
+    $period->update(['summary' => $summary]);
+
+    $locked = collect((new MonthSummaryReport)->rows(['month' => '2026-08']))->firstWhere('code', 'R1');
+    expect($locked['absent'])->toBe(9)
+        ->and((new MonthSummaryReport)->subtitle(['month' => '2026-08']))->toContain('Locked on');
+});
+
+it('opens the monthly attendance report on the linked employee and month', function () {
+    Filament::setCurrentPanel(Filament::getPanel('tenant'));
+
+    Livewire::withQueryParams(['month' => '2026-08', 'employee' => $this->e->id])
+        ->test(MonthlyAttendance::class)
+        ->assertSet('month', '2026-08')->assertSet('employeeId', $this->e->id);
 });

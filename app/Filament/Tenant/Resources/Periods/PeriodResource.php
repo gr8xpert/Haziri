@@ -8,6 +8,7 @@ use App\Actions\Periods\PeriodActions;
 use App\Enums\PeriodStatus;
 use App\Filament\Concerns\AuthorizesByPermission;
 use App\Filament\Tenant\NavigationGroup;
+use App\Filament\Tenant\Pages\Reports\MonthSummary;
 use App\Models\AttendancePeriod;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Textarea;
@@ -53,7 +54,10 @@ class PeriodResource extends Resource
                 TextColumn::make('summary.totals.deduction_days')->label('Deduction days')->placeholder('—'),
                 TextColumn::make('summary.totals.late_count')->label('Lates')->placeholder('—'),
             ])
+            ->recordUrl(fn (AttendancePeriod $r) => self::viewUrl($r))
             ->recordActions([
+                Action::make('view')->label('View')->icon(Heroicon::OutlinedEye)->color('gray')
+                    ->url(fn (AttendancePeriod $r) => self::viewUrl($r)),
                 self::step('review', Heroicon::OutlinedPencilSquare, 'warning', PeriodStatus::Open,
                     fn (PeriodActions $a, AttendancePeriod $p) => $a->review($p)),
                 self::step('lock', Heroicon::OutlinedShieldCheck, 'success', null,
@@ -75,6 +79,12 @@ class PeriodResource extends Resource
                     ->schema([Textarea::make('reason')->required()])
                     ->action(fn (AttendancePeriod $record, array $data, PeriodActions $a) => self::run(fn () => $a->unlock($record, auth()->user(), $data['reason']))),
             ]);
+    }
+
+    /** Every employee's numbers for the month (Month summary report), with a link to each one's day-by-day sheet. */
+    private static function viewUrl(AttendancePeriod $period): string
+    {
+        return MonthSummary::getUrl(['filters' => ['month' => sprintf('%04d-%02d', $period->year, $period->month)]]);
     }
 
     private static function step(string $name, Heroicon $icon, string $color, ?PeriodStatus $from, \Closure $run): Action

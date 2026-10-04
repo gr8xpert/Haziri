@@ -52,9 +52,12 @@ abstract class ReportPage extends Page
         return app(static::$report);
     }
 
+    /** Filters can be preset from the link (?filters[month]=2026-09), e.g. Months (lock) → View. */
     public function mount(): void
     {
-        $this->form->fill(static::report()->defaults());
+        $preset = array_filter((array) request()->query('filters', []), fn ($v) => is_scalar($v) && $v !== '');
+
+        $this->form->fill(array_merge(static::report()->defaults(), $preset));
     }
 
     public function form(Schema $schema): Schema

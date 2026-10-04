@@ -59,6 +59,15 @@ class MonthlyAttendance extends Page
     {
         [$y, $m] = app(PayCycle::class)->periodFor(CarbonImmutable::now(tenant('timezone'))->format('Y-m-d'));
         $this->month = sprintf('%04d-%02d', $y, $m);
+
+        // Opened from Month summary: ?month=2026-09&employee=12 (an employee outside the user's scope is ignored).
+        if (preg_match('/^\d{4}-\d{2}$/', (string) request()->query('month'))) {
+            $this->month = (string) request()->query('month');
+        }
+        $employeeId = (int) request()->query('employee');
+        if ($employeeId > 0 && $this->employees()->whereKey($employeeId)->exists()) {
+            $this->employeeId = $employeeId;
+        }
     }
 
     public function updatedDepartmentId(): void

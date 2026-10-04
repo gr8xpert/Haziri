@@ -15,6 +15,13 @@ class ListPeriods extends ListRecords
 {
     protected static string $resource = PeriodResource::class;
 
+    public function getSubheading(): string
+    {
+        return __('Close each month once it has been checked: Open (punches still coming in) → Review (HR fixes missing punches and '
+            . 'approves requests) → Locked (final: nothing in that month can change, and payroll runs on it). '
+            . 'Only the owner can unlock, with a reason. "View" shows the numbers of every employee for the month.');
+    }
+
     protected function getHeaderActions(): array
     {
         return [

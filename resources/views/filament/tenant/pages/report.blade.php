@@ -50,7 +50,13 @@
                                         @endif
                                     </td>
                                 @else
-                                    <td @class(['font-medium text-gray-950 dark:text-white' => $loop->index === 1, 'whitespace-nowrap'])>{{ $value }}</td>
+                                    <td @class(['font-medium text-gray-950 dark:text-white' => $loop->index === 1, 'whitespace-nowrap'])>
+                                        @if ($loop->index === 1 && filled($row['_url'] ?? null))
+                                            <a href="{{ $row['_url'] }}" class="text-primary-600 hover:underline dark:text-primary-400">{{ $value }}</a>
+                                        @else
+                                            {{ $value }}
+                                        @endif
+                                    </td>
                                 @endif
                             @endforeach
                         </tr>
