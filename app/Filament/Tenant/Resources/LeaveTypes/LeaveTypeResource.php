@@ -46,7 +46,7 @@ class LeaveTypeResource extends Resource
         return $schema->columns(3)->components([
             TextInput::make('name')->required()->maxLength(100),
             TextInput::make('code')->required()->maxLength(10)->unique(ignoreRecord: true)->helperText('Shown in the monthly grid'),
-            Toggle::make('is_paid')->default(true)->inline(false),
+            Toggle::make('is_paid')->label('Paid leave')->default(true)->inline(false),
             $n('annual_quota_days')->required()->default(0)->suffix('days'),
             Select::make('accrual')->options(['yearly_upfront' => 'Yearly, upfront', 'monthly' => 'Monthly'])->default('yearly_upfront')->required(),
             $n('carry_forward_max')->default(0)->suffix('days'),
@@ -58,7 +58,7 @@ class LeaveTypeResource extends Resource
             Toggle::make('counts_weekends')->helperText('Count calendar days instead of working days'),
             CheckboxList::make('applies_to')->options(EmploymentType::class)->columns(3)->columnSpan(2)->helperText('None ticked = everyone'),
             Select::make('gender_restriction')->options(['female' => 'Female only', 'male' => 'Male only'])->placeholder('Everyone'),
-            Toggle::make('is_active')->default(true),
+            Toggle::make('is_active')->label('Active')->default(true),
             Toggle::make('encashable')->label('Paid out on leaving')
                 ->helperText('The unused balance is paid in the final settlement')
                 ->visible(fn () => app(TenantSettings::class)->featureEnabled('payroll_settlement')),
@@ -82,12 +82,12 @@ class LeaveTypeResource extends Resource
             ->columns([
                 TextColumn::make('code'),
                 TextColumn::make('name'),
-                IconColumn::make('is_paid')->boolean(),
+                IconColumn::make('is_paid')->label('Paid')->boolean(),
                 TextColumn::make('annual_quota_days')->suffix(' d')->label('Quota'),
-                TextColumn::make('accrual'),
+                TextColumn::make('accrual')->formatStateUsing(fn (?string $state) => ['yearly_upfront' => __('Yearly, upfront'), 'monthly' => __('Monthly')][$state] ?? $state),
                 TextColumn::make('entitlements_count')->counts('entitlements')->label('Grade rules'),
                 IconColumn::make('sandwich_rule')->boolean(),
-                IconColumn::make('is_active')->boolean(),
+                IconColumn::make('is_active')->label('Active')->boolean(),
             ])
             ->recordActions([EditAction::make()]);
     }

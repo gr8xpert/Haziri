@@ -79,7 +79,7 @@ final class SubmitLeaveRequest
             $fail('leave_type_id', __('This leave type is not active.'));
         }
         if ($type->applies_to && ! in_array($employee->employment_type?->value, $type->applies_to, true)) {
-            $fail('leave_type_id', __('This leave type does not apply to :t employees.', ['t' => $employee->employment_type?->value]));
+            $fail('leave_type_id', __('This leave type does not apply to :t employees.', ['t' => $employee->employment_type?->getLabel()]));
         }
         if ($type->gender_restriction && $employee->gender !== $type->gender_restriction) {
             $fail('leave_type_id', __('This leave type is not available for this employee.'));

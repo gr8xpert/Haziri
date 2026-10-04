@@ -101,6 +101,14 @@ it('requires a reason to reject and releases the pending balance', function () {
         ->and(LeaveBalance::where(['employee_id' => $this->emp->id, 'leave_type_id' => $this->cl->id])->value('pending'))->toBe(0.0);
 });
 
+it('names the employment type in words when a leave type does not apply', function () {
+    $this->cl->update(['applies_to' => ['permanent']]);
+    $wager = person('DW1', ['employment_type' => 'daily_wage']);
+
+    expect(fn () => $this->submit->__invoke($wager, $this->cl, '2026-09-08', '2026-09-08', $this->hr))
+        ->toThrow(ValidationException::class, 'This leave type does not apply to Daily wage employees.');
+});
+
 it('enforces balance, overlap, attachment and half-day rules', function () {
     expect(fn () => ($this->submit)($this->emp, $this->cl, '2026-09-01', '2026-09-30', $this->self))->toThrow(ValidationException::class);
     ($this->submit)($this->emp, $this->cl, '2026-09-01', '2026-09-01', $this->self);
