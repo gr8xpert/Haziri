@@ -57,7 +57,7 @@ class PunchPhotos extends Page
             ->whereBetween('local_date', [$this->from ?: '1970-01-01', $this->to ?: '2999-12-31'])
             ->when($who !== '', fn ($q) => $q->where(fn ($w) => $w->where('device_pin', $who)
                 ->orWhereHas('employee', fn ($e) => $e->where('code', $who)->orWhere('first_name', 'like', "%{$who}%"))))
-            ->when($this->suspiciousOnly, fn ($q) => $q->where(fn ($w) => $w->whereIn('meta->face_check->result', ['mismatch', 'no_face', 'not_enrolled'])
+            ->when($this->suspiciousOnly, fn ($q) => $q->where(fn ($w) => $w->whereIn('meta->face_check->result', ['mismatch', 'no_face', 'not_enrolled', 'unverified_device'])
                 ->orWhere('meta->geofence_fail', true)))
             ->latest('punched_at')->limit(120)->get()
             ->map(fn (Punch $p) => [

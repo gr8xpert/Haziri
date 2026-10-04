@@ -73,12 +73,16 @@ final class FaceMatcher
     /** @var array<string, string> face-check results on a punch (meta.face_check.result) */
     public const CHECK_LABELS = [
         'match' => 'Face matches', 'mismatch' => 'Face does not match', 'no_face' => 'No face in the photo',
-        'not_enrolled' => 'Face not enrolled',
+        'not_enrolled' => 'Face not enrolled', 'unverified_device' => 'Kiosk not locked to approved tablets',
     ];
 
     /**
      * Face check on a punch made with a PIN, QR card or phone, when the company turned it on (setting
      * face_check_photo_punches, needs kiosk_face). Null = not checked; anything but "match" sends the punch to approval.
+     *
+     * Limitation: the descriptor is computed on the client. The kiosk only trusts approved tablets (KioskPunch); on a
+     * phone the employee controls the device, so a technically able person could send a descriptor computed from a
+     * colleague's picture. There it deters ordinary buddy punching; the stored selfie stays the evidence for HR.
      *
      * @return array{result: string, similarity: ?float}|null
      */

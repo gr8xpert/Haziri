@@ -65,6 +65,11 @@ final class KioskPunch
         $direction = PunchDirection::tryFrom((string) ($input['direction'] ?? '')) ?? SelfPunch::nextDirection($employee->id, $at);
         // PIN / QR: someone else may know the PIN or hold the card. Check the face in the photo against the enrolled one.
         $faceCheck = $input['mode'] === 'face' ? null : $this->faces->checkPunch($employee, $input['face'] ?? null);
+        // The descriptor is worked out on the tablet, so (as for face mode) it is only trusted from a tablet HR approved:
+        // from any other browser it could be computed from someone's picture. Unlocked kiosk → can't verify → approval.
+        if ($faceCheck !== null && ! $kiosk->lock_to_device) {
+            $faceCheck = ['result' => 'unverified_device', 'similarity' => null];
+        }
 
         $result = ($this->ingest)(new PunchData(
             punchedAt: $at,

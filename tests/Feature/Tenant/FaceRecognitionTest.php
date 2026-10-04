@@ -175,6 +175,13 @@ it('checks the face on PIN punches when the company turns it on, and sends doubt
 
     $punch('501', null, 59)->assertOk()->assertJsonPath('pending', true);
     expect($last($this->asma)->meta['face_check']['result'])->toBe('no_face');
+
+    // The descriptor comes from the tablet: from a kiosk that is not locked to approved tablets it can't be trusted.
+    $this->kiosk->update(['lock_to_device' => false]);
+    $this->travelTo(CarbonImmutable::parse('2026-09-08 11:30', 'Asia/Karachi'));
+    $this->postJson("{$this->url}/punch", ['mode' => 'pin', 'pin' => '501', 'photo' => $this->photo, 'face' => faceOf(1, 0.1, 9)])
+        ->assertOk()->assertJsonPath('pending', true);
+    expect($last($this->asma)->meta['face_check']['result'])->toBe('unverified_device');
 });
 
 it('checks the selfie face on phone punches', function () {

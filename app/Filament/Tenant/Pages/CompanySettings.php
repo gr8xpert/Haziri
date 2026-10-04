@@ -91,7 +91,7 @@ class CompanySettings extends Page
                 $int('mobile_max_accuracy_m', 'Reject mobile GPS worse than (0 = off)', 'm'),
                 Toggle::make('mobile_require_selfie')->label('Selfie required for mobile punch')->inline(false),
                 Toggle::make('face_check_photo_punches')->label('Face check on PIN, QR card and phone punches')->inline(false)
-                    ->helperText('The photo is compared with the face enrolled under Face enrolment. Wrong face, no face or not enrolled → the punch waits in Punch approvals.')
+                    ->helperText('The photo is compared with the face enrolled under Face enrolment. Wrong face, no face or not enrolled → the punch waits in Punch approvals. Kiosks must be locked to approved tablets. On phones it stops casual buddy punching but a tech-savvy user could fool it, so keep checking the photos.')
                     ->visible(fn () => app(TenantSettings::class)->featureEnabled('kiosk_face')),
                 Toggle::make('allow_future_manual_punch')->inline(false),
                 Toggle::make('employee_can_see_others')->label('Employees can see colleagues')->inline(false),
