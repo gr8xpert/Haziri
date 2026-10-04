@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Enums;
 
-enum LeaveDayPart: string
+use Filament\Support\Contracts\HasLabel;
+
+enum LeaveDayPart: string implements HasLabel
 {
     case Full = 'full';
     case FirstHalf = 'first_half';
@@ -13,5 +15,14 @@ enum LeaveDayPart: string
     public function isHalf(): bool
     {
         return $this !== self::Full;
+    }
+
+    public function getLabel(): string
+    {
+        return match ($this) {
+            self::Full => __('Full day'),
+            self::FirstHalf => __('First half'),
+            self::SecondHalf => __('Second half'),
+        };
     }
 }

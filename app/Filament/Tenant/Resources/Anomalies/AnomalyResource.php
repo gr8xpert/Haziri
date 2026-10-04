@@ -31,6 +31,15 @@ class AnomalyResource extends Resource
 
     protected static string $managePermission = 'attendance.manual_edit';
 
+    /** @var array<string, string> AnomalyDetector types */
+    private const TYPES = [
+        'buddy_punching' => 'Buddy punching', 'ghost_employee' => 'Ghost employee', 'pattern_shift' => 'Arrival time changed',
+        'impossible_sequence' => 'Two branches too close in time', 'impossible_travel' => 'Impossible travel',
+    ];
+
+    /** @var array<string, string> */
+    private const STATUSES = ['open' => 'Open', 'investigating' => 'Investigating', 'dismissed' => 'Dismissed'];
+
     public static function getNavigationBadge(): ?string
     {
         $n = Anomaly::where('status', 'open')->count();
@@ -44,14 +53,15 @@ class AnomalyResource extends Resource
             ->defaultSort('detected_on', 'desc')
             ->columns([
                 TextColumn::make('detected_on')->date(),
-                TextColumn::make('type')->badge()->formatStateUsing(fn (string $state) => str_replace('_', ' ', $state)),
+                TextColumn::make('type')->badge()->formatStateUsing(fn (string $state) => self::TYPES[$state] ?? ucfirst(str_replace('_', ' ', $state))),
                 TextColumn::make('employee.first_name')->label('Employee')->formatStateUsing(fn (Anomaly $r) => $r->employee?->fullName()),
                 TextColumn::make('explanation')->wrap()->limit(160),
-                TextColumn::make('status')->badge()->color(fn (string $state) => match ($state) {
-                    'open' => 'warning', 'investigating' => 'info', default => 'gray',
-                }),
+                TextColumn::make('status')->badge()->formatStateUsing(fn (string $state) => self::STATUSES[$state] ?? $state)
+                    ->color(fn (string $state) => match ($state) {
+                        'open' => 'warning', 'investigating' => 'info', default => 'gray',
+                    }),
             ])
-            ->filters([SelectFilter::make('status')->options(['open' => 'open', 'investigating' => 'investigating', 'dismissed' => 'dismissed'])->default('open')])
+            ->filters([SelectFilter::make('status')->options(self::STATUSES)->default('open')])
             ->recordActions([
                 Action::make('investigate')->icon(Heroicon::OutlinedIdentification)->color('info')
                     ->visible(fn (Anomaly $r) => $r->status === 'open')

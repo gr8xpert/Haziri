@@ -54,7 +54,8 @@ class UserResource extends Resource
             Select::make('roles')->multiple()->preload()
                 ->relationship('roles', 'name', modifyQueryUsing: fn ($query) => auth()->user()->hasRole(Role::Owner->value)
                     ? $query
-                    : $query->where('name', '!=', Role::Owner->value)),
+                    : $query->where('name', '!=', Role::Owner->value))
+                ->getOptionLabelFromRecordUsing(fn ($role) => Role::tryFrom($role->name)?->getLabel() ?? $role->name),
             Select::make('branches')->multiple()->preload()->relationship('branches', 'name')
                 ->label('Limit to branches')->placeholder('All branches')
                 ->helperText('A shop/branch manager sees only these branches. Leave empty for all branches. Owners and admins always see everything.')
@@ -72,7 +73,7 @@ class UserResource extends Resource
             ->columns([
                 TextColumn::make('name')->searchable(),
                 TextColumn::make('email')->searchable(),
-                TextColumn::make('roles.name')->badge(),
+                TextColumn::make('roles.name')->label('Roles')->badge()->formatStateUsing(fn (string $state) => Role::tryFrom($state)?->getLabel() ?? $state),
                 TextColumn::make('branches.name')->badge()->color('gray')->placeholder('All branches')
                     ->visible(fn () => app(TenantSettings::class)->featureEnabled('multi_branch')),
                 IconColumn::make('is_active')->boolean(),

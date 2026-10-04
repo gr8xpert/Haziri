@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace App\Enums;
 
+use Filament\Support\Contracts\HasLabel;
+
 /**
  * Resolved status of one employee-day (spec §7.2).
  */
-enum AttendanceStatus: string
+enum AttendanceStatus: string implements HasLabel
 {
     case NotJoined = 'not_joined';
     case Left = 'left';
@@ -40,6 +42,25 @@ enum AttendanceStatus: string
             self::HalfDay => 'HD',
             self::Absent => 'A',
             self::Exempted => 'EX',
+        };
+    }
+
+    public function getLabel(): string
+    {
+        return match ($this) {
+            self::NotJoined => __('Not joined yet'),
+            self::Left => __('Left'),
+            self::Holiday => __('Holiday'),
+            self::WeeklyOff => __('Off day'),
+            self::LeavePaid => __('Paid leave'),
+            self::LeaveUnpaid => __('Unpaid leave'),
+            self::HalfDayLeave => __('Half-day leave'),
+            self::OfficialDuty => __('Official duty'),
+            self::Wfh => __('Work from home'),
+            self::Present => __('Present'),
+            self::HalfDay => __('Half day'),
+            self::Absent => __('Absent'),
+            self::Exempted => __('Exempted'),
         };
     }
 }

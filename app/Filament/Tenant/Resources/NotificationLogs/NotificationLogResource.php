@@ -32,6 +32,9 @@ class NotificationLogResource extends Resource
 
     protected static string $managePermission = 'settings.manage_never';
 
+    /** @var array<string, string> */
+    private const CHANNELS = ['mail' => 'Email', 'database' => 'In-app', 'whatsapp' => 'WhatsApp', 'sms' => 'SMS', 'log' => 'Log'];
+
     public static function table(Table $table): Table
     {
         return $table
@@ -39,7 +42,7 @@ class NotificationLogResource extends Resource
             ->columns([
                 TextColumn::make('created_at')->dateTime()->sortable(),
                 TextColumn::make('event')->searchable(),
-                TextColumn::make('channel')->badge(),
+                TextColumn::make('channel')->badge()->formatStateUsing(fn (string $state) => self::CHANNELS[$state] ?? $state),
                 TextColumn::make('recipient')->searchable(),
                 TextColumn::make('status')->badge()->color(fn (string $state) => match ($state) {
                     'sent' => 'success', 'failed' => 'danger', 'queued' => 'warning', default => 'gray',
@@ -49,7 +52,7 @@ class NotificationLogResource extends Resource
             ])
             ->filters([
                 SelectFilter::make('status')->options(['queued' => 'queued', 'sent' => 'sent', 'failed' => 'failed', 'skipped' => 'skipped']),
-                SelectFilter::make('channel')->options(['mail' => 'mail', 'database' => 'in-app', 'whatsapp' => 'whatsapp', 'sms' => 'sms']),
+                SelectFilter::make('channel')->options(self::CHANNELS),
             ]);
     }
 

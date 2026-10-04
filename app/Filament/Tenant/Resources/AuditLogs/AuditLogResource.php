@@ -57,7 +57,7 @@ class AuditLogResource extends Resource
             ->columns([
                 TextColumn::make('created_at')->dateTime()->sortable(),
                 TextColumn::make('causer.name')->label('By')->placeholder('System'),
-                TextColumn::make('event')->badge(),
+                TextColumn::make('event')->badge()->formatStateUsing(fn (?string $state) => ucfirst(str_replace('_', ' ', (string) $state))),
                 TextColumn::make('subject_type')->label('Record')->formatStateUsing(fn (?string $s) => $s ? class_basename($s) : ''),
                 TextColumn::make('subject_id')->label('#'),
                 TextColumn::make('description')->limit(40),
@@ -66,7 +66,7 @@ class AuditLogResource extends Resource
                 SelectFilter::make('subject_type')->label('Record type')
                     ->options(fn () => Activity::query()->distinct()->pluck('subject_type')->filter()
                         ->mapWithKeys(fn ($t) => [$t => class_basename($t)])->all()),
-                SelectFilter::make('event')->options(['created' => 'created', 'updated' => 'updated', 'deleted' => 'deleted']),
+                SelectFilter::make('event')->options(['created' => 'Created', 'updated' => 'Updated', 'deleted' => 'Deleted']),
             ])
             ->recordActions([ViewAction::make()]);
     }

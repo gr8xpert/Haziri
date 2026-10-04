@@ -58,7 +58,7 @@ class PunchPhotos extends Page
                 'url' => URL::temporarySignedRoute('tenant.punch-photo', now()->addMinutes(30), ['punch' => $p->id]),
                 'name' => $p->employee?->fullName() ?? ('PIN ' . $p->device_pin),
                 'time' => $p->punched_at->setTimezone($tz)->format('D d M, H:i'),
-                'source' => $p->source->value,
+                'source' => $p->source->getLabel(),
                 'flag' => (bool) ($p->meta['geofence_fail'] ?? false),
             ]);
     }
