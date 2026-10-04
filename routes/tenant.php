@@ -10,6 +10,7 @@ use App\Http\Controllers\SwitchCompanyController;
 use App\Http\Middleware\AuthenticateApiToken;
 use App\Http\Middleware\EnsureEmployee;
 use App\Http\Middleware\IdentifyTenant;
+use App\Models\Announcement;
 use App\Models\Punch;
 use App\Models\Visitor;
 use App\Support\Brand;
@@ -87,6 +88,13 @@ Route::middleware([
         return view('visitors.badge', ['visitor' => $visitor, 'photo' => $photo, 'company' => tenant('company_name')]);
     })->middleware('auth')->name('tenant.visitor-badge');
 
+    // Printable A4 notice for the notice board (workers without the app), English + Urdu headings.
+    Route::get('/announcements/{announcement}/print', function (Announcement $announcement) {
+        abort_unless(auth()->user()?->can('announcements.manage'), 403);
+
+        return view('announcements.print', ['announcement' => $announcement, 'company' => tenant('company_name')]);
+    })->middleware('auth')->name('tenant.announcement-print');
+
     // ---- Public API v1 (spec §13.3): bearer token, per-token rate limit, no session/CSRF ----
     Route::prefix('api/v1')->name('api.')
         ->withoutMiddleware([PreventRequestForgery::class])
@@ -107,5 +115,7 @@ Route::middleware([
         Route::get('config', [KioskController::class, 'config'])->name('config');
         Route::post('punch', [KioskController::class, 'punch'])->middleware('throttle:120,1')->name('punch')
             ->withoutMiddleware(PreventRequestForgery::class);
+        Route::post('announcements/{announcement}/ack/{employee}', [KioskController::class, 'ack'])
+            ->middleware(['signed', 'throttle:120,1'])->name('announcement-ack')->withoutMiddleware(PreventRequestForgery::class);
     });
 });

@@ -2,16 +2,19 @@
 
 declare(strict_types=1);
 
-use App\Enums\AttendanceStatus;
+use App\Actions\Announcements\BroadcastAnnouncement;
+use App\Actions\SelfService\DecidePendingPunch;
 use App\Enums\DevicePunchSourceType;
 use App\Enums\PunchStatus;
 use App\Enums\Role;
 use App\Models\Announcement;
 use App\Models\AttendanceDay;
 use App\Models\Branch;
+use App\Models\Central\DeviceRegistry;
 use App\Models\Device;
 use App\Models\Employee;
 use App\Models\Kiosk;
+use App\Models\NotificationLog;
 use App\Models\Punch;
 use App\Models\Setting;
 use App\Models\User;
@@ -20,6 +23,7 @@ use App\Services\SelfService\QrBadge;
 use App\Services\Settings\TenantSettings;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 
 beforeEach(function () {
     // Office hours, so punches fall inside the day shift's punch window whatever time CI runs.
@@ -36,7 +40,7 @@ beforeEach(function () {
     $this->base = 'http://pest.' . config('hazri.central_domain');
 });
 
-afterEach(fn () => App\Models\Central\DeviceRegistry::where('serial_number', 'like', 'KIOSK-%')->delete());
+afterEach(fn () => DeviceRegistry::where('serial_number', 'like', 'KIOSK-%')->delete());
 
 it('logs employees in with email and password and serves the app', function () {
     $this->get("{$this->base}/me/login")->assertOk()->assertSee('Send code');
@@ -85,7 +89,7 @@ it('accepts a mobile punch inside the geofence and queues one outside for HR', f
 
     $hr = User::create(['name' => 'HR', 'email' => 'hr-ss@pest.test', 'password' => 'x']);
     $hr->assignRole(Role::Hr->value);
-    app(App\Actions\SelfService\DecidePendingPunch::class)($pending, $hr, true);
+    app(DecidePendingPunch::class)($pending, $hr, true);
     expect($pending->fresh()->status)->toBe(PunchStatus::Valid)
         ->and(AttendanceDay::where('employee_id', $this->emp->id)->whereDate('date', now('Asia/Karachi')->format('Y-m-d'))->value('flags'))
         ->toContain('geofence_fail');
@@ -152,4 +156,50 @@ it('shows announcements to their audience and records acknowledgements', functio
 it('computes geofence distances', function () {
     expect(GeoFence::metres(31.5204, 74.3587, 31.5204, 74.3587))->toBe(0.0)
         ->and(round(GeoFence::metres(31.5204, 74.3587, 31.5294, 74.3587)))->toBe(1001.0);
+});
+
+it('shows notices on the kiosk after a punch until they are acknowledged there', function () {
+    $device = Device::create(['name' => 'Tab', 'serial_number' => 'KIOSK-NOTICE', 'type' => DevicePunchSourceType::Kiosk]);
+    $kiosk = Kiosk::create(['device_id' => $device->id, 'token' => Kiosk::newToken(), 'allowed_modes' => ['pin'], 'require_photo' => false]);
+    $url = "{$this->base}/kiosk/{$kiosk->token}";
+    $policy = Announcement::create(['title' => 'New leave policy', 'body' => 'Read it', 'requires_ack' => true]);
+    Announcement::create(['title' => 'Closed Friday', 'body' => 'x']);
+    $old = Announcement::create(['title' => 'Old news', 'body' => 'x']);
+    $old->forceFill(['created_at' => now()->subDays(3)])->saveQuietly();
+
+    $first = $this->postJson("{$url}/punch", ['mode' => 'pin', 'pin' => '501'])->assertOk();
+    expect(collect($first->json('announcements'))->pluck('title')->sort()->values()->all())->toBe(['Closed Friday', 'New leave policy']);
+
+    $ackUrl = collect($first->json('announcements'))->firstWhere('id', $policy->id)['ack_url'];
+    $this->postJson($ackUrl)->assertOk();
+    $this->postJson(str_replace('signature=', 'signature=x', $ackUrl))->assertForbidden(); // forged / changed link
+    expect($policy->acks()->where('employee_id', $this->emp->id)->exists())->toBeTrue();
+
+    $this->travel(5)->minutes();
+    $second = $this->postJson("{$url}/punch", ['mode' => 'pin', 'pin' => '501'])->assertOk();
+    expect(collect($second->json('announcements'))->pluck('title')->all())->toBe(['Closed Friday']);
+});
+
+it('sends an announcement only by the channels chosen and counts who they reach', function () {
+    Mail::fake();
+    $announcement = Announcement::create(['title' => 'By email', 'body' => 'x', 'notify' => true, 'channels' => ['mail']]);
+
+    app(BroadcastAnnouncement::class)($announcement);
+
+    expect(NotificationLog::where('dedupe_key', "announcement:{$announcement->id}")->pluck('channel')->unique()->values()->all())->toBe(['mail'])
+        ->and(BroadcastAnnouncement::reach([]))->toMatchArray(['employees' => 1, 'app' => 1, 'email' => 1, 'phone' => 1])
+        ->and(array_keys(BroadcastAnnouncement::availableChannels()))->toBe(['database', 'mail']);
+
+    Setting::updateOrCreate(['key' => 'sms_provider'], ['value' => 'http']);
+    app(TenantSettings::class)->flush();
+    expect(array_keys(BroadcastAnnouncement::availableChannels()))->toContain('sms');
+});
+
+it('prints an announcement as an A4 notice with an Urdu heading', function () {
+    $announcement = Announcement::create(['title' => 'Eid holidays', 'body' => 'Factory closed 3 days']);
+    $owner = User::where('email', 'owner@pest.test')->firstOrFail();
+
+    $this->actingAs($owner)->get("{$this->base}/announcements/{$announcement->id}/print")
+        ->assertOk()->assertSee('Eid holidays')->assertSee('اطلاع');
+    $this->actingAs($this->user)->get("{$this->base}/announcements/{$announcement->id}/print")->assertForbidden();
 });

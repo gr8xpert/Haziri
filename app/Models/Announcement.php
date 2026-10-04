@@ -20,7 +20,7 @@ class Announcement extends Model
     {
         return [
             'audience' => 'array', 'publish_at' => 'immutable_datetime', 'expires_at' => 'immutable_datetime',
-            'requires_ack' => 'boolean', 'notify' => 'boolean',
+            'requires_ack' => 'boolean', 'notify' => 'boolean', 'channels' => 'array', 'notified_at' => 'immutable_datetime',
         ];
     }
 

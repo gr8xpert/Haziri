@@ -20,11 +20,12 @@ final class Notifier
      * @param  iterable<Recipient>  $recipients
      * @param  array<string, mixed>  $data
      * @param  string|null  $dedupeKey  time-based events: never send the same key twice to the same recipient/channel
+     * @param  list<string>|null  $channels  override the event's channels (e.g. an announcement sent by WhatsApp only)
      */
-    public function send(string $event, iterable $recipients, array $data, ?string $url = null, ?string $dedupeKey = null): int
+    public function send(string $event, iterable $recipients, array $data, ?string $url = null, ?string $dedupeKey = null, ?array $channels = null): int
     {
         $queued = 0;
-        $channels = $this->channelsFor($event);
+        $channels ??= $this->channelsFor($event);
         $seen = [];
         foreach ($recipients as $to) {
             if (isset($seen[$to->key()])) {

@@ -198,6 +198,21 @@
                     </div>
                 </template>
 
+                <template x-if="screen === 'announce'">
+                    <div class="flex flex-1 flex-col items-center justify-center text-center" role="dialog" aria-live="polite">
+                        <div class="flex size-20 items-center justify-center rounded-3xl bg-sky-400/15 ring-1 ring-sky-300/30">@svg('heroicon-o-megaphone', 'size-10 text-sky-200')</div>
+                        <div class="mt-3 text-lg text-white/60">
+                            {{ __('Notice') }} · <span lang="ur" dir="rtl">اطلاع</span>
+                            <span x-show="notices.length > 1" x-text="`(${noticeIndex + 1} / ${notices.length})`"></span>
+                        </div>
+                        <div class="mt-6 max-w-2xl text-4xl font-semibold tracking-tight text-balance" dir="auto" x-text="notices[noticeIndex]?.title"></div>
+                        <div class="mt-5 max-h-[40vh] max-w-2xl overflow-y-auto text-2xl leading-relaxed whitespace-pre-line text-white/85" dir="auto" x-text="notices[noticeIndex]?.body"></div>
+                        <button type="button" @click="nextNotice(true)"
+                                class="mt-10 rounded-2xl bg-emerald-400 px-10 py-5 text-2xl font-semibold text-emerald-950 shadow-[0_8px_24px_-8px_rgb(52_211_153/0.6)] active:bg-emerald-300"
+                                x-text="notices[noticeIndex]?.requires_ack ? 'I have read it / میں نے پڑھ لیا' : 'OK'"></button>
+                    </div>
+                </template>
+
                 <template x-if="screen === 'notice'">
                     <div class="flex flex-1 flex-col items-center justify-center text-center" role="status">
                         <div class="kiosk-pop flex size-32 items-center justify-center rounded-full bg-amber-300 text-amber-950 shadow-[0_0_0_14px_rgb(252_211_77/0.14)]">

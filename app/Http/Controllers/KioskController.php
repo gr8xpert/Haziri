@@ -7,11 +7,15 @@ namespace App\Http\Controllers;
 use App\Actions\Punches\IngestOutcome;
 use App\Actions\SelfService\KioskPunch;
 use App\Enums\PunchDirection;
+use App\Models\Announcement;
+use App\Models\AnnouncementAck;
+use App\Models\Employee;
 use App\Models\Kiosk;
 use App\Services\SelfService\KioskDeviceGuard;
 use App\Services\Settings\TenantSettings;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
@@ -97,10 +101,43 @@ final class KioskController
             'ok' => true,
             'replay' => $r['result']->outcome === IngestOutcome::AlreadyStored,
             'pending' => $r['result']->outcome === IngestOutcome::PendingApproval,
+            'announcements' => $this->announcementsFor($r['employee'], $token),
             'name' => $r['employee']->first_name,
             'direction' => $r['direction']->value,
             'time' => $r['at']->setTimezone($tz)->format('H:i'),
         ]);
+    }
+
+    /** "I have read it" tapped on the kiosk; the signed link (from the punch response) says who and what. */
+    public function ack(string $token, Announcement $announcement, Employee $employee, TenantSettings $settings): JsonResponse
+    {
+        $this->kiosk($token, $settings);
+        abort_unless($announcement->isFor($employee), 404);
+        AnnouncementAck::query()->firstOrCreate(['announcement_id' => $announcement->id, 'employee_id' => $employee->id], ['acked_at' => now()]);
+
+        return response()->json(['ok' => true]);
+    }
+
+    /**
+     * Notices to show after a punch, for workers without the app: ones still waiting for this employee's
+     * acknowledgement, and other announcements from the last 2 days. At most 3.
+     *
+     * @return list<array{id: int, title: string, body: string, requires_ack: bool, ack_url: ?string}>
+     */
+    private function announcementsFor(Employee $employee, string $token): array
+    {
+        $recent = now()->subHours(48);
+
+        return Announcement::visibleTo($employee)->get()
+            ->filter(fn (Announcement $a) => $a->requires_ack
+                ? ! $a->acks->contains('employee_id', $employee->id)
+                : ($a->publish_at ?? $a->created_at)->greaterThanOrEqualTo($recent))
+            ->take(3)
+            ->map(fn (Announcement $a) => [
+                'id' => $a->id, 'title' => $a->title, 'body' => $a->body, 'requires_ack' => $a->requires_ack,
+                'ack_url' => $a->requires_ack ? URL::temporarySignedRoute('kiosk.announcement-ack', now()->addMinutes(10),
+                    ['token' => $token, 'announcement' => $a->id, 'employee' => $employee->id]) : null,
+            ])->values()->all();
     }
 
     private function kiosk(string $token, TenantSettings $settings): Kiosk

@@ -7,8 +7,10 @@ namespace App\Actions\Announcements;
 use App\Enums\EmployeeStatus;
 use App\Models\Announcement;
 use App\Models\Employee;
+use App\Models\User;
 use App\Services\Notifications\Notifier;
 use App\Services\Notifications\Recipient;
+use App\Services\Settings\TenantSettings;
 
 /**
  * Broadcast an announcement to its audience (spec §11) once it is published: right away when it is saved without a
@@ -34,7 +36,45 @@ final class BroadcastAnnouncement
         $announcement->forceFill(['notified_at' => now()])->saveQuietly();
 
         return $this->notifier->send('broadcast', $recipients, ['title' => $announcement->title, 'body' => $announcement->body],
-            url('/me'), "announcement:{$announcement->id}");
+            url('/me'), "announcement:{$announcement->id}", $announcement->channels ?: null);
+    }
+
+    /**
+     * Channels an announcement can go out on: in-app and email always; WhatsApp / SMS once a provider is set up.
+     *
+     * @return array<string, string> channel => label
+     */
+    public static function availableChannels(): array
+    {
+        $settings = app(TenantSettings::class);
+        $configured = fn (string $channel) => (string) ($settings->get("{$channel}_provider") ?? config("hazri.notifications.{$channel}_provider", 'log')) !== 'log';
+
+        return array_filter([
+            'database' => __('In the app'),
+            'mail' => __('Email'),
+            'whatsapp' => $settings->featureEnabled('whatsapp') && $configured('whatsapp') ? __('WhatsApp') : null,
+            'sms' => $configured('sms') ? __('SMS') : null,
+        ]);
+    }
+
+    /**
+     * How many employees in the audience each channel can reach (app = has an active login).
+     *
+     * @param  array{branch_ids?: list<int|string>, department_ids?: list<int|string>}  $audience
+     * @return array{employees: int, app: int, email: int, phone: int}
+     */
+    public static function reach(array $audience): array
+    {
+        $probe = new Announcement(['audience' => $audience]);
+        $employees = Employee::query()->where('status', '!=', EmployeeStatus::Left)->get()->filter(fn (Employee $e) => $probe->isFor($e));
+        $withLogin = User::query()->where('is_active', true)->whereIn('employee_id', $employees->pluck('id'))->get()->keyBy('employee_id');
+
+        return [
+            'employees' => $employees->count(),
+            'app' => $withLogin->count(),
+            'email' => $employees->filter(fn (Employee $e) => filled($e->email) || filled($withLogin->get($e->id)?->email))->count(),
+            'phone' => $employees->filter(fn (Employee $e) => filled($e->phone))->count(),
+        ];
     }
 
     /** Broadcast every announcement whose publish time has come. */

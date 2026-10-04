@@ -49,6 +49,9 @@ Alpine.data('kiosk', ({ token, requirePhoto, modes }) => ({
     faceRunning: false,
     faceCheck: false, // PIN / QR punches also send the face descriptor (company setting)
     checkingFace: false,
+    notices: [], // announcements shown after a punch (workers without the app)
+    noticeIndex: 0,
+    noticeTimer: null,
     pin: '',
     kioskPin: '',
     askKioskPin: false,
@@ -304,7 +307,37 @@ Alpine.data('kiosk', ({ token, requirePhoto, modes }) => ({
         if (r.name && 'speechSynthesis' in window) {
             speechSynthesis.speak(new SpeechSynthesisUtterance(`${r.direction === 'out' ? 'Goodbye' : 'Welcome'} ${r.name}`));
         }
+        if (r.announcements?.length) {
+            this.notices = r.announcements;
+            this.noticeIndex = 0;
+            setTimeout(() => this.showNotice(), 2200);
+            return;
+        }
         setTimeout(() => this.reset(), 3000);
+    },
+
+    /** One notice at a time; it closes by itself after 30 s (an acknowledgement is only recorded by the button). */
+    showNotice() {
+        clearTimeout(this.noticeTimer);
+        if (this.noticeIndex >= this.notices.length) {
+            this.notices = [];
+            return this.reset();
+        }
+        this.screen = 'announce';
+        this.noticeTimer = setTimeout(() => this.nextNotice(false), 30000);
+    },
+
+    async nextNotice(acknowledged = true) {
+        const notice = this.notices[this.noticeIndex];
+        if (acknowledged && notice?.ack_url) {
+            try {
+                await api(notice.ack_url, {});
+            } catch (e) {
+                /* offline or expired link: it is shown again at the next punch */
+            }
+        }
+        this.noticeIndex++;
+        this.showNotice();
     },
 
     fail(message) {
