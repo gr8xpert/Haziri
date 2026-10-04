@@ -1,5 +1,34 @@
 # Changelog
 
+## 2026-10-05 — Owner panel review round, part 2 (items 26–49)
+
+- **Reports simplified**: one "Reports" menu entry opens a page with every report in Daily / Monthly / Leave / People &
+  audit / Payroll, each with a line on what it shows (also at the top of each report). Merged: Late + Early-out → "Late &
+  early-out"; Attendance / Department / Branch / Month summary → "Monthly totals" (one line per employee, department or
+  branch); Employee monthly statement → the detailed monthly report. Renamed: Daily attendance, Monthly grid – all staff,
+  Employee monthly report (detailed). Old links redirect.
+- **Monthly attendance report**: "Separate PDFs (ZIP)"; more than 25 employees are prepared in the background with a
+  bell notification and a download link (only for the requester, kept 7 days). Employees download their own report in
+  the app (Month tab).
+- **Roster**: blank cells read "Usual: Night (22:00–06:00)", options are names with hours, planned changes are
+  highlighted, "New shift" / "+" create a shift on the spot. Demo data has Morning / Evening / Night shifts.
+- **Shift swaps**: the form shows both shifts and refuses same-shift swaps; readable statuses; employees ask a
+  colleague (same branch and department) from the app → colleague accepts → manager / HR approves, with notifications.
+- **Holidays**: "Paid" off now makes an unpaid day; Optional holidays apply only to those who take them (HR "Who takes
+  it", or "Take this day" in the app); provisional holidays remind HR 3 days ahead and show a menu badge.
+- **Leave**: grade / category rows can set carry forward and max consecutive days; a "Special rule" per employee beats
+  both; codes are filled in from the name (leave types, shifts, departments, branches, grades, contractors); punches on
+  a leave day are flagged (report remark, "Punched on N days of this leave" filter).
+- **Who's off**: names instead of codes, a legend, branch-only holidays marked, branch / department filters, managers
+  see their team.
+- **Anomalies**: Investigate shows the evidence (facts and the punches behind them).
+- Smaller: readable employment type in leave errors, accrual and event names in words.
+- Fixes: links in queued / scheduled notifications used the platform address instead of the company's; bank salary
+  CSV formula injection; background export links usable by other users; app swap requests could target anyone and
+  flood a colleague.
+- Tenant migrations: `holiday_opt_ins`, `leave_entitlements` (carry_forward_max, max_consecutive_days),
+  `employee_leave_rules` (run `php artisan tenants:migrate`).
+
 ## 2026-10-04 — Owner panel review round
 
 - **Readable labels everywhere**: no more internal codes (add_punch, pending, official_duty) in badges, dropdowns and
