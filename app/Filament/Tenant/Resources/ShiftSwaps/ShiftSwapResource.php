@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\Tenant\Resources\ShiftSwaps;
 
 use App\Actions\Rosters\ApproveShiftSwap;
+use App\Enums\ShiftSwapStatus;
 use App\Filament\Concerns\AuthorizesByPermission;
 use App\Filament\Concerns\RequiresFeature;
 use App\Filament\Tenant\NavigationGroup;
@@ -16,6 +17,8 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Text;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
@@ -49,10 +52,25 @@ class ShiftSwapResource extends Resource
         $employees = fn () => Employee::orderBy('code')->get()->mapWithKeys(fn (Employee $e) => [$e->id => "{$e->code} — {$e->fullName()}"]);
 
         return $schema->columns(2)->components([
-            Select::make('requester_employee_id')->label('Employee')->options($employees)->searchable()->required(),
-            Select::make('partner_employee_id')->label('Swaps with')->options($employees)->searchable()->required()->different('requester_employee_id'),
-            DatePicker::make('date')->required()->minDate(now()->startOfDay()),
+            Select::make('requester_employee_id')->label('Employee')->options($employees)->searchable()->required()->live(),
+            Select::make('partner_employee_id')->label('Swaps with')->options($employees)->searchable()->required()->different('requester_employee_id')->live(),
+            DatePicker::make('date')->required()->minDate(now()->startOfDay())->live()
+                ->rule(fn (Get $get) => function (string $attribute, mixed $value, \Closure $fail) use ($get) {
+                    $a = Employee::find($get('requester_employee_id'));
+                    $b = Employee::find($get('partner_employee_id'));
+                    if ($a === null || $b === null) {
+                        return;
+                    }
+                    try {
+                        app(ApproveShiftSwap::class)->shiftIds($a, $b, substr((string) $value, 0, 10));
+                    } catch (ValidationException $e) {
+                        $fail(implode(' ', $e->validator->errors()->all()));
+                    }
+                }),
             TextInput::make('reason'),
+            Text::make(fn (Get $get) => app(ApproveShiftSwap::class)->describe(
+                Employee::find($get('requester_employee_id')), Employee::find($get('partner_employee_id')), $get('date') ? substr((string) $get('date'), 0, 10) : null,
+            ) ?? __('Pick both employees and the date to see their shifts.'))->columnSpanFull(),
         ]);
     }
 
@@ -67,11 +85,11 @@ class ShiftSwapResource extends Resource
                 TextColumn::make('reason')->limit(30),
                 TextColumn::make('status')->badge(),
             ])
-            ->filters([SelectFilter::make('status')->options(['pending' => 'pending', 'approved' => 'approved', 'rejected' => 'rejected'])->default('pending')])
+            ->filters([SelectFilter::make('status')->options(ShiftSwapStatus::class)->default(ShiftSwapStatus::Pending->value)])
             ->recordActions([
                 ...array_map(fn (bool $ok) => Action::make($ok ? 'approve' : 'reject')->color($ok ? 'success' : 'danger')
                     ->icon($ok ? Heroicon::OutlinedShieldCheck : Heroicon::OutlinedExclamationTriangle)
-                    ->visible(fn (ShiftSwapRequest $r) => $r->status === 'pending')
+                    ->visible(fn (ShiftSwapRequest $r) => $r->status === ShiftSwapStatus::Pending)
                     ->action(function (ShiftSwapRequest $record, ApproveShiftSwap $approve) use ($ok) {
                         try {
                             $approve($record, auth()->user(), $ok);

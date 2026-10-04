@@ -5,7 +5,7 @@ declare(strict_types=1);
 use App\Actions\Punches\CreateManualPunches;
 use App\Actions\Rosters\ApproveShiftSwap;
 use App\Enums\AttendanceStatus;
-use App\Enums\Role;
+use App\Enums\ShiftSwapStatus;
 use App\Models\AttendanceDay;
 use App\Models\Central\TenantUserLink;
 use App\Models\Employee;
@@ -16,8 +16,10 @@ use App\Models\ShiftSwapRequest;
 use App\Models\User;
 use App\Models\Visitor;
 use App\Services\Analytics\PunctualityScore;
+use App\Services\Attendance\ShiftResolver;
 use App\Services\Settings\TenantSettings;
 use App\Support\Security\PublicUrl;
+use Illuminate\Validation\ValidationException;
 
 beforeEach(function () {
     $this->owner = User::where('email', 'owner@pest.test')->first();
@@ -44,10 +46,24 @@ it('swaps two employees\' shifts for one day', function () {
 
     app(ApproveShiftSwap::class)($swap, $this->owner, true);
 
-    $resolver = app(App\Services\Attendance\ShiftResolver::class);
+    $resolver = app(ShiftResolver::class);
     expect($resolver->resolve($a, '2026-10-20', 'Asia/Karachi')->shiftId)->toBe($this->evening->id)
         ->and($resolver->resolve($b, '2026-10-20', 'Asia/Karachi')->shiftId)->toBe(Shift::where('is_default', true)->value('id'))
         ->and($resolver->resolve($a, '2026-10-21', 'Asia/Karachi')->shiftId)->not->toBe($this->evening->id);
+});
+
+it('refuses a swap between two people on the same shift and describes both shifts', function () {
+    $a = Employee::create(['code' => 'SWC', 'first_name' => 'Cee', 'joined_on' => '2025-01-01']);
+    $b = Employee::create(['code' => 'SWD', 'first_name' => 'Dee', 'joined_on' => '2025-01-01']);
+    $swap = ShiftSwapRequest::create(['requester_employee_id' => $a->id, 'partner_employee_id' => $b->id, 'date' => '2026-10-20']);
+
+    expect(fn () => app(ApproveShiftSwap::class)($swap, $this->owner, true))
+        ->toThrow(ValidationException::class, 'Both are on the same shift that day, so there is nothing to swap.');
+
+    ShiftAssignment::create(['employee_id' => $b->id, 'shift_id' => $this->evening->id, 'effective_from' => '2026-01-01']);
+    expect(app(ApproveShiftSwap::class)->describe($a, $b, '2026-10-20'))->toContain('Cee')->toContain($this->evening->displayName())
+        ->and($swap->fresh()->status)->toBe(ShiftSwapStatus::Pending)
+        ->and(ShiftSwapStatus::Pending->getLabel())->toBe('Waiting for approval');
 });
 
 it('scores punctuality', function () {

@@ -36,6 +36,16 @@ class Shift extends Model
     /**
      * @param  list<int>  $fallbackWeeklyOffDays  branch weekly offs, used when the shift has none
      */
+    /** "Night (22:00–06:00)": the name, with the hours unless the name already shows them. */
+    public function displayName(): string
+    {
+        if (preg_match('/\d{1,2}:\d{2}/', (string) $this->name)) {
+            return (string) $this->name;
+        }
+
+        return sprintf('%s (%s–%s)', $this->name, substr((string) $this->start_time, 0, 5), substr((string) $this->end_time, 0, 5));
+    }
+
     public function toResolved(array $fallbackWeeklyOffDays = [0]): ResolvedShift
     {
         return new ResolvedShift(

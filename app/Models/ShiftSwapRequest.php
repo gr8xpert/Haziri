@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Enums\ShiftSwapStatus;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Spatie\Activitylog\Models\Concerns\LogsActivity;
@@ -19,7 +20,7 @@ class ShiftSwapRequest extends Model
 
     protected function casts(): array
     {
-        return ['date' => 'date:Y-m-d', 'decided_at' => 'immutable_datetime'];
+        return ['date' => 'date:Y-m-d', 'decided_at' => 'immutable_datetime', 'status' => ShiftSwapStatus::class];
     }
 
     public function getActivitylogOptions(): LogOptions
