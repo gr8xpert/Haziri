@@ -11,13 +11,16 @@ use App\Filament\Concerns\AuthorizesByPermission;
 use App\Filament\Concerns\ScopesToTeam;
 use App\Filament\Tenant\NavigationGroup;
 use App\Models\LeaveRequest;
+use App\Services\Ai\AttachmentReader;
 use App\Services\Approvals\ApprovalChain;
+use App\Services\Settings\TenantSettings;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Textarea;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
@@ -50,7 +53,7 @@ class LeaveRequestResource extends Resource
 
     public static function getEloquentQuery(): Builder
     {
-        return self::scopeToTeam(parent::getEloquentQuery()->with(['employee', 'leaveType']), 'leave.approve_final');
+        return self::scopeToTeam(parent::getEloquentQuery()->with(['employee', 'leaveType'])->withCount('workedDays'), 'leave.approve_final');
     }
 
     public static function table(Table $table): Table
@@ -60,7 +63,9 @@ class LeaveRequestResource extends Resource
             ->columns([
                 TextColumn::make('employee.code')->label('Code')->searchable(),
                 TextColumn::make('employee.first_name')->label('Employee')->formatStateUsing(fn (LeaveRequest $r) => $r->employee?->fullName()),
-                TextColumn::make('leaveType.code')->label('Type')->badge(),
+                TextColumn::make('leaveType.name')->label('Type')->badge()
+                    ->description(fn (LeaveRequest $r) => $r->worked_days_count > 0
+                        ? trans_choice('Punched on :n day of this leave|Punched on :n days of this leave', $r->worked_days_count, ['n' => $r->worked_days_count]) : null),
                 TextColumn::make('from_date')->date('d M')->label('From')->sortable(),
                 TextColumn::make('to_date')->date('d M Y')->label('To'),
                 TextColumn::make('day_part')->badge()->color('gray'),
@@ -70,19 +75,22 @@ class LeaveRequestResource extends Resource
                     RequestStatus::Rejected => 'danger', RequestStatus::Cancelled => 'gray',
                 }),
                 TextColumn::make('current_step')->label('Waiting for')
-                    ->formatStateUsing(fn (LeaveRequest $r) => $r->status === RequestStatus::Pending ? ($r->approver_chain[$r->current_step]['step'] ?? '') : ''),
+                    ->formatStateUsing(fn (LeaveRequest $r) => $r->status !== RequestStatus::Pending ? '' : match ($r->approver_chain[$r->current_step]['step'] ?? 'hr') {
+                        'manager' => __('Manager'), default => __('HR'),
+                    }),
                 TextColumn::make('reason')->limit(30)->toggleable(),
             ])
             ->filters([
                 SelectFilter::make('status')->options(RequestStatus::class)->default(RequestStatus::Pending->value),
                 SelectFilter::make('leave_type_id')->relationship('leaveType', 'name')->label('Type'),
+                Filter::make('worked')->label(__('Punched on a leave day'))->query(fn (Builder $query) => $query->has('workedDays')),
             ])
             ->recordActions([
                 Action::make('readAttachment')->label('Read attachment (AI)')->icon(Heroicon::OutlinedSparkles)->color('gray')
                     ->visible(fn (LeaveRequest $r) => $r->attachment_path !== null
-                        && app(\App\Services\Settings\TenantSettings::class)->featureEnabled('ai_reports')
+                        && app(TenantSettings::class)->featureEnabled('ai_reports')
                         && auth()->user()->can('leave.approve_final'))
-                    ->action(function (LeaveRequest $record, \App\Services\Ai\AttachmentReader $reader) {
+                    ->action(function (LeaveRequest $record, AttachmentReader $reader) {
                         $r = $reader->read($record, auth()->id());
                         if (! $r['ok']) {
                             Notification::make()->danger()->title($r['error'])->send();
@@ -92,10 +100,10 @@ class LeaveRequestResource extends Resource
                         $d = $r['data'];
                         Notification::make()->persistent()->color($d['matches_request'] ? 'success' : 'warning')
                             ->title($d['matches_request'] ? __('Certificate dates match the request') : __('Check the dates'))
-                            ->body(sprintf("%s → %s
+                            ->body(sprintf('%s → %s
 %s, %s
 %s
-(%s)", $d['from_date'] ?? '?', $d['to_date'] ?? '?',
+(%s)', $d['from_date'] ?? '?', $d['to_date'] ?? '?',
                                 $d['doctor'] ?? '?', $d['clinic'] ?? '?', $d['summary'] ?? '', __('AI suggestion — please verify')))
                             ->send();
                     }),

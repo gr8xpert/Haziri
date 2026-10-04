@@ -121,3 +121,11 @@ it('flags an unpaid holiday', function () {
     expect($paid->hasFlag(AttendanceFlag::UnpaidHoliday))->toBeFalse()
         ->and($unpaid->status)->toBe(AttendanceStatus::Holiday)->and($unpaid->hasFlag(AttendanceFlag::UnpaidHoliday))->toBeTrue();
 });
+
+it('flags punches on a full day of leave', function () {
+    $worked = $this->engine->resolve(Scenario::day('2026-09-01', ['2026-09-01 08:54', '2026-09-01 19:09'], ['leave' => new LeaveInput(11, isPaid: true)]));
+    $away = $this->engine->resolve(Scenario::day('2026-09-02', [], ['leave' => new LeaveInput(11, isPaid: true)]));
+
+    expect($worked->status)->toBe(AttendanceStatus::LeavePaid)->and($worked->hasFlag(AttendanceFlag::WorkedOnLeave))->toBeTrue()
+        ->and($away->hasFlag(AttendanceFlag::WorkedOnLeave))->toBeFalse();
+});

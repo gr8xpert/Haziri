@@ -178,6 +178,9 @@ final class MonthlyAttendanceStatement
         Collection $markers, Collection $exemptions): ?string
     {
         $notes = [];
+        if (in_array('worked_on_leave', $d->flags ?? [], true)) {
+            $notes[] = __('Worked on a leave day: cancel the leave?');
+        }
         if ($d?->holiday_id) {
             $notes[] = $holidays->get($d->holiday_id) . (in_array('unpaid_holiday', $d->flags ?? [], true) ? ' (' . __('unpaid') . ')' : '');
         }

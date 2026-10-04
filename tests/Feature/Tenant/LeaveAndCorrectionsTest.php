@@ -18,6 +18,7 @@ use App\Enums\Role;
 use App\Filament\Tenant\Pages\LeaveCalendar;
 use App\Filament\Tenant\Resources\Corrections\Pages\ListCorrections;
 use App\Filament\Tenant\Resources\LeaveBalances\Pages\ListLeaveBalances;
+use App\Filament\Tenant\Resources\LeaveRequests\Pages\ListLeaveRequests;
 use App\Models\AttendanceDay;
 use App\Models\Branch;
 use App\Models\Employee;
@@ -305,4 +306,17 @@ it('gives one employee a special leave rule that beats the grade row and the lea
     Livewire::test(ListLeaveBalances::class)
         ->callAction(TestAction::make('specialRule')->table($balance), data: ['carry_forward_max' => null, 'days_per_year' => null, 'max_consecutive_days' => null, 'reason' => 'Back to normal']);
     expect(EmployeeLeaveRule::count())->toBe(0);
+});
+
+it('lists leave on which the employee punched anyway', function () {
+    Filament::setCurrentPanel(Filament::getPanel('tenant'));
+    $leave = ($this->submit)($this->emp, $this->cl, '2026-09-08', '2026-09-08', $this->hr);
+    ($this->decide)($leave, $this->hr, true);
+    app(CreateManualPunches::class)($this->emp, '2026-09-08', '09:00', '18:00', 'came anyway', $this->hr);
+
+    expect(AttendanceDay::where('employee_id', $this->emp->id)->whereDate('date', '2026-09-08')->value('flags'))->toContain('worked_on_leave');
+    $this->actingAs($this->hr);
+    Livewire::test(ListLeaveRequests::class)
+        ->filterTable('status', RequestStatus::Approved->value)->filterTable('worked', true)
+        ->assertCanSeeTableRecords([$leave])->assertSee('Punched on 1 day of this leave');
 });

@@ -9,6 +9,7 @@ use App\Enums\RequestStatus;
 use App\Models\Concerns\ScopedToUserBranches;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Spatie\Activitylog\Models\Concerns\LogsActivity;
 use Spatie\Activitylog\Support\LogOptions;
 
@@ -41,6 +42,12 @@ class LeaveRequest extends Model
     public function employee(): BelongsTo
     {
         return $this->belongsTo(Employee::class);
+    }
+
+    /** Days of this leave on which the employee punched anyway. */
+    public function workedDays(): HasMany
+    {
+        return $this->hasMany(AttendanceDay::class)->whereJsonContains('flags', 'worked_on_leave');
     }
 
     public function leaveType(): BelongsTo

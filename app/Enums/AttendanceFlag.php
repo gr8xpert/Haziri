@@ -25,6 +25,8 @@ enum AttendanceFlag: string implements HasLabel
     case Exempted = 'exempted';
     /** A holiday the company does not pay for (Holiday "Paid" off). */
     case UnpaidHoliday = 'unpaid_holiday';
+    /** Punched on a full day of leave: the leave may not have been needed. */
+    case WorkedOnLeave = 'worked_on_leave';
 
     public function getLabel(): string
     {
@@ -42,6 +44,7 @@ enum AttendanceFlag: string implements HasLabel
             self::ManualOverride => __('Changed by hand'),
             self::Exempted => __('Exempted'),
             self::UnpaidHoliday => __('Unpaid holiday'),
+            self::WorkedOnLeave => __('Worked on a leave day'),
         };
     }
 }

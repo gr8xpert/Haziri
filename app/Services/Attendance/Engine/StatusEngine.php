@@ -120,6 +120,9 @@ final class StatusEngine
         if ($leave?->sandwich && in_array($status, [AttendanceStatus::LeavePaid, AttendanceStatus::LeaveUnpaid], true)) {
             $flags[AttendanceFlag::SandwichApplied->value] = AttendanceFlag::SandwichApplied;
         }
+        if ($hasPunches && in_array($status, [AttendanceStatus::LeavePaid, AttendanceStatus::LeaveUnpaid], true) && ! $leave?->sandwich) {
+            $flags[AttendanceFlag::WorkedOnLeave->value] = AttendanceFlag::WorkedOnLeave;
+        }
         if ($status === AttendanceStatus::Holiday && ! $ctx->holidayPaid) {
             $flags[AttendanceFlag::UnpaidHoliday->value] = AttendanceFlag::UnpaidHoliday;
         }
