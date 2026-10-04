@@ -8,7 +8,7 @@
 - **Required fields** marked with a large bold red star; the employee form says "Fields marked * are required".
 - **Manual Entry**: the "Daily attendance sheet" is renamed (it is bulk hand entry, not a report); the punch log's
   single-punch button is now "Add one punch".
-- **Corrections & OD/WFH**: details in plain words ("Out punch at 18:10"; fixed: they were shown twice), Requested by,
+- **Corrections** (renamed from "Corrections & OD/WFH"): details in plain words ("Out punch at 18:10"; fixed: they were shown twice), Requested by,
   Approval ("Waiting for manager / HR"), and a one-line explanation under Type in the request form.
 - **Months (lock) → View**: new Month summary report (also under Reports): one line per employee — present, late,
   half day, leave, OD/WFH, absent, overtime, deduction and payable days — from the lock snapshot for locked months, live

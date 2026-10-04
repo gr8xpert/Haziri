@@ -34,7 +34,7 @@ class CorrectionResource extends Resource
 
     protected static ?int $navigationSort = 40;
 
-    protected static ?string $navigationLabel = 'Corrections & OD/WFH';
+    protected static ?string $navigationLabel = 'Corrections';
 
     protected static ?string $modelLabel = 'correction';
 

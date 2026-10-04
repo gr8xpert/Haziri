@@ -27,7 +27,7 @@ class ListCorrections extends ListRecords
 {
     protected static string $resource = CorrectionResource::class;
 
-    protected static ?string $title = 'Corrections & OD/WFH';
+    protected static ?string $title = 'Corrections';
 
     protected function getHeaderActions(): array
     {
