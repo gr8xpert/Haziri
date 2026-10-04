@@ -71,7 +71,7 @@ final class MonthlyAttendanceExport
     public static function prune(): void
     {
         $disk = Storage::disk('local');
-        foreach ($disk->files('exports') as $file) {
+        foreach ($disk->allFiles('exports') as $file) {
             if ($disk->lastModified($file) < now()->subDays(self::KEEP_DAYS)->getTimestamp()) {
                 $disk->delete($file);
             }

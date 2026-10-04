@@ -42,7 +42,8 @@ final class BuildMonthlyAttendanceExport implements ShouldQueue
         @set_time_limit(0);
         $user = User::find($this->userId);
         $employees = Employee::withTrashed()->whereIn('id', $this->employeeIds)->orderBy('code')->get();
-        $stored = 'exports/' . Str::uuid() . '-' . $this->fileName;
+        // Kept in the requesting user's own folder: only they can download it (see the tenant.export-download route).
+        $stored = "exports/{$this->userId}/" . Str::uuid() . '-' . $this->fileName;
 
         if ($this->separateFiles) {
             $zip = $export->zip($employees, $this->year, $this->month, $user?->name);

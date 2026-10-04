@@ -64,6 +64,7 @@ Route::middleware([
             Route::post('shift-swaps', [MeController::class, 'shiftSwap'])->middleware('throttle:10,60')->name('shift-swaps.store');
             Route::post('shift-swaps/{swap}/answer', [MeController::class, 'shiftSwapAnswer'])->name('shift-swaps.answer');
             Route::get('qr.svg', [MeController::class, 'qr'])->name('qr');
+            Route::get('report.pdf', [MeController::class, 'monthlyReport'])->middleware('throttle:20,1')->name('report');
         });
     });
 
@@ -94,7 +95,8 @@ Route::middleware([
     // Background exports (monthly attendance PDF / ZIP): signed link from the notification, for logged-in panel users.
     Route::get('/exports/{file}', function (string $file) {
         abort_unless(auth()->user()?->can('reports.export'), 403);
-        $path = 'exports/' . $file;
+        // Only the user who asked for the export: the file lives in their own folder.
+        $path = 'exports/' . auth()->id() . '/' . $file;
         abort_if(! preg_match('/^[A-Za-z0-9._-]+$/', $file) || ! Storage::disk('local')->exists($path), 404);
 
         return Storage::disk('local')->download($path, preg_replace('/^[0-9a-f-]{36}-/', '', $file));

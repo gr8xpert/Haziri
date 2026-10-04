@@ -6,6 +6,7 @@ use App\Enums\AttendanceStatus;
 use App\Enums\PunchDirection;
 use App\Enums\PunchSource;
 use App\Enums\PunchStatus;
+use App\Enums\Role;
 use App\Filament\Tenant\Pages\Reports\MonthlyAttendance;
 use App\Jobs\BuildMonthlyAttendanceExport;
 use App\Models\AttendanceDay;
@@ -124,6 +125,11 @@ it('builds a background export and notifies the user with a working download lin
 
     $notification = $owner->notifications()->latest()->first();
     $url = $notification->data['actions'][0]['url'];
-    expect(Storage::disk('local')->files('exports'))->toHaveCount(1);
+    expect(Storage::disk('local')->files("exports/{$owner->id}"))->toHaveCount(1);
     $this->actingAs($owner)->get($url)->assertOk()->assertDownload('attendance-2026-09.pdf');
+
+    // Another user with export rights cannot use the same link: the file is in the owner's folder only.
+    $hr = User::create(['name' => 'HR2', 'email' => 'hr-export@pest.test', 'password' => 'x']);
+    $hr->assignRole(Role::Hr->value);
+    $this->actingAs($hr)->get($url)->assertNotFound();
 });
