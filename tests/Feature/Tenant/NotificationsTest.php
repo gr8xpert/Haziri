@@ -7,15 +7,18 @@ use App\Actions\Leave\DecideLeaveRequest;
 use App\Actions\Leave\SubmitLeaveRequest;
 use App\Enums\DevicePunchSourceType;
 use App\Enums\Role;
+use App\Filament\Tenant\Resources\Holidays\HolidayResource;
 use App\Models\Announcement;
 use App\Models\Central\DeviceRegistry;
 use App\Models\Device;
 use App\Models\Employee;
+use App\Models\Holiday;
 use App\Models\LeaveType;
 use App\Models\NotificationLog;
 use App\Models\NotificationTemplate;
 use App\Models\User;
 use App\Services\Notifications\TemplateRenderer;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Mail;
 
 beforeEach(function () {
@@ -96,4 +99,22 @@ it('broadcasts an announcement without a publish time at once', function () {
 
     expect(app(BroadcastAnnouncement::class)($now))->toBeGreaterThan(0)
         ->and($now->fresh()->notified_at)->not->toBeNull();
+});
+
+it('reminds HR to confirm a provisional holiday 3 days ahead, once', function () {
+    $h = Holiday::create(['date' => '2026-09-12', 'name' => 'Eid ul Adha', 'type' => 'gazetted', 'needs_confirmation' => true]);
+    Holiday::create(['date' => '2026-09-30', 'name' => 'Later', 'type' => 'gazetted', 'needs_confirmation' => true]);
+    $sent = fn () => NotificationLog::where(['event' => 'holiday_unconfirmed', 'dedupe_key' => "holiday_confirm:{$h->id}"])->count();
+
+    $this->artisan('hazri:notify:scheduled', ['--now' => '2026-09-09 09:30'])->assertSuccessful();
+    $this->artisan('hazri:notify:scheduled', ['--now' => '2026-09-10 09:30'])->assertSuccessful();
+
+    expect($sent())->toBeGreaterThan(0)
+        ->and(NotificationLog::where('event', 'holiday_unconfirmed')->where('dedupe_key', 'like', 'holiday_confirm:%')->distinct()->count('dedupe_key'))->toBe(1);
+    $this->travelTo(CarbonImmutable::parse('2026-09-09 10:00', 'Asia/Karachi'));
+    expect(HolidayResource::getNavigationBadge())->toBe('2'); // both are within 30 days
+
+    $before = $sent();
+    $this->artisan('hazri:notify:scheduled', ['--now' => '2026-09-10 10:00'])->assertSuccessful();
+    expect($sent())->toBe($before);
 });

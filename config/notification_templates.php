@@ -63,6 +63,11 @@ return [
         'en' => ['{{ month }} attendance locked', 'Attendance for {{ month }} has been locked by {{ by }}. Deduction days: {{ deduction_days }}.'],
         'ur' => ['{{ month }} کی حاضری لاک', '{{ month }} کی حاضری {{ by }} نے لاک کر دی ہے۔ کٹوتی کے دن: {{ deduction_days }}۔'],
     ],
+    'holiday_unconfirmed' => [
+        'channels' => ['mail', 'database'],
+        'en' => ['Confirm the holiday: {{ holiday }}', '{{ holiday }} on {{ date }} is still provisional. Confirm the date, or move it, under Holidays.'],
+        'ur' => ['چھٹی کی تصدیق کریں: {{ holiday }}', '{{ date }} کی {{ holiday }} ابھی عارضی ہے۔ Holidays میں تاریخ کی تصدیق کریں یا اسے تبدیل کریں۔'],
+    ],
     'probation_ending' => [
         'channels' => ['mail', 'database'],
         'en' => ['Probation ending: {{ employee }}', "{{ employee }}'s probation ends on {{ date }}."],

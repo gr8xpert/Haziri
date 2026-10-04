@@ -10,6 +10,7 @@ use App\Enums\EmployeeStatus;
 use App\Enums\Role;
 use App\Models\AttendanceDay;
 use App\Models\Employee;
+use App\Models\Holiday;
 use App\Models\UnmappedPin;
 use App\Services\Attendance\ShiftResolver;
 use App\Services\Attendance\WorkingDayCalendar;
@@ -65,7 +66,7 @@ final class ScheduledNotifications extends Command
             ], url('/admin/reports/daily-muster'), "daily_summary:{$today}");
         }
 
-        // Morning HR reminders (09:00): unmapped PINs, probation / contract endings, birthdays.
+        // Morning HR reminders (09:00): unmapped PINs, unconfirmed holidays, probation / contract endings, birthdays.
         if ($now->format('H:i') >= '09:00') {
             $sent += $this->morningReminders($notifier, $now);
         }
@@ -109,6 +110,14 @@ final class ScheduledNotifications extends Command
         $unmapped = UnmappedPin::whereNull('resolved_employee_id')->count();
         if ($unmapped > 0) {
             $sent += $notifier->send('unmapped_pins_pending', $hr, ['count' => $unmapped], url('/admin/unmapped-pins'), "unmapped:{$today}");
+        }
+
+        // Provisional holidays (moon sighting) still unconfirmed 3 days before: remind HR to confirm or move them.
+        $soon = Holiday::query()->where('needs_confirmation', true)
+            ->whereBetween('date', [$today, $now->addDays(3)->format('Y-m-d')])->get();
+        foreach ($soon as $h) {
+            $sent += $notifier->send('holiday_unconfirmed', $hr, ['holiday' => $h->name, 'date' => $h->date->format('d M Y')],
+                url('/admin/holidays'), "holiday_confirm:{$h->id}");
         }
 
         foreach (Employee::query()->where('status', '!=', EmployeeStatus::Left)->get() as $e) {

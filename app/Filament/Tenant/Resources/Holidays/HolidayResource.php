@@ -41,6 +41,25 @@ class HolidayResource extends Resource
 
     protected static string $managePermission = 'holidays.manage';
 
+    /** Provisional (moon-sighting) holidays in the next 30 days that still need confirming. */
+    public static function getNavigationBadge(): ?string
+    {
+        $n = Holiday::query()->where('needs_confirmation', true)
+            ->whereBetween('date', [now(tenant('timezone'))->format('Y-m-d'), now(tenant('timezone'))->addDays(30)->format('Y-m-d')])->count();
+
+        return $n ? (string) $n : null;
+    }
+
+    public static function getNavigationBadgeColor(): ?string
+    {
+        return 'warning';
+    }
+
+    public static function getNavigationBadgeTooltip(): ?string
+    {
+        return __('Provisional holidays to confirm');
+    }
+
     public static function form(Schema $schema): Schema
     {
         return $schema->columns(2)->components([
