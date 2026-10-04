@@ -66,6 +66,7 @@ final class DayContextLoader
             punches: $punches,
             holidayId: $holiday?->id,
             isHoliday: $holiday !== null,
+            holidayPaid: $holiday === null || $holiday->is_paid,
             leave: $this->leaveFor($employee, $date),
             marker: $marker?->status,
             manualOverride: $override !== null ? AttendanceStatus::from($override) : null,

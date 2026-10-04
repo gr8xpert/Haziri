@@ -86,3 +86,17 @@ it('pays daily-wage staff only for days worked (plus holidays if configured)', f
     expect($calc->summarise($month, new PeriodRules(isDailyWage: true))->payableDays)->toBe(21.0)
         ->and($calc->summarise($month, new PeriodRules(isDailyWage: true, dailyWagePaidHolidays: true))->payableDays)->toBe(22.0);
 });
+
+it('takes unpaid holidays off the pay but still counts them as holidays', function () {
+    $month = days([
+        [S::Present, 24, []],
+        [S::WeeklyOff, 4, []],
+        [S::Holiday, 1, []],
+        [S::Holiday, 1, [AttendanceFlag::UnpaidHoliday]],
+    ]);
+
+    $s = (new PeriodCalculator)->summarise($month, new PeriodRules);
+
+    expect($s->holidays)->toBe(2)->and($s->unpaidHolidays)->toBe(1)
+        ->and($s->deductionDays)->toBe(1.0)->and($s->payableDays)->toBe(29.0);
+});

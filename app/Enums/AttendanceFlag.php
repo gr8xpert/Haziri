@@ -23,6 +23,8 @@ enum AttendanceFlag: string implements HasLabel
     case SandwichApplied = 'sandwich_applied';
     case ManualOverride = 'manual_override';
     case Exempted = 'exempted';
+    /** A holiday the company does not pay for (Holiday "Paid" off). */
+    case UnpaidHoliday = 'unpaid_holiday';
 
     public function getLabel(): string
     {
@@ -39,6 +41,7 @@ enum AttendanceFlag: string implements HasLabel
             self::SandwichApplied => __('Sandwich rule applied'),
             self::ManualOverride => __('Changed by hand'),
             self::Exempted => __('Exempted'),
+            self::UnpaidHoliday => __('Unpaid holiday'),
         };
     }
 }

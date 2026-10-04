@@ -28,6 +28,8 @@ final readonly class DayContext
         public array $punches = [],
         public ?int $holidayId = null,
         public bool $isHoliday = false,
+        /** False when the holiday is unpaid: still a holiday, but not a paid day. */
+        public bool $holidayPaid = true,
         public ?LeaveInput $leave = null,
         /** OfficialDuty or Wfh marker from HR / an approved correction. */
         public ?AttendanceStatus $marker = null,

@@ -16,6 +16,8 @@ final readonly class PeriodSummary
         public int $paidLeaveDays,
         public int $unpaidLeaveDays,
         public int $holidays,
+        /** Holidays marked unpaid (counted in $holidays too). */
+        public int $unpaidHolidays,
         public int $weeklyOffs,
         public int $officialDutyDays,
         public int $wfhDays,

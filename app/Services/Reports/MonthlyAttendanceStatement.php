@@ -179,7 +179,7 @@ final class MonthlyAttendanceStatement
     {
         $notes = [];
         if ($d?->holiday_id) {
-            $notes[] = $holidays->get($d->holiday_id);
+            $notes[] = $holidays->get($d->holiday_id) . (in_array('unpaid_holiday', $d->flags ?? [], true) ? ' (' . __('unpaid') . ')' : '');
         }
         if ($d?->leave_request_id && ($reason = $leaves->get($d->leave_request_id)?->reason)) {
             $notes[] = $reason;

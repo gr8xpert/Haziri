@@ -25,6 +25,7 @@ final class PeriodCalculator
         $worked = 0;
         $overtime = 0;
         $halfLeaveUnworked = 0;
+        $unpaidHolidays = 0;
 
         foreach ($days as $day) {
             if ($day->status === null) {
@@ -37,6 +38,7 @@ final class PeriodCalculator
             $earlyOuts += $day->hasFlag(AttendanceFlag::EarlyOut) ? 1 : 0;
             $worked += $day->workedMin;
             $overtime += $day->overtimeMin;
+            $unpaidHolidays += $day->status === AttendanceStatus::Holiday && $day->hasFlag(AttendanceFlag::UnpaidHoliday) ? 1 : 0;
             if ($day->status === AttendanceStatus::HalfDayLeave && $day->hasFlag(AttendanceFlag::MissingIn)) {
                 $halfLeaveUnworked++;
             }
@@ -51,7 +53,9 @@ final class PeriodCalculator
         $lateAndHalfDays = $c(AttendanceStatus::HalfDay) * $rules->halfDayCountsAs + $lateRollup;
         $leaveAdjusted = $rules->isDailyWage ? 0.0 : min(floor(max(0.0, $rules->leaveAdjustAvailable) * 2) / 2, $lateAndHalfDays);
 
+        // An unpaid holiday is not worked and not paid: it comes off like a day without pay.
         $deduction = $c(AttendanceStatus::Absent) * $rules->absentDeductionDays
+            + $unpaidHolidays
             + $c(AttendanceStatus::LeaveUnpaid) * $rules->unpaidLeaveDeductionDays
             + $halfLeaveUnworked * 0.5
             + $lateAndHalfDays - $leaveAdjusted;
@@ -62,7 +66,7 @@ final class PeriodCalculator
             $payable = $c(AttendanceStatus::Present) + $c(AttendanceStatus::OfficialDuty) + $c(AttendanceStatus::Wfh) + $c(AttendanceStatus::Exempted)
                 + $c(AttendanceStatus::HalfDay) * (1 - $rules->halfDayCountsAs)
                 + ($c(AttendanceStatus::HalfDayLeave) - $halfLeaveUnworked) * 0.5
-                + ($rules->dailyWagePaidHolidays ? $c(AttendanceStatus::Holiday) : 0);
+                + ($rules->dailyWagePaidHolidays ? $c(AttendanceStatus::Holiday) - $unpaidHolidays : 0);
         } else {
             $payable = $calendarDays - $deduction;
         }
@@ -76,6 +80,7 @@ final class PeriodCalculator
             paidLeaveDays: $c(AttendanceStatus::LeavePaid),
             unpaidLeaveDays: $c(AttendanceStatus::LeaveUnpaid),
             holidays: $c(AttendanceStatus::Holiday),
+            unpaidHolidays: $unpaidHolidays,
             weeklyOffs: $c(AttendanceStatus::WeeklyOff),
             officialDutyDays: $c(AttendanceStatus::OfficialDuty),
             wfhDays: $c(AttendanceStatus::Wfh),

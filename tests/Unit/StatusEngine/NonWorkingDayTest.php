@@ -113,3 +113,11 @@ it('lets a holiday win over non-sandwich leave', function () {
 
     expect($this->engine->resolve($ctx)->status)->toBe(AttendanceStatus::Holiday);
 });
+
+it('flags an unpaid holiday', function () {
+    $paid = $this->engine->resolve(Scenario::day('2026-09-01', [], ['isHoliday' => true, 'holidayId' => 7]));
+    $unpaid = $this->engine->resolve(Scenario::day('2026-09-01', [], ['isHoliday' => true, 'holidayId' => 8, 'holidayPaid' => false]));
+
+    expect($paid->hasFlag(AttendanceFlag::UnpaidHoliday))->toBeFalse()
+        ->and($unpaid->status)->toBe(AttendanceStatus::Holiday)->and($unpaid->hasFlag(AttendanceFlag::UnpaidHoliday))->toBeTrue();
+});
