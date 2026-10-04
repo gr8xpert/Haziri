@@ -42,7 +42,7 @@ class UnknownDeviceResource extends Resource
                 TextColumn::make('ip'),
                 TextColumn::make('likely')->label('Likely company')->placeholder('—')
                     ->state(fn (UnknownDevice $r) => $r->likelyTenants()->pluck('company_name')->implode(', ') ?: null)
-                    ->description(fn (UnknownDevice $r) => $r->likelyTenants()->isNotEmpty() ? __('Same IP as their registered machine') : null),
+                    ->description(fn (UnknownDevice $r) => $r->likelyTenants()->isNotEmpty() ? __('Same IP as their machine: a hint, confirm the serial') : null),
                 TextColumn::make('hits')->label('Check-ins')->tooltip('Counted at most once a minute'),
                 TextColumn::make('first_seen_at')->since(),
                 TextColumn::make('last_seen_at')->since(),
@@ -53,20 +53,13 @@ class UnknownDeviceResource extends Resource
                     ->trueLabel('Blocked only')->falseLabel('Waiting only')->placeholder('All')->default(false),
             ])
             ->recordActions([
-                // One likely company: attach straight to it (with a confirmation).
-                Action::make('attachLikely')->icon(Heroicon::OutlinedLink)->color('success')->requiresConfirmation()
-                    ->label(fn (UnknownDevice $r) => __('Attach to :company', ['company' => $r->likelyTenants()->first()?->company_name]))
-                    ->visible(fn (UnknownDevice $r) => $r->blocked_at === null && $r->likelyTenants()->count() === 1)
-                    ->modalDescription(fn (UnknownDevice $r) => __('Its IP :ip is the one :company\'s registered machine uses. Ask them to confirm the serial :serial if unsure.', [
-                        'ip' => $r->ip, 'company' => $r->likelyTenants()->first()?->company_name, 'serial' => $r->serial_number,
-                    ]))
-                    ->action(fn (UnknownDevice $record) => self::attach($record, $record->likelyTenants()->firstOrFail(), 'ADMS device')),
                 Action::make('attach')->label('Attach to company')->icon(Heroicon::OutlinedBuildingOffice2)
-                    ->fillForm(fn (UnknownDevice $r) => ['tenant_id' => $r->likelyTenants()->count() === 1 ? $r->likelyTenants()->first()->id : null, 'name' => 'ADMS device'])
+                    ->fillForm(fn () => ['name' => 'ADMS device'])
                     ->schema([
                         Select::make('tenant_id')->label('Company')->options(fn () => Tenant::orderBy('company_name')->pluck('company_name', 'id'))->searchable()->required()
-                            ->helperText(fn (UnknownDevice $record) => $record->likelyTenants()->isNotEmpty()
-                                ? __('Likely: :names (same IP).', ['names' => $record->likelyTenants()->pluck('company_name')->implode(', ')]) : null),
+                            ->helperText(fn (UnknownDevice $record) => ($record->likelyTenants()->isNotEmpty()
+                                ? __('Likely: :names (same IP). ', ['names' => $record->likelyTenants()->pluck('company_name')->implode(', ')]) : '')
+                                . __('An IP can be shared (mobile networks, some internet providers): confirm the serial :serial with the company first; its punches go to the company you choose.', ['serial' => $record->serial_number])),
                         TextInput::make('name')->default('ADMS device')->required(),
                     ])
                     ->action(fn (UnknownDevice $record, array $data) => self::attach($record, Tenant::findOrFail($data['tenant_id']), $data['name'])),
