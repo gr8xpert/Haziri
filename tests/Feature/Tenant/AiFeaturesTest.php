@@ -3,14 +3,16 @@
 declare(strict_types=1);
 
 use App\Contracts\AiModel;
-use App\Enums\AttendanceStatus;
 use App\Enums\DevicePunchSourceType;
 use App\Enums\PunchSource;
 use App\Enums\PunchStatus;
+use App\Filament\Tenant\Resources\Anomalies\AnomalyResource;
+use App\Filament\Tenant\Resources\Anomalies\Pages\ListAnomalies;
 use App\Jobs\GenerateMonthlyNarrative;
 use App\Models\AiQuery;
 use App\Models\Anomaly;
 use App\Models\AttendancePeriod;
+use App\Models\Central\DeviceRegistry;
 use App\Models\Device;
 use App\Models\Employee;
 use App\Models\LeaveRequest;
@@ -19,6 +21,7 @@ use App\Models\Punch;
 use App\Models\SalaryStructure;
 use App\Models\Setting;
 use App\Models\User;
+use App\Services\Ai\AiGateway;
 use App\Services\Ai\AnomalyDetector;
 use App\Services\Ai\AskHazri;
 use App\Services\Ai\AttachmentReader;
@@ -26,7 +29,12 @@ use App\Services\Ai\SetupAssistant;
 use App\Services\Ai\SqlGuard;
 use App\Services\Settings\TenantSettings;
 use Carbon\CarbonImmutable;
+use Filament\Actions\Testing\TestAction;
+use Filament\Facades\Filament;
+use Illuminate\Database\QueryException;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Livewire\Livewire;
 use Tests\Support\FakeAiModel;
 
 beforeEach(function () {
@@ -37,7 +45,7 @@ beforeEach(function () {
     $this->owner = User::where('email', 'owner@pest.test')->first();
 });
 
-afterEach(fn () => App\Models\Central\DeviceRegistry::whereIn('serial_number', ['AN1', 'AN2'])->delete());
+afterEach(fn () => DeviceRegistry::whereIn('serial_number', ['AN1', 'AN2'])->delete());
 
 it('accepts only single SELECTs over the curated views', function (string $sql, bool $ok) {
     expect(SqlGuard::check($sql)['ok'])->toBe($ok);
@@ -63,9 +71,9 @@ it('runs generated SQL as a user that can only read the curated views', function
     $config = array_merge(config('database.connections.tenant'), ['username' => 'hazri_ai', 'password' => 'hazri_ai']);
     config(['database.connections.ro_probe' => $config]);
 
-    expect(Illuminate\Support\Facades\DB::connection('ro_probe')->select('SELECT COUNT(*) AS n FROM v_employees'))->toHaveCount(1)
-        ->and(fn () => Illuminate\Support\Facades\DB::connection('ro_probe')->select('SELECT * FROM users'))
-        ->toThrow(Illuminate\Database\QueryException::class);
+    expect(DB::connection('ro_probe')->select('SELECT COUNT(*) AS n FROM v_employees'))->toHaveCount(1)
+        ->and(fn () => DB::connection('ro_probe')->select('SELECT * FROM users'))
+        ->toThrow(QueryException::class);
 });
 
 it('adds a row limit when the model forgets one', function () {
@@ -106,7 +114,7 @@ it('writes a monthly narrative from the locked snapshot', function () {
             'paidLeaveDays' => 0, 'unpaidLeaveDays' => 0, 'overtimeMinutes' => 60]]]]);
     $this->ai->reply(['en' => 'August was steady.', 'ur' => 'اگست مستحکم رہا۔']);
 
-    (new GenerateMonthlyNarrative($period->id))->handle(app(App\Services\Ai\AiGateway::class));
+    (new GenerateMonthlyNarrative($period->id))->handle(app(AiGateway::class));
 
     expect($period->fresh()->narrative['en'])->toBe('August was steady.')
         ->and($this->ai->calls[0]['content'][0]['text'])->toContain('Ali')->not->toContain('cnic');
@@ -135,6 +143,20 @@ it('flags buddy punching and ghost employees with explanations', function () {
         ->and(Anomaly::where('type', 'buddy_punching')->first()->explanation)->toContain('Asad')
         ->and(Anomaly::where('type', 'ghost_employee')->value('employee_id'))->toBe($ghost->id)
         ->and(app(AnomalyDetector::class)->run($today))->toBe(0); // deduped
+
+    // Investigate shows the evidence: both people's punches on the same machine, seconds apart.
+    $evidence = AnomalyResource::evidence(Anomaly::where('type', 'buddy_punching')->first());
+    expect($evidence['facts']['Days'])->toStartWith('3 — ')
+        ->and($evidence['punches'])->toHaveCount(6)
+        ->and(collect($evidence['punches'])->pluck('where')->unique()->all())->toBe(['Gate'])
+        ->and(collect($evidence['punches'])->pluck('employee')->unique()->sort()->values()->all())->toBe(['Asad', 'Bashir']);
+
+    Filament::setCurrentPanel(Filament::getPanel('tenant'));
+    $this->actingAs(User::where('email', 'owner@pest.test')->firstOrFail());
+    Livewire::test(ListAnomalies::class)
+        ->mountAction(TestAction::make('investigate')->table(Anomaly::where('type', 'buddy_punching')->first()))
+        ->assertActionMounted(TestAction::make('investigate')->table(Anomaly::where('type', 'buddy_punching')->first()));
+    expect(view('filament.tenant.anomaly-evidence', $evidence)->render())->toContain('Gate')->toContain('Bashir');
 });
 
 it('reads a medical certificate into a suggestion without changing the request', function () {
