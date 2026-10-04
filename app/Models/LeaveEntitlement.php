@@ -11,7 +11,8 @@ use Spatie\Activitylog\Models\Concerns\LogsActivity;
 use Spatie\Activitylog\Support\LogOptions;
 
 /**
- * Days per leave year for a grade and/or employment type. Overrides leave_types.annual_quota_days;
+ * Days per leave year (and optionally the carry-forward cap and the longest request) for a grade and/or employment
+ * type. Overrides the leave type's values;
  * the most specific match wins (grade + type → grade → type → leave type quota).
  */
 class LeaveEntitlement extends Model
@@ -22,7 +23,7 @@ class LeaveEntitlement extends Model
 
     protected function casts(): array
     {
-        return ['employment_type' => EmploymentType::class, 'days_per_year' => 'float'];
+        return ['employment_type' => EmploymentType::class, 'days_per_year' => 'float', 'carry_forward_max' => 'float', 'max_consecutive_days' => 'integer'];
     }
 
     public function getActivitylogOptions(): LogOptions

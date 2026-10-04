@@ -117,8 +117,9 @@ final class SubmitLeaveRequest
         if (! $isShort && $days <= 0) {
             $fail('from_date', __('There are no working days in the selected dates.'));
         }
-        if ($type->max_consecutive_days && $days > $type->max_consecutive_days) {
-            $fail('to_date', __('At most :n consecutive days are allowed.', ['n' => $type->max_consecutive_days]));
+        $maxConsecutive = $this->balances->rules($employee, $type)['max_consecutive_days'];
+        if ($maxConsecutive && $days > $maxConsecutive) {
+            $fail('to_date', __('At most :n consecutive days are allowed.', ['n' => $maxConsecutive]));
         }
         if ($type->requires_attachment_after_days !== null && $days > $type->requires_attachment_after_days && ! $attachment) {
             $fail('attachment_path', __('An attachment (e.g. medical certificate) is required for more than :n days.', ['n' => $type->requires_attachment_after_days]));

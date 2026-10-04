@@ -65,14 +65,18 @@ class LeaveTypeResource extends Resource
                 ->visible(fn () => app(TenantSettings::class)->featureEnabled('payroll_settlement')),
             Toggle::make('allow_negative_balance')->label('Allow negative balance')
                 ->helperText('Leave can be approved beyond the balance; the overdraft carries into the next leave year'),
-            Repeater::make('entitlements')->relationship()->columnSpanFull()->columns(3)->defaultItems(0)
+            Repeater::make('entitlements')->relationship()->columnSpanFull()->columns(5)->defaultItems(0)
                 ->label('Entitlement by grade / category')
-                ->helperText('Overrides the yearly quota above. The most specific row wins: grade + category, then grade, then category.')
+                ->helperText('Different numbers for some groups. The most specific row wins: grade + category, then grade, then category. Leave carry forward / max consecutive blank to use the values above.')
                 ->addActionLabel('Add entitlement')
                 ->schema([
                     Select::make('grade_id')->label('Grade')->options(fn () => Grade::pluck('name', 'id'))->placeholder('Any grade'),
                     Select::make('employment_type')->label('Category')->options(EmploymentType::class)->placeholder('Any category'),
                     TextInput::make('days_per_year')->numeric()->minValue(0)->required()->suffix('days / year'),
+                    TextInput::make('carry_forward_max')->label('Carry forward max')->numeric()->minValue(0)->suffix('days')
+                        ->placeholder('Same as above'),
+                    TextInput::make('max_consecutive_days')->label('Max consecutive days')->numeric()->integer()->minValue(1)->suffix('days')
+                        ->placeholder('Same as above'),
                 ]),
         ]);
     }

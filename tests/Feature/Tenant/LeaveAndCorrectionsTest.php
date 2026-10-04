@@ -20,8 +20,10 @@ use App\Filament\Tenant\Resources\Corrections\Pages\ListCorrections;
 use App\Models\AttendanceDay;
 use App\Models\Branch;
 use App\Models\Employee;
+use App\Models\Grade;
 use App\Models\Holiday;
 use App\Models\LeaveBalance;
+use App\Models\LeaveEntitlement;
 use App\Models\LeaveRequest;
 use App\Models\LeaveType;
 use App\Models\Shift;
@@ -150,6 +152,29 @@ it('accrues monthly leave and caps carry-forward', function () {
     LeaveBalance::create(['employee_id' => $this->emp->id, 'leave_type_id' => $monthly->id, 'year' => 2025, 'accrued' => 12, 'used' => 3]);
     $svc->openYear(2026);
     expect(LeaveBalance::where(['employee_id' => $this->emp->id, 'leave_type_id' => $monthly->id, 'year' => 2026])->value('opening'))->toBe(7.0);
+});
+
+it('lets a grade row set its own carry forward and longest request', function () {
+    $officer = Grade::create(['code' => 'OFF', 'name' => 'Officer']);
+    $this->al->update(['carry_forward_max' => 7, 'max_consecutive_days' => 10]);
+    LeaveEntitlement::create(['leave_type_id' => $this->al->id, 'grade_id' => $officer->id, 'days_per_year' => 20,
+        'carry_forward_max' => 3, 'max_consecutive_days' => 2]);
+    $this->emp->update(['grade_id' => $officer->id]);
+    $worker = person('WRK');
+    $svc = app(LeaveBalanceService::class);
+
+    expect($svc->rules($this->emp->fresh(), $this->al))->toBe(['quota' => 20.0, 'carry_forward_max' => 3.0, 'max_consecutive_days' => 2])
+        ->and($svc->rules($worker, $this->al))->toBe(['quota' => 14.0, 'carry_forward_max' => 7.0, 'max_consecutive_days' => 10]);
+
+    foreach ([$this->emp, $worker] as $e) {
+        LeaveBalance::create(['employee_id' => $e->id, 'leave_type_id' => $this->al->id, 'year' => 2025, 'accrued' => 14, 'used' => 0]);
+    }
+    $svc->openYear(2026);
+    $opening = fn (Employee $e) => LeaveBalance::where(['employee_id' => $e->id, 'leave_type_id' => $this->al->id, 'year' => 2026])->value('opening');
+    expect($opening($this->emp))->toBe(3.0)->and($opening($worker))->toBe(7.0);
+
+    expect(fn () => ($this->submit)($this->emp->fresh(), $this->al, '2026-09-08', '2026-09-10', $this->hr))
+        ->toThrow(ValidationException::class, 'At most 2 consecutive days are allowed.');
 });
 
 it('applies approved corrections automatically', function () {

@@ -58,8 +58,19 @@ final class LeaveBalanceService
         return self::roundHalf($quota * $months / 12);
     }
 
-    /** Days per leave year: the most specific grade / employment-type entitlement, else the leave type's quota. */
+    /** Days per leave year for this employee (see rules()). */
     public function entitlement(Employee $employee, LeaveType $type): float
+    {
+        return $this->rules($employee, $type)['quota'];
+    }
+
+    /**
+     * The leave type's numbers for one employee: the most specific grade / employment-type row wins
+     * (grade + category → grade → category), and a blank value there falls back to the leave type.
+     *
+     * @return array{quota: float, carry_forward_max: float, max_consecutive_days: ?int}
+     */
+    public function rules(Employee $employee, LeaveType $type): array
     {
         $match = LeaveEntitlement::query()->where('leave_type_id', $type->id)
             ->where(fn ($q) => $q->whereNull('grade_id')->orWhere('grade_id', $employee->grade_id))
@@ -68,7 +79,11 @@ final class LeaveBalanceService
             ->sortByDesc(fn (LeaveEntitlement $e) => ($e->grade_id !== null ? 2 : 0) + ($e->employment_type !== null ? 1 : 0))
             ->first();
 
-        return $match !== null ? $match->days_per_year : (float) $type->annual_quota_days;
+        return [
+            'quota' => $match !== null ? $match->days_per_year : (float) $type->annual_quota_days,
+            'carry_forward_max' => (float) ($match?->carry_forward_max ?? $type->carry_forward_max),
+            'max_consecutive_days' => $match?->max_consecutive_days ?? ($type->max_consecutive_days ? (int) $type->max_consecutive_days : null),
+        ];
     }
 
     /** Monthly job: refresh accrued for every active type (idempotent; also applies entitlement changes). */
@@ -93,7 +108,7 @@ final class LeaveBalanceService
         foreach (LeaveType::query()->where('is_active', true)->get() as $type) {
             foreach (Employee::query()->where('status', '!=', EmployeeStatus::Left)->get() as $employee) {
                 $previous = LeaveBalance::query()->where(['employee_id' => $employee->id, 'leave_type_id' => $type->id, 'year' => $year - 1])->first();
-                $carry = $previous ? min($previous->remaining(), (float) $type->carry_forward_max) : 0.0;
+                $carry = $previous ? min($previous->remaining(), $this->rules($employee, $type)['carry_forward_max']) : 0.0;
                 // An overdrawn balance follows the employee into the new year only where negatives are allowed.
                 $carry = $type->allow_negative_balance ? $carry : max(0.0, $carry);
                 $balance = $this->balance($employee, $type, $year);
