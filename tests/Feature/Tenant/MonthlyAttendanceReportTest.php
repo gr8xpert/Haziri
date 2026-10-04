@@ -7,6 +7,7 @@ use App\Enums\PunchDirection;
 use App\Enums\PunchSource;
 use App\Enums\PunchStatus;
 use App\Filament\Tenant\Pages\Reports\MonthlyAttendance;
+use App\Jobs\BuildMonthlyAttendanceExport;
 use App\Models\AttendanceDay;
 use App\Models\Department;
 use App\Models\Designation;
@@ -16,10 +17,14 @@ use App\Models\Holiday;
 use App\Models\Punch;
 use App\Models\Shift;
 use App\Models\User;
+use App\Services\Attendance\Period\PayCycle;
+use App\Services\Reports\MonthlyAttendanceExport;
 use App\Services\Reports\MonthlyAttendancePdf;
 use App\Services\Reports\MonthlyAttendanceStatement;
 use Carbon\CarbonImmutable;
 use Filament\Facades\Filament;
+use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
 
 /* The client's "Monthly Attendance Report": one employee's pay month, day by day, with totals and leave. */
@@ -86,4 +91,39 @@ it('previews an employee on screen and downloads single and bulk PDFs', function
 
     $page->call('downloadPdf')->assertFileDownloaded('attendance-7019-2026-09.pdf');
     $page->call('downloadAllPdf')->assertFileDownloaded('attendance-2026-09.pdf');
+});
+
+it('downloads separate PDFs in a ZIP and sends big batches to the background', function () {
+    Filament::setCurrentPanel(Filament::getPanel('tenant'));
+    $owner = User::where('email', 'owner@pest.test')->firstOrFail();
+    $this->actingAs($owner);
+
+    $page = Livewire::test(MonthlyAttendance::class)->set('month', '2026-09')->set('departmentId', $this->dept->id);
+    $page->call('downloadZip')->assertFileDownloaded('attendance-2026-09.zip');
+
+    $zipPath = app(MonthlyAttendanceExport::class)->zip(collect([$this->emp]), 2026, 9, 'HR');
+    $zip = new ZipArchive;
+    $zip->open($zipPath);
+    expect($zip->getNameIndex(0))->toBe('7019 - Zahid Ali - ' . app(PayCycle::class)->label(2026, 9) . '.pdf');
+    $zip->close();
+
+    Queue::fake();
+    foreach (range(1, MonthlyAttendanceExport::SYNC_LIMIT) as $i) {
+        Employee::create(['code' => "BULK{$i}", 'first_name' => "Bulk{$i}", 'joined_on' => '2025-01-01', 'department_id' => $this->dept->id]);
+    }
+    $page->call('downloadAllPdf')->assertNoFileDownloaded();
+    Queue::assertPushed(BuildMonthlyAttendanceExport::class, fn ($job) => count($job->employeeIds) > MonthlyAttendanceExport::SYNC_LIMIT);
+});
+
+it('builds a background export and notifies the user with a working download link', function () {
+    Storage::fake('local');
+    $owner = User::where('email', 'owner@pest.test')->firstOrFail();
+
+    (new BuildMonthlyAttendanceExport([$this->emp->id], 2026, 9, false, $owner->id, 'attendance-2026-09.pdf'))
+        ->handle(app(MonthlyAttendanceExport::class));
+
+    $notification = $owner->notifications()->latest()->first();
+    $url = $notification->data['actions'][0]['url'];
+    expect(Storage::disk('local')->files('exports'))->toHaveCount(1);
+    $this->actingAs($owner)->get($url)->assertOk()->assertDownload('attendance-2026-09.pdf');
 });

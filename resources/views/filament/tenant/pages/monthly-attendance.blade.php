@@ -53,7 +53,11 @@
                 <x-filament::button color="gray" icon="heroicon-m-document-duplicate" wire:click="downloadAllPdf" wire:loading.attr="disabled" wire:target="downloadAllPdf">
                     {{ __('PDF — all employees in filter') }}
                 </x-filament::button>
-                <span class="hz-hint" wire:loading wire:target="downloadAllPdf">{{ __('Preparing… one page per employee, this can take a minute.') }}</span>
+                <x-filament::button color="gray" icon="heroicon-m-archive-box-arrow-down" wire:click="downloadZip" wire:loading.attr="disabled" wire:target="downloadZip">
+                    {{ __('Separate PDFs (ZIP)') }}
+                </x-filament::button>
+                <span class="hz-hint" wire:loading wire:target="downloadAllPdf,downloadZip">{{ __('Preparing… one page per employee.') }}</span>
+                <span class="hz-hint" wire:loading.remove wire:target="downloadAllPdf,downloadZip">{{ __('More than :n employees are prepared in the background; you get a notification with the link.', ['n' => \App\Services\Reports\MonthlyAttendanceExport::SYNC_LIMIT]) }}</span>
             </div>
         @endif
     </div>

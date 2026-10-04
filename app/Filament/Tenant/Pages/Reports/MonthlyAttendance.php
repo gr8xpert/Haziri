@@ -6,12 +6,14 @@ namespace App\Filament\Tenant\Pages\Reports;
 
 use App\Enums\EmployeeStatus;
 use App\Filament\Tenant\NavigationGroup;
+use App\Jobs\BuildMonthlyAttendanceExport;
 use App\Models\Branch;
 use App\Models\Department;
 use App\Models\Employee;
 use App\Reports\EmployeeStatementReport;
 use App\Reports\ReportExporter;
 use App\Services\Attendance\Period\PayCycle;
+use App\Services\Reports\MonthlyAttendanceExport;
 use App\Services\Reports\MonthlyAttendancePdf;
 use App\Services\Reports\MonthlyAttendanceStatement;
 use App\Support\Brand;
@@ -134,6 +136,18 @@ class MonthlyAttendance extends Page
     /** One PDF with a page for every employee matching the department / branch filters. */
     public function downloadAllPdf(): ?StreamedResponse
     {
+        return $this->exportMany(separateFiles: false);
+    }
+
+    /** A ZIP with one PDF per employee ("E001 - Ali Khan - Sep 2026.pdf"), e.g. to send each person their own. */
+    public function downloadZip(): ?StreamedResponse
+    {
+        return $this->exportMany(separateFiles: true);
+    }
+
+    /** Up to MonthlyAttendanceExport::SYNC_LIMIT employees are made right away; more run in the background. */
+    private function exportMany(bool $separateFiles): ?StreamedResponse
+    {
         if (! $this->mayExport() || ! $this->validMonth()) {
             return null;
         }
@@ -147,8 +161,31 @@ class MonthlyAttendance extends Page
 
             return null;
         }
+        $fileName = "attendance-{$this->month}" . ($separateFiles ? '.zip' : '.pdf');
+        [$year, $month] = $this->yearMonth();
+        $printedBy = auth()->user()?->name;
 
-        return $this->streamPdf($employees->all(), "attendance-{$this->month}.pdf");
+        if ($employees->count() > MonthlyAttendanceExport::SYNC_LIMIT) {
+            BuildMonthlyAttendanceExport::dispatch($employees->pluck('id')->all(), $year, $month, $separateFiles, (int) auth()->id(), $fileName);
+            Notification::make()->info()->title(__('Preparing :n reports in the background', ['n' => $employees->count()]))
+                ->body(__('You will get a notification (bell icon) with the download link when it is ready.'))->send();
+
+            return null;
+        }
+
+        @set_time_limit(300);
+        $export = app(MonthlyAttendanceExport::class);
+        if ($separateFiles) {
+            $zip = $export->zip($employees, $year, $month, $printedBy);
+
+            return response()->streamDownload(function () use ($zip) {
+                readfile($zip);
+                @unlink($zip);
+            }, $fileName, ['Content-Type' => 'application/zip']);
+        }
+        $bytes = $export->combinedPdf($employees, $year, $month, $printedBy);
+
+        return response()->streamDownload(fn () => print ($bytes), $fileName, ['Content-Type' => 'application/pdf']);
     }
 
     public function downloadXlsx(ReportExporter $exporter): mixed

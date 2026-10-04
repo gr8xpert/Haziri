@@ -91,6 +91,15 @@ Route::middleware([
         return view('visitors.badge', ['visitor' => $visitor, 'photo' => $photo, 'company' => tenant('company_name')]);
     })->middleware('auth')->name('tenant.visitor-badge');
 
+    // Background exports (monthly attendance PDF / ZIP): signed link from the notification, for logged-in panel users.
+    Route::get('/exports/{file}', function (string $file) {
+        abort_unless(auth()->user()?->can('reports.export'), 403);
+        $path = 'exports/' . $file;
+        abort_if(! preg_match('/^[A-Za-z0-9._-]+$/', $file) || ! Storage::disk('local')->exists($path), 404);
+
+        return Storage::disk('local')->download($path, preg_replace('/^[0-9a-f-]{36}-/', '', $file));
+    })->middleware(['auth', 'signed'])->name('tenant.export-download');
+
     // Printable A4 notice for the notice board (workers without the app), English + Urdu headings.
     Route::get('/announcements/{announcement}/print', function (Announcement $announcement) {
         abort_unless(auth()->user()?->can('announcements.manage'), 403);
