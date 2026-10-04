@@ -3,6 +3,7 @@
         $start = \Carbon\Carbon::parse($weekStart);
         $shifts = $this->getShiftOptions();
         $dates = $this->getDates();
+        $usual = $this->getUsualShifts();
         $today = now(tenant('timezone'))->format('Y-m-d');
     @endphp
 
@@ -49,9 +50,11 @@
                         </td>
                         @foreach ($dates as $d)
                             <td class="px-1.5">
-                                <select wire:model="grid.{{ $e->id }}.{{ $d }}" class="hz-native text-xs" aria-label="{{ __('Shift for :n on :d', ['n' => $e->fullName(), 'd' => $d]) }}">
-                                    <option value="">{{ __('Regular') }}</option>
-                                    @foreach ($shifts as $id => $code)<option value="{{ $id }}">{{ $code }}</option>@endforeach
+                                <select wire:model="grid.{{ $e->id }}.{{ $d }}" x-on:change="$el.classList.toggle('hz-roster-changed', $el.value !== '')"
+                                        @class(['hz-native text-xs', 'hz-roster-changed' => filled($grid[$e->id][$d] ?? null)])
+                                        aria-label="{{ __('Shift for :n on :d', ['n' => $e->fullName(), 'd' => $d]) }}">
+                                    <option value="">{{ __('Usual: :shift', ['shift' => $usual[$e->id][$d] ?? '']) }}</option>
+                                    @foreach ($shifts as $id => $name)<option value="{{ $id }}">{{ $name }}</option>@endforeach
                                 </select>
                             </td>
                         @endforeach
@@ -69,5 +72,8 @@
             </tbody>
         </table>
     </div>
-    <p class="hz-hint">{{ __('"Regular" keeps the employee\'s usual shift. Publishing recalculates the affected days.') }}</p>
+    <p class="hz-hint">
+        <span class="hz-roster-changed inline-block rounded px-1.5">{{ __('Highlighted') }}</span>
+        {{ __('cells differ from the employee\'s usual shift. "Usual" keeps their normal shift. Publish saves the week and recalculates those days.') }}
+    </p>
 </x-filament-panels::page>

@@ -7,6 +7,7 @@ namespace App\Filament\Tenant\Pages;
 use App\Actions\Rosters\GenerateMonthlyRoster;
 use App\Enums\EmployeeStatus;
 use App\Filament\Tenant\NavigationGroup;
+use App\Filament\Tenant\Resources\Shifts\ShiftResource;
 use App\Models\Branch;
 use App\Models\Department;
 use App\Models\Employee;
@@ -86,7 +87,37 @@ class Roster extends Page
     /** @return array<int, string> */
     public function getShiftOptions(): array
     {
-        return Shift::query()->orderBy('start_time')->get()->mapWithKeys(fn (Shift $s) => [$s->id => $s->code])->all();
+        return Shift::query()->orderBy('start_time')->get()->mapWithKeys(fn (Shift $s) => [$s->id => $s->displayName()])->all();
+    }
+
+    /**
+     * What a blank cell means for each employee and day: their standing shift (assignment or monthly roster),
+     * else the company default.
+     *
+     * @return array<int, array<string, string>> employee_id => [date => shift name]
+     */
+    public function getUsualShifts(): array
+    {
+        $dates = $this->getDates();
+        $employees = $this->getEmployees();
+        $shifts = Shift::query()->get()->keyBy('id');
+        $default = $shifts->firstWhere('is_default', true);
+        $standing = ShiftAssignment::query()->whereIn('employee_id', $employees->pluck('id'))
+            ->where(fn ($q) => $q->whereNull('effective_to')->orWhereColumn('effective_to', '!=', 'effective_from'))
+            ->where('effective_from', '<=', end($dates))
+            ->where(fn ($q) => $q->whereNull('effective_to')->orWhere('effective_to', '>=', $dates[0]))
+            ->orderByDesc('effective_from')->get()->groupBy('employee_id');
+
+        $usual = [];
+        foreach ($employees as $e) {
+            foreach ($dates as $d) {
+                $a = $standing->get($e->id)?->first(fn (ShiftAssignment $x) => $x->effective_from->format('Y-m-d') <= $d
+                    && ($x->effective_to === null || $x->effective_to->format('Y-m-d') >= $d));
+                $usual[$e->id][$d] = ($a ? $shifts->get($a->shift_id) : $default)?->displayName() ?? __('none');
+            }
+        }
+
+        return $usual;
     }
 
     /** @return array<int, string> */
@@ -144,8 +175,15 @@ class Roster extends Page
     protected function getHeaderActions(): array
     {
         return [
+            Action::make('newShift')->label(__('New shift'))->icon(Heroicon::OutlinedPlus)->color('gray')
+                ->modalDescription(__('A quick shift. Grace minutes, overtime and other rules can be set later under Time Rules → Shifts.'))
+                ->schema(ShiftResource::quickCreateSchema())
+                ->action(function (array $data) {
+                    $shift = ShiftResource::quickCreate($data);
+                    Notification::make()->success()->title(__('Shift :name added', ['name' => $shift->displayName()]))->send();
+                }),
             Action::make('generateMonth')->label(__('Generate monthly roster'))->icon(Heroicon::OutlinedCalendarDays)
-                ->modalDescription(__('Puts the chosen employees on one shift for the whole month. Day cells below still win.'))
+                ->modalDescription(__('Puts the chosen employees on one shift for the whole month. Day cells below still win. Shifts are set up under Time Rules → Shifts, or add one with "+" next to Shift.'))
                 ->schema([
                     TextInput::make('month')->type('month')->required()->default(function () {
                         [$y, $m] = app(PayCycle::class)->periodFor(CarbonImmutable::now(tenant('timezone'))->format('Y-m-d'));
@@ -153,7 +191,9 @@ class Roster extends Page
                         return sprintf('%04d-%02d', $y, $m);
                     }),
                     Select::make('shift_id')->label(__('Shift'))->required()
-                        ->options(fn () => Shift::query()->orderBy('start_time')->get()->mapWithKeys(fn (Shift $s) => [$s->id => "{$s->code} — {$s->name}"])),
+                        ->options(fn () => Shift::query()->orderBy('start_time')->get()->mapWithKeys(fn (Shift $s) => [$s->id => $s->displayName()]))
+                        ->createOptionForm(ShiftResource::quickCreateSchema())
+                        ->createOptionUsing(fn (array $data) => ShiftResource::quickCreate($data)->id),
                     Select::make('scope')->label(__('Roster for'))->required()->default('all')->live()
                         ->options(['all' => __('All employees'), 'branch' => __('A branch'), 'department' => __('A department'), 'shift' => __('Everyone now on a shift')]),
                     Select::make('scope_id')->label(__('Which one'))

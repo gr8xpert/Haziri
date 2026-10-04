@@ -311,6 +311,11 @@
         @apply px-3 py-2.5 leading-relaxed;
     }
 
+    /* Roster: a day planned on a different shift than the employee's usual one. */
+    .hz-roster-changed {
+        @apply bg-amber-50 font-semibold text-amber-900 ring-amber-400 dark:bg-amber-400/15 dark:text-amber-200 dark:ring-amber-400/60;
+    }
+
     /* Attendance status codes (P, L, A, HD…) in reports. */
     .hz-code {
         @apply inline-flex min-w-7 items-center justify-center rounded-md px-1 py-0.5 text-[0.6875rem] font-semibold;

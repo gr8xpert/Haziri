@@ -18,6 +18,7 @@ use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\TimePicker;
 use Filament\Forms\Components\Toggle;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Component;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
@@ -74,6 +75,32 @@ class ShiftResource extends Resource
                 CheckboxList::make('weekly_off_days')->options(BranchResource::WEEKDAYS)->columns(4)->columnSpanFull()
                     ->helperText('Leave empty to use the branch weekly offs.'),
             ]),
+        ]);
+    }
+
+    /**
+     * The few fields a new shift needs, for "+ New shift" on the roster; every other rule keeps its default.
+     *
+     * @return list<Component>
+     */
+    public static function quickCreateSchema(): array
+    {
+        return [
+            CodeFromName::nameInput(Shift::class, 20)->required()->maxLength(100)->placeholder('Night'),
+            TextInput::make('code')->required()->maxLength(20)->unique(Shift::class, 'code')->helperText('Filled in from the name; you can change it.'),
+            TimePicker::make('start_time')->seconds(false)->required(),
+            TimePicker::make('end_time')->seconds(false)->required(),
+            Toggle::make('crosses_midnight')->label('Ends the next day (night shift)'),
+            TextInput::make('break_min')->label('Unpaid break')->numeric()->integer()->minValue(0)->default(60)->suffix('min')->required(),
+        ];
+    }
+
+    /** @param array<string, mixed> $data from quickCreateSchema() */
+    public static function quickCreate(array $data): Shift
+    {
+        return Shift::create([
+            'name' => $data['name'], 'code' => $data['code'], 'start_time' => $data['start_time'], 'end_time' => $data['end_time'],
+            'crosses_midnight' => (bool) ($data['crosses_midnight'] ?? false), 'break_min' => (int) ($data['break_min'] ?? 60),
         ]);
     }
 

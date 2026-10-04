@@ -95,6 +95,23 @@ it('generates a monthly roster from the roster screen', function () {
     expect(ShiftAssignment::where(['employee_id' => $e->id, 'shift_id' => $night->id])->value('effective_to')?->format('Y-m-d'))->toBe('2026-11-30');
 });
 
+it('shows each blank roster cell as the usual shift by name and adds shifts from the roster', function () {
+    $this->travelTo(CarbonImmutable::parse('2026-11-04 10:00', 'Asia/Karachi'));
+    $night = Shift::create(['name' => 'Night', 'code' => 'NGT', 'start_time' => '22:00', 'end_time' => '06:00', 'crosses_midnight' => true]);
+    $e = Employee::create(['code' => 'UI3', 'first_name' => 'Ui', 'joined_on' => '2025-01-01']);
+    ShiftAssignment::create(['employee_id' => $e->id, 'shift_id' => $night->id, 'effective_from' => '2026-11-01', 'effective_to' => '2026-11-30']);
+    ShiftAssignment::create(['employee_id' => $e->id, 'shift_id' => Shift::where('is_default', true)->value('id'), 'effective_from' => '2026-11-05', 'effective_to' => '2026-11-05']);
+
+    $page = Livewire::test(Roster::class);
+    expect($page->instance()->getUsualShifts()[$e->id]['2026-11-04'])->toBe('Night (22:00–06:00)');
+    $page->assertSee('Usual: Night (22:00–06:00)')->assertSee('hz-roster-changed', escape: false);
+
+    $page->callAction('newShift', data: ['name' => 'Evening', 'code' => 'EVE', 'start_time' => '14:00', 'end_time' => '22:00', 'break_min' => 30])
+        ->assertHasNoActionErrors();
+    expect(Shift::where('code', 'EVE')->value('break_min'))->toBe(30)
+        ->and($page->instance()->getShiftOptions())->toContain('Evening (14:00–22:00)');
+});
+
 it('enters manual attendance over a date range from the punches screen', function () {
     Holiday::query()->delete();
     $this->travelTo(CarbonImmutable::parse('2026-09-20 12:00', 'Asia/Karachi'));
