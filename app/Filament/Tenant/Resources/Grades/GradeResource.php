@@ -7,6 +7,7 @@ namespace App\Filament\Tenant\Resources\Grades;
 use App\Filament\Concerns\AuthorizesByPermission;
 use App\Filament\Tenant\NavigationGroup;
 use App\Models\Grade;
+use App\Support\CodeFromName;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\TextInput;
@@ -36,8 +37,8 @@ class GradeResource extends Resource
     public static function form(Schema $schema): Schema
     {
         return $schema->components([
-            TextInput::make('code')->required()->maxLength(20)->unique(ignoreRecord: true),
-            TextInput::make('name')->required()->maxLength(255),
+            CodeFromName::nameInput(Grade::class, 20)->required()->maxLength(255),
+            TextInput::make('code')->required()->maxLength(20)->unique(ignoreRecord: true)->helperText('Filled in from the name; you can change it.'),
         ]);
     }
 

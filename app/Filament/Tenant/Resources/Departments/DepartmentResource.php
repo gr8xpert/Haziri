@@ -7,6 +7,7 @@ namespace App\Filament\Tenant\Resources\Departments;
 use App\Filament\Concerns\AuthorizesByPermission;
 use App\Filament\Tenant\NavigationGroup;
 use App\Models\Department;
+use App\Support\CodeFromName;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\Select;
@@ -36,8 +37,8 @@ class DepartmentResource extends Resource
     public static function form(Schema $schema): Schema
     {
         return $schema->columns(2)->components([
-            TextInput::make('name')->required()->maxLength(255),
-            TextInput::make('code')->required()->maxLength(20)->unique(ignoreRecord: true),
+            CodeFromName::nameInput(Department::class, 20)->required()->maxLength(255),
+            TextInput::make('code')->required()->maxLength(20)->unique(ignoreRecord: true)->helperText('Filled in from the name; you can change it.'),
             Select::make('parent_id')->relationship('parent', 'name')->searchable()->preload()->label('Parent department'),
             Select::make('head_employee_id')->relationship('head', 'first_name')->searchable()->preload()->label('Head'),
         ]);

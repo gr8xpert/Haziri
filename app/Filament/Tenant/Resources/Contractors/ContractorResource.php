@@ -7,6 +7,7 @@ namespace App\Filament\Tenant\Resources\Contractors;
 use App\Filament\Concerns\AuthorizesByPermission;
 use App\Filament\Tenant\NavigationGroup;
 use App\Models\Contractor;
+use App\Support\CodeFromName;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\TextInput;
@@ -38,8 +39,8 @@ class ContractorResource extends Resource
     public static function form(Schema $schema): Schema
     {
         return $schema->components([
-            TextInput::make('code')->required()->maxLength(20)->unique(ignoreRecord: true),
-            TextInput::make('name')->required()->maxLength(255),
+            CodeFromName::nameInput(Contractor::class, 20)->required()->maxLength(255),
+            TextInput::make('code')->required()->maxLength(20)->unique(ignoreRecord: true)->helperText('Filled in from the name; you can change it.'),
             TextInput::make('phone')->tel()->maxLength(20),
             Toggle::make('is_active')->label('Active')->default(true),
         ]);

@@ -9,6 +9,7 @@ use App\Filament\Concerns\AuthorizesByPermission;
 use App\Filament\Tenant\NavigationGroup;
 use App\Filament\Tenant\Resources\Branches\BranchResource;
 use App\Models\Shift;
+use App\Support\CodeFromName;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\CheckboxList;
@@ -47,15 +48,15 @@ class ShiftResource extends Resource
 
         return $schema->columns(2)->components([
             Section::make(__('Timing'))->columns(3)->columnSpanFull()->schema([
-                TextInput::make('name')->required()->maxLength(100),
-                TextInput::make('code')->required()->maxLength(20)->unique(ignoreRecord: true),
+                CodeFromName::nameInput(Shift::class, 20)->required()->maxLength(100),
+                TextInput::make('code')->required()->maxLength(20)->unique(ignoreRecord: true)->helperText('Filled in from the name; you can change it.'),
                 Toggle::make('is_default')->helperText('Used for employees with no assignment')->inline(false),
                 TimePicker::make('start_time')->seconds(false)->required(),
                 TimePicker::make('end_time')->seconds(false)->required(),
                 Toggle::make('crosses_midnight')->helperText('Night shift ending the next day')->inline(false),
                 $minutes('break_min', 'Unpaid break')->default(60)->required(),
                 Select::make('multi_punch_mode')->options(MultiPunchMode::class)->default(MultiPunchMode::FirstLast)->required()
-                    ->helperText('first_last: first & last punch. paired: in/out pairs (break punches count).'),
+                    ->helperText('First in, last out: the day runs from the first to the last punch. Every in/out pair: break punches are subtracted.'),
             ]),
             Section::make(__('Late & early'))->columns(3)->schema([
                 $minutes('grace_in_min', 'Arrivals within this are on time')->default(15)->required(),

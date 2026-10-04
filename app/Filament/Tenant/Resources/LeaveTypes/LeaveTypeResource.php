@@ -10,6 +10,7 @@ use App\Filament\Tenant\NavigationGroup;
 use App\Models\Grade;
 use App\Models\LeaveType;
 use App\Services\Settings\TenantSettings;
+use App\Support\CodeFromName;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\Repeater;
@@ -44,8 +45,8 @@ class LeaveTypeResource extends Resource
         $n = fn (string $name) => TextInput::make($name)->numeric()->minValue(0);
 
         return $schema->columns(3)->components([
-            TextInput::make('name')->required()->maxLength(100),
-            TextInput::make('code')->required()->maxLength(10)->unique(ignoreRecord: true)->helperText('Shown in the monthly grid'),
+            CodeFromName::nameInput(LeaveType::class, 10)->required()->maxLength(100),
+            TextInput::make('code')->required()->maxLength(10)->unique(ignoreRecord: true)->helperText('Shown in the monthly grid. Filled in from the name; you can change it.'),
             Toggle::make('is_paid')->label('Paid leave')->default(true)->inline(false),
             $n('annual_quota_days')->required()->default(0)->suffix('days'),
             Select::make('accrual')->options(['yearly_upfront' => 'Yearly, upfront', 'monthly' => 'Monthly'])->default('yearly_upfront')->required(),

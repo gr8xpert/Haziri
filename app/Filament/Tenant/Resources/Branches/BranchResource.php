@@ -8,6 +8,7 @@ use App\Filament\Concerns\AuthorizesByPermission;
 use App\Filament\Tenant\NavigationGroup;
 use App\Models\Branch;
 use App\Rules\IpOrCidr;
+use App\Support\CodeFromName;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\CheckboxList;
@@ -41,8 +42,8 @@ class BranchResource extends Resource
     public static function form(Schema $schema): Schema
     {
         return $schema->columns(2)->components([
-            TextInput::make('name')->required()->maxLength(255),
-            TextInput::make('code')->required()->maxLength(20)->unique(ignoreRecord: true),
+            CodeFromName::nameInput(Branch::class, 20)->required()->maxLength(255),
+            TextInput::make('code')->required()->maxLength(20)->unique(ignoreRecord: true)->helperText('Filled in from the name; you can change it.'),
             TextInput::make('address')->columnSpanFull(),
             TextInput::make('lat')->numeric()->minValue(-90)->maxValue(90)->label('Latitude'),
             TextInput::make('lng')->numeric()->minValue(-180)->maxValue(180)->label('Longitude'),
