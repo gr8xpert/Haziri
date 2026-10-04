@@ -183,8 +183,28 @@
     @apply text-xl font-semibold tracking-tight;
 }
 
+/* ------------------------------------------------------------------ forms
+ | Required fields: Filament's small superscript asterisk was easy to miss, so make it a bold, larger
+ | red star sitting on the label's line.
+ */
+
+/* Same specificity as Filament's own rule, which it overrides by coming later. */
+.fi-fo-field .fi-fo-field-label-content .fi-fo-field-label-required-mark,
+.fi-fieldset > legend .fi-fieldset-label-required-mark {
+    @apply ms-1 align-baseline text-base leading-none font-extrabold text-danger-600 dark:text-danger-400;
+    top: 0;
+}
+
+.hz-required-note {
+    @apply text-sm text-gray-600 dark:text-gray-400;
+
+    & b {
+        @apply text-base font-extrabold text-danger-600 dark:text-danger-400;
+    }
+}
+
 /* ------------------------------------------------------------------ Haziri custom pages
- | Shared building blocks for the hand-written Blade pages (daily sheet, roster, reports, etc.).
+ | Shared building blocks for the hand-written Blade pages (manual entry, roster, reports, etc.).
  */
 
 @layer components {
