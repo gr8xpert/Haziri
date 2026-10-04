@@ -8,7 +8,7 @@ use App\Support\Excel\Spreadsheet;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
-use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /** XLSX + PDF output for any Report (spec §10: every report exports to Excel; PDF where noted). */
 final class ReportExporter
@@ -27,8 +27,13 @@ final class ReportExporter
         return response()->download($path, $this->filename($report, $filters, 'xlsx'))->deleteFileAfterSend();
     }
 
-    /** @param array<string, mixed> $filters */
-    public function pdf(Report $report, array $filters): Response
+    /**
+     * A streamed download: Livewire turns it into a file download. (A plain Response from dompdf's download() was
+     * returned as the action's value instead, and its PDF bytes broke Livewire's JSON reply: "Malformed UTF-8".)
+     *
+     * @param  array<string, mixed>  $filters
+     */
+    public function pdf(Report $report, array $filters): StreamedResponse
     {
         $rows = $report->rows($filters);
         $html = view('pdf.report', [
@@ -40,7 +45,9 @@ final class ReportExporter
             'summary' => $report->summary($filters, $rows),
         ])->render();
 
-        return Pdf::loadHTML($html)->setPaper('a4', $report->paper())->download($this->filename($report, $filters, 'pdf'));
+        $bytes = Pdf::loadHTML($html)->setPaper('a4', $report->paper())->output();
+
+        return response()->streamDownload(fn () => print ($bytes), $this->filename($report, $filters, 'pdf'), ['Content-Type' => 'application/pdf']);
     }
 
     /** @param array<string, mixed> $filters */

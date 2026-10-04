@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Actions\Periods\PeriodActions;
 use App\Enums\AttendanceStatus;
+use App\Filament\Tenant\Pages\Reports\EmployeeStatement;
 use App\Filament\Tenant\Pages\Reports\MonthlyAttendance;
 use App\Models\AttendanceDay;
 use App\Models\Employee;
@@ -77,9 +78,13 @@ it('exports xlsx and pdf', function () {
     $xlsx = $x->xlsx(new MonthlySheetReport, ['month' => '2026-08']);
     $pdf = $x->pdf(new EmployeeStatementReport, ['employee_id' => $this->e->id, 'month' => '2026-08']);
 
+    ob_start();
+    $pdf->sendContent();
+    $bytes = (string) ob_get_clean();
+
     expect(filesize($xlsx->getFile()->getPathname()))->toBeGreaterThan(1000)
         ->and($pdf->headers->get('content-type'))->toBe('application/pdf')
-        ->and(strlen($pdf->getContent()))->toBeGreaterThan(1000);
+        ->and(strlen($bytes))->toBeGreaterThan(1000)->and(str_starts_with($bytes, '%PDF'))->toBeTrue();
 });
 
 it('shows a month per employee: live while open, the lock snapshot once locked', function () {
@@ -106,4 +111,13 @@ it('opens the monthly attendance report on the linked employee and month', funct
     Livewire::withQueryParams(['month' => '2026-08', 'employee' => $this->e->id])
         ->test(MonthlyAttendance::class)
         ->assertSet('month', '2026-08')->assertSet('employeeId', $this->e->id);
+});
+
+it('downloads a report PDF and Excel from the report page buttons', function () {
+    Filament::setCurrentPanel(Filament::getPanel('tenant'));
+
+    // The PDF used to come back as a plain response whose bytes broke Livewire's JSON reply ("Malformed UTF-8").
+    Livewire::test(EmployeeStatement::class)->set('filters.employee_id', $this->e->id)->set('filters.month', '2026-08')
+        ->callAction('pdf')->assertFileDownloaded()
+        ->callAction('xlsx')->assertFileDownloaded();
 });
