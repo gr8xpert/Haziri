@@ -152,11 +152,20 @@ final class PayrollActions
                 'code' => $slip->employee->code, 'cnic' => $slip->employee->cnic, 'amount' => $slip->net,
                 'reference' => 'Salary ' . $run->label(),
             ];
-            fputcsv($out, array_map(fn ($c) => $values[$c] ?? '', $columns));
+            fputcsv($out, array_map(fn ($c) => self::csvSafe($values[$c] ?? ''), $columns));
         }
         rewind($out);
 
         return (string) stream_get_contents($out);
+    }
+
+    /**
+     * Text that Excel would run as a formula (=, +, -, @, tab, CR at the start) gets a leading apostrophe, so a name
+     * like "=HYPERLINK(…)" stays text when HR opens the file. Numbers and ordinary text are written unchanged.
+     */
+    private static function csvSafe(mixed $value): mixed
+    {
+        return is_string($value) && $value !== '' && ! is_numeric($value) && str_contains("=+-@\t\r", $value[0]) ? "'" . $value : $value;
     }
 
     /** Letter to the company's bank asking it to transfer each net salary (PDF bytes). */

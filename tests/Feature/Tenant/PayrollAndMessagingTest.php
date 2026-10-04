@@ -5,10 +5,10 @@ declare(strict_types=1);
 use App\Actions\Payroll\PayrollActions;
 use App\Actions\Periods\PeriodActions;
 use App\Enums\AttendanceStatus;
-use App\Enums\Role;
 use App\Models\Advance;
 use App\Models\Announcement;
 use App\Models\AttendanceDay;
+use App\Models\Branch;
 use App\Models\Employee;
 use App\Models\NotificationLog;
 use App\Models\SalaryStructure;
@@ -21,6 +21,7 @@ use App\Services\Notifications\Recipient;
 use App\Services\Notifications\RenderedMessage;
 use App\Services\Settings\TenantSettings;
 use Illuminate\Support\Facades\Crypt;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
@@ -86,10 +87,14 @@ it('generates payslips from the locked snapshot and finalises them', function ()
 
     $csv = $payroll->bankCsv($run->fresh());
     expect($csv)->toContain('PK36HABB0000001234567890')->toContain((string) (62800 - 4000 - 370 - 3000));
+
+    // A name Excel would run as a formula is written as text.
+    $this->emp->update(['first_name' => '=HYPERLINK("http://evil.test")']);
+    expect($payroll->bankCsv($run->fresh()))->toContain("\"'=HYPERLINK(")->not->toContain(',=HYPERLINK(');
 });
 
 it('stores the bank account encrypted', function () {
-    $raw = Illuminate\Support\Facades\DB::table('salary_structures')->value('bank_account');
+    $raw = DB::table('salary_structures')->value('bank_account');
 
     expect($raw)->not->toContain('PK36HABB')->and(SalaryStructure::first()->bank_account)->toBe('PK36HABB0000001234567890');
 });
@@ -142,7 +147,7 @@ it('numbers visitor badges per day', function () {
 });
 
 it('broadcasts announcements to their audience only', function () {
-    $other = App\Models\Branch::create(['name' => 'Other', 'code' => 'OTH']);
+    $other = Branch::create(['name' => 'Other', 'code' => 'OTH']);
     $a = Announcement::create(['title' => 'Only Other', 'body' => 'x', 'audience' => ['branch_ids' => [$other->id]]]);
 
     expect($a->isFor($this->emp))->toBeFalse()
