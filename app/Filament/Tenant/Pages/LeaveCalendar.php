@@ -7,6 +7,8 @@ namespace App\Filament\Tenant\Pages;
 use App\Enums\RequestStatus;
 use App\Filament\Tenant\NavigationGroup;
 use App\Models\AttendanceMarker;
+use App\Models\Branch;
+use App\Models\Department;
 use App\Models\Employee;
 use App\Models\Holiday;
 use App\Models\LeaveRequest;
@@ -14,6 +16,7 @@ use Carbon\CarbonImmutable;
 use Carbon\CarbonPeriod;
 use Filament\Pages\Page;
 use Filament\Support\Icons\Heroicon;
+use Illuminate\Database\Eloquent\Builder;
 
 /** "Who's off this week" (spec §9 phase 2): approved leave, OD/WFH and holidays per day. */
 class LeaveCalendar extends Page
@@ -30,6 +33,10 @@ class LeaveCalendar extends Page
 
     public string $weekStart = '';
 
+    public ?int $branchId = null;
+
+    public ?int $departmentId = null;
+
     public static function canAccess(): bool
     {
         return (bool) auth()->user()?->can('leave.request');
@@ -45,6 +52,24 @@ class LeaveCalendar extends Page
         $this->weekStart = CarbonImmutable::parse($this->weekStart)->addWeeks($weeks)->format('Y-m-d');
     }
 
+    /** @return array<int, string> */
+    public function getBranchOptions(): array
+    {
+        return Branch::query()->orderBy('name')->pluck('name', 'id')->all();
+    }
+
+    /** @return array<int, string> */
+    public function getDepartmentOptions(): array
+    {
+        return Department::query()->orderBy('name')->pluck('name', 'id')->all();
+    }
+
+    /** Managers without HR rights only see their own team (and themselves); the filters narrow it further. */
+    public function seesWholeCompany(): bool
+    {
+        return (bool) auth()->user()?->can('leave.approve_final');
+    }
+
     /** @return array<string, list<array{name: string, what: string, tone: string}>> date => entries */
     public function getDays(): array
     {
@@ -54,23 +79,41 @@ class LeaveCalendar extends Page
         foreach (CarbonPeriod::create($from, $to) as $d) {
             $days[$d->format('Y-m-d')] = [];
         }
+        $employees = $this->employees()->get()->keyBy('id');
 
-        $leaves = LeaveRequest::query()->with(['employee', 'leaveType'])->where('status', RequestStatus::Approved)
+        $leaves = LeaveRequest::query()->with('leaveType')->where('status', RequestStatus::Approved)
+            ->whereIn('employee_id', $employees->keys())
             ->where('from_date', '<=', $to->format('Y-m-d'))->where('to_date', '>=', $from->format('Y-m-d'))->get();
         foreach ($leaves as $l) {
             foreach (CarbonPeriod::create(max($l->from_date->format('Y-m-d'), $from->format('Y-m-d')), min($l->to_date->format('Y-m-d'), $to->format('Y-m-d'))) as $d) {
-                $days[$d->format('Y-m-d')][] = ['name' => $l->employee?->fullName() ?? '?',
-                    'what' => ($l->leaveType?->code ?? 'LV') . ($l->day_part->isHalf() ? ' ½' : ''), 'tone' => 'warning'];
+                $days[$d->format('Y-m-d')][] = ['name' => $employees->get($l->employee_id)?->fullName() ?? '?',
+                    'what' => ($l->leaveType?->name ?? __('Leave')) . ($l->day_part->isHalf() ? ' (' . __('half day') . ')' : ''), 'tone' => 'warning'];
             }
         }
-        foreach (AttendanceMarker::query()->whereBetween('date', [$from->format('Y-m-d'), $to->format('Y-m-d')])->get() as $m) {
-            $days[$m->date->format('Y-m-d')][] = ['name' => Employee::find($m->employee_id)?->fullName() ?? '?',
-                'what' => $m->status->code(), 'tone' => 'info'];
+        $markers = AttendanceMarker::query()->whereIn('employee_id', $employees->keys())
+            ->whereBetween('date', [$from->format('Y-m-d'), $to->format('Y-m-d')])->get();
+        foreach ($markers as $m) {
+            $days[$m->date->format('Y-m-d')][] = ['name' => $employees->get($m->employee_id)?->fullName() ?? '?',
+                'what' => $m->status->getLabel(), 'tone' => 'info'];
         }
-        foreach (Holiday::query()->whereBetween('date', [$from->format('Y-m-d'), $to->format('Y-m-d')])->get() as $h) {
-            $days[$h->date->format('Y-m-d')][] = ['name' => $h->name, 'what' => 'H', 'tone' => 'success'];
+        $holidays = Holiday::query()->with('branch')->whereBetween('date', [$from->format('Y-m-d'), $to->format('Y-m-d')])
+            ->when($this->branchId, fn ($q, $id) => $q->where(fn ($w) => $w->whereNull('branch_id')->orWhere('branch_id', $id)))->get();
+        foreach ($holidays as $h) {
+            $days[$h->date->format('Y-m-d')][] = ['name' => $h->name,
+                'what' => $h->branch ? __('Holiday, :branch only', ['branch' => $h->branch->name]) : __('Holiday'), 'tone' => 'success'];
         }
 
         return $days;
+    }
+
+    private function employees(): Builder
+    {
+        $user = auth()->user();
+
+        return Employee::query()
+            ->when($this->branchId, fn ($q, $id) => $q->where('branch_id', $id))
+            ->when($this->departmentId, fn ($q, $id) => $q->where('department_id', $id))
+            ->when(! $this->seesWholeCompany(), fn ($q) => $q->where(fn ($w) => $w->where('manager_employee_id', $user?->employee_id ?? 0)
+                ->orWhereKey($user?->employee_id ?? 0)));
     }
 }

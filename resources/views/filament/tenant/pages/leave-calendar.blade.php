@@ -12,6 +12,28 @@
             </span>
             <x-filament::icon-button icon="heroicon-m-chevron-right" color="gray" wire:click="shift(1)" :label="__('Next week')" />
         </div>
+        @if (count($this->getBranchOptions()) > 1)
+            <x-filament::input.wrapper class="w-full sm:w-52">
+                <x-filament::input.select wire:model.live="branchId" aria-label="{{ __('Branch') }}">
+                    <option value="">{{ __('All branches') }}</option>
+                    @foreach ($this->getBranchOptions() as $id => $name)<option value="{{ $id }}">{{ $name }}</option>@endforeach
+                </x-filament::input.select>
+            </x-filament::input.wrapper>
+        @endif
+        <x-filament::input.wrapper class="w-full sm:w-52">
+            <x-filament::input.select wire:model.live="departmentId" aria-label="{{ __('Department') }}">
+                <option value="">{{ __('All departments') }}</option>
+                @foreach ($this->getDepartmentOptions() as $id => $name)<option value="{{ $id }}">{{ $name }}</option>@endforeach
+            </x-filament::input.select>
+        </x-filament::input.wrapper>
+        @unless ($this->seesWholeCompany())
+            <span class="hz-hint">{{ __('Showing your team.') }}</span>
+        @endunless
+        <div class="flex flex-wrap items-center gap-2 text-xs sm:ms-auto">
+            <x-filament::badge color="warning" size="sm">{{ __('Leave') }}</x-filament::badge>
+            <x-filament::badge color="info" size="sm">{{ __('Official duty / work from home') }}</x-filament::badge>
+            <x-filament::badge color="success" size="sm">{{ __('Holiday') }}</x-filament::badge>
+        </div>
     </div>
 
     <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7" wire:loading.class="opacity-60">

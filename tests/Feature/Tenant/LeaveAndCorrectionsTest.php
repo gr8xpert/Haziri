@@ -15,11 +15,14 @@ use App\Enums\LeaveDayPart;
 use App\Enums\PeriodStatus;
 use App\Enums\RequestStatus;
 use App\Enums\Role;
+use App\Filament\Tenant\Pages\LeaveCalendar;
 use App\Filament\Tenant\Resources\Corrections\Pages\ListCorrections;
 use App\Models\AttendanceDay;
+use App\Models\Branch;
 use App\Models\Employee;
 use App\Models\Holiday;
 use App\Models\LeaveBalance;
+use App\Models\LeaveRequest;
 use App\Models\LeaveType;
 use App\Models\Shift;
 use App\Models\User;
@@ -230,4 +233,28 @@ it('locks a month with a snapshot, blocks changes, and unlocks only with permiss
 
     $actions->unlock($period->fresh(), $owner, 'late correction');
     expect($period->fresh()->status)->toBe(PeriodStatus::Review);
+});
+
+it("shows who's off with leave names, branch-only holidays, filters, and only the team for managers", function () {
+    Filament::setCurrentPanel(Filament::getPanel('tenant'));
+    $this->travelTo(CarbonImmutable::parse('2026-09-09 10:00', 'Asia/Karachi'));
+    $khi = Branch::create(['name' => 'Karachi', 'code' => 'KHI']);
+    $other = person('OUT', ['branch_id' => $khi->id]);
+    foreach ([$this->emp, $other] as $e) {
+        LeaveRequest::create(['employee_id' => $e->id, 'leave_type_id' => $this->cl->id, 'from_date' => '2026-09-10', 'to_date' => '2026-09-10',
+            'days' => 1, 'status' => RequestStatus::Approved, 'day_part' => LeaveDayPart::Full]);
+    }
+    Holiday::create(['date' => '2026-09-11', 'name' => 'Local holiday', 'type' => 'company', 'branch_id' => $khi->id]);
+
+    $this->actingAs($this->hr);
+    $hr = Livewire::test(LeaveCalendar::class);
+    expect(collect($hr->instance()->getDays()['2026-09-10'])->pluck('what')->unique()->all())->toBe(['Casual Leave'])
+        ->and(collect($hr->instance()->getDays()['2026-09-10']))->toHaveCount(2)
+        ->and($hr->instance()->getDays()['2026-09-11'][0]['what'])->toBe('Holiday, Karachi only');
+    $hr->set('branchId', $khi->id);
+    expect(collect($hr->instance()->getDays()['2026-09-10'])->pluck('name')->all())->toBe(['OUT']);
+
+    $this->actingAs($this->manager);
+    $mgr = Livewire::test(LeaveCalendar::class);
+    expect(collect($mgr->instance()->getDays()['2026-09-10'])->pluck('name')->all())->toBe(['EMP']);
 });
