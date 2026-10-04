@@ -9,12 +9,64 @@
     </form>
 
     @if ($preview)
+        <x-filament::section :heading="__('Match your columns')" icon="heroicon-o-arrows-right-left"
+            :description="__('We guessed which column is which. Check each one; your choices are remembered for the next upload.')">
+            @php($missing = $this->getMissingRequired())
+            @if ($missing)
+                <p class="mb-4 rounded-lg bg-warning-50 p-3 text-sm text-warning-800 ring-1 ring-warning-600/20 dark:bg-warning-500/10 dark:text-warning-300">
+                    {{ __('Still needed: :fields.', ['fields' => implode(', ', $missing)]) }}
+                </p>
+            @endif
+            <div class="hz-table-wrap shadow-none!">
+                <table class="hz-table">
+                    <thead>
+                        <tr><th>{{ __('Your column') }}</th><th>{{ __('First row') }}</th><th>{{ __('Haziri field') }}</th></tr>
+                    </thead>
+                    <tbody>
+                        @foreach ($preview['headers'] as $i => $header)
+                            <tr wire:key="col-{{ $i }}">
+                                <td class="font-medium text-gray-950 dark:text-white">{{ $header !== '' ? $header : __('(no heading)') }}</td>
+                                <td class="max-w-56 truncate text-gray-500 dark:text-gray-400">{{ $preview['sample'][strtolower($header)] ?? '' }}</td>
+                                <td class="w-72">
+                                    <x-filament::input.wrapper>
+                                        <x-filament::input.select wire:model.live="mapping.{{ $i }}">
+                                            <option value="">{{ __('— Skip this column —') }}</option>
+                                            @foreach ($this->getFieldOptions() as $field => $label)
+                                                <option value="{{ $field }}">{{ $label }}{{ in_array($field, \App\Services\Employees\EmployeeImporter::REQUIRED, true) ? ' *' : '' }}</option>
+                                            @endforeach
+                                        </x-filament::input.select>
+                                    </x-filament::input.wrapper>
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+            <div class="mt-4 flex flex-wrap items-center gap-4">
+                <label class="inline-flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-200">
+                    <x-filament::input.checkbox wire:model.live="createMissing" />
+                    {{ __('Create missing departments') }}
+                </label>
+                @if ($this->canSuggestWithAi())
+                    <x-filament::button color="gray" size="sm" icon="heroicon-m-sparkles" wire:click="suggestWithAi" wire:loading.attr="disabled">
+                        {{ __('Suggest the rest with AI (only the headings are sent)') }}
+                    </x-filament::button>
+                @endif
+            </div>
+        </x-filament::section>
+
         <x-filament::section :heading="__('Preview')" icon="heroicon-o-eye">
             <dl class="grid grid-cols-3 gap-6 sm:max-w-lg">
                 <div class="hz-kpi"><dt>{{ __('New') }}</dt><dd>{{ $preview['creates'] }}</dd></div>
                 <div class="hz-kpi"><dt>{{ __('Updates') }}</dt><dd>{{ $preview['updates'] }}</dd></div>
                 <div class="hz-kpi"><dt>{{ __('Errors') }}</dt><dd @class(['text-danger-600! dark:text-danger-400!' => count($preview['errors'])])>{{ count($preview['errors']) }}</dd></div>
             </dl>
+
+            @if ($preview['new_departments'])
+                <p class="mt-5 text-sm text-gray-700 dark:text-gray-300">
+                    {{ __('New departments that will be created: :list', ['list' => implode(', ', $preview['new_departments'])]) }}
+                </p>
+            @endif
 
             @if ($preview['errors'])
                 <div class="mt-5 rounded-lg bg-danger-50 p-4 ring-1 ring-danger-600/15 dark:bg-danger-500/10 dark:ring-danger-400/20">
