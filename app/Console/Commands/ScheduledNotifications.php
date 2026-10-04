@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Console\Commands;
 
+use App\Actions\Announcements\BroadcastAnnouncement;
 use App\Enums\AttendanceStatus;
 use App\Enums\EmployeeStatus;
 use App\Enums\Role;
@@ -29,7 +30,7 @@ use Illuminate\Console\Command;
 #[Description('Send due time-based notifications (summary, absent, missing punch-out, HR reminders)')]
 final class ScheduledNotifications extends Command
 {
-    public function handle(Notifier $notifier, TenantSettings $settings, ShiftResolver $shifts, WorkingDayCalendar $calendar): int
+    public function handle(Notifier $notifier, TenantSettings $settings, ShiftResolver $shifts, WorkingDayCalendar $calendar, BroadcastAnnouncement $broadcast): int
     {
         $tz = tenant('timezone') ?? config('hazri.default_timezone');
         $now = $this->option('now') ? CarbonImmutable::parse($this->option('now'), $tz) : CarbonImmutable::now($tz);
@@ -68,6 +69,9 @@ final class ScheduledNotifications extends Command
         if ($now->format('H:i') >= '09:00') {
             $sent += $this->morningReminders($notifier, $now);
         }
+
+        // Announcements scheduled for later → their audience, once publish_at has passed.
+        $sent += $broadcast->due();
 
         $this->info("{$sent} notification(s) queued.");
 

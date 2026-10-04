@@ -2,10 +2,13 @@
 
 declare(strict_types=1);
 
+use App\Actions\Announcements\BroadcastAnnouncement;
 use App\Actions\Leave\DecideLeaveRequest;
 use App\Actions\Leave\SubmitLeaveRequest;
 use App\Enums\DevicePunchSourceType;
 use App\Enums\Role;
+use App\Models\Announcement;
+use App\Models\Central\DeviceRegistry;
 use App\Models\Device;
 use App\Models\Employee;
 use App\Models\LeaveType;
@@ -69,5 +72,28 @@ it('warns owners and admins when a device goes offline', function () {
 
     $owner = User::where('email', 'owner@pest.test')->first();
     expect(NotificationLog::where(['event' => 'device_offline', 'recipient' => "user:{$owner->id}", 'channel' => 'database'])->value('status'))->toBe('sent');
-    App\Models\Central\DeviceRegistry::where('serial_number', 'OFF01')->delete();
+    DeviceRegistry::where('serial_number', 'OFF01')->delete();
+});
+
+it('broadcasts a scheduled announcement when it publishes, not when it is saved', function () {
+    $broadcast = app(BroadcastAnnouncement::class);
+    $later = Announcement::create(['title' => 'Closed Friday', 'body' => 'x', 'notify' => true, 'publish_at' => now()->addDay()]);
+    $sent = fn () => NotificationLog::where(['event' => 'broadcast', 'dedupe_key' => "announcement:{$later->id}"])->count();
+
+    expect($broadcast($later))->toBe(0)->and($sent())->toBe(0);
+
+    $this->travel(25)->hours();
+    $this->artisan('hazri:notify:scheduled')->assertSuccessful();
+    expect($sent())->toBeGreaterThan(0)->and($later->fresh()->notified_at)->not->toBeNull();
+
+    $before = $sent();
+    $this->artisan('hazri:notify:scheduled')->assertSuccessful();
+    expect($sent())->toBe($before);
+});
+
+it('broadcasts an announcement without a publish time at once', function () {
+    $now = Announcement::create(['title' => 'Salaries on the 3rd', 'body' => 'x', 'notify' => true]);
+
+    expect(app(BroadcastAnnouncement::class)($now))->toBeGreaterThan(0)
+        ->and($now->fresh()->notified_at)->not->toBeNull();
 });
