@@ -16,6 +16,11 @@ use App\Services\Notifications\Channels\MetaWhatsAppChannel;
 use App\Services\Settings\TenantSettings;
 use App\Support\BranchAccess;
 use Filament\Auth\Notifications\ResetPassword as FilamentResetPassword;
+use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\DateTimePicker;
+use Filament\Forms\Components\TimePicker;
+use Filament\Schemas\Schema;
+use Filament\Tables\Table;
 use Illuminate\Queue\Events\JobExceptionOccurred;
 use Illuminate\Queue\Events\JobFailed;
 use Illuminate\Queue\Events\JobProcessed;
@@ -59,5 +64,24 @@ class AppServiceProvider extends ServiceProvider
 
         // Plan limit on active employees (spec §9 phase 4: usage enforcement).
         Employee::creating(fn () => BillingService::assertEmployeeCapacity());
+
+        $this->configureDateFormats();
+    }
+
+    /**
+     * Day-first dates everywhere (Pakistan), whatever the browser's language: pickers show 30/09/2026 instead of the
+     * browser's native mm/dd/yyyy, and tables / detail views show 30 Sep 2026.
+     */
+    private function configureDateFormats(): void
+    {
+        DateTimePicker::configureUsing(function (DateTimePicker $picker): void {
+            if ($picker instanceof TimePicker) {
+                return;
+            }
+            $picker->native(false)->firstDayOfWeek(1)
+                ->displayFormat($picker instanceof DatePicker ? 'd/m/Y' : 'd/m/Y H:i');
+        });
+        Table::configureUsing(fn (Table $table) => $table->defaultDateDisplayFormat('d M Y')->defaultDateTimeDisplayFormat('d M Y, H:i'));
+        Schema::configureUsing(fn (Schema $schema) => $schema->defaultDateDisplayFormat('d M Y')->defaultDateTimeDisplayFormat('d M Y, H:i'));
     }
 }
