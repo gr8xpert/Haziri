@@ -32,13 +32,15 @@ class DailySheet extends Page
 
     protected static ?int $navigationSort = 30;
 
-    protected static ?string $title = 'Daily attendance sheet';
+    protected static ?string $title = 'Manual Entry';
+
+    protected static ?string $slug = 'manual-entry';
 
     public string $date = '';
 
     public ?int $branchId = null;
 
-    public string $reason = 'Daily sheet entry';
+    public string $reason = 'Manual entry';
 
     /** @var array<int, array{name: string, code: string, in: ?string, out: ?string, had_in: ?string, had_out: ?string, shift_start: ?string, shift_end: ?string}> */
     public array $rows = [];

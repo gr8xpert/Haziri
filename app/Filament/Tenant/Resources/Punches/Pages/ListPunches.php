@@ -76,9 +76,9 @@ class ListPunches extends ListRecords
                         Notification::make()->success()->title(__(':n manual punches removed', ['n' => $n]))->send();
                     }),
             ])->label(__('Bulk manual'))->icon(Heroicon::OutlinedSquare2Stack)->button()->color('gray'),
-            Action::make('dailySheet')->label(__('Daily sheet'))->icon(Heroicon::OutlinedTableCells)->color('gray')
+            Action::make('dailySheet')->label(__('Manual Entry'))->icon(Heroicon::OutlinedTableCells)->color('gray')
                 ->url(DailySheet::getUrl()),
-            Action::make('manual')->label(__('Manual entry'))->icon(Heroicon::OutlinedPencilSquare)
+            Action::make('manual')->label(__('Add one punch'))->icon(Heroicon::OutlinedPencilSquare)
                 ->visible(fn () => auth()->user()->can('attendance.manual_entry'))
                 ->schema([
                     Select::make('employee_id')->label('Employee')->required()->searchable()
