@@ -12,6 +12,7 @@ use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Support\Str;
 
 /** Every notification attempt (spec §11: "Every send logged in notification_logs"). */
 class NotificationLogResource extends Resource
@@ -41,7 +42,7 @@ class NotificationLogResource extends Resource
             ->defaultSort('created_at', 'desc')
             ->columns([
                 TextColumn::make('created_at')->dateTime()->sortable(),
-                TextColumn::make('event')->searchable(),
+                TextColumn::make('event')->searchable()->formatStateUsing(fn (string $state) => Str::headline($state)),
                 TextColumn::make('channel')->badge()->formatStateUsing(fn (string $state) => self::CHANNELS[$state] ?? $state),
                 TextColumn::make('recipient')->searchable(),
                 TextColumn::make('status')->badge()->color(fn (string $state) => match ($state) {

@@ -19,6 +19,7 @@ use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Illuminate\Support\Str;
 
 /** Tenant overrides of the default texts in config/notification_templates.php (spec §11). */
 class NotificationTemplateResource extends Resource
@@ -44,7 +45,7 @@ class NotificationTemplateResource extends Resource
         $events = array_keys(config('notification_templates'));
 
         return $schema->columns(3)->components([
-            Select::make('event')->options(array_combine($events, $events))->required()->live()
+            Select::make('event')->options(array_combine($events, array_map(fn (string $e) => Str::headline($e), $events)))->required()->live()
                 ->afterStateUpdated(function ($state, $set, $get) {
                     [$subject, $body] = config("notification_templates.{$state}." . ($get('locale') ?: 'en'), ['', '']);
                     $set('subject', $subject);
@@ -64,7 +65,7 @@ class NotificationTemplateResource extends Resource
     {
         return $table
             ->columns([
-                TextColumn::make('event')->searchable(),
+                TextColumn::make('event')->searchable()->formatStateUsing(fn (string $state) => Str::headline($state)),
                 TextColumn::make('channel')->badge(),
                 TextColumn::make('locale'),
                 TextColumn::make('subject')->limit(40),
