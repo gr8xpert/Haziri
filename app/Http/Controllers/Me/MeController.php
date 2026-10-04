@@ -10,7 +10,6 @@ use App\Actions\Rosters\ApproveShiftSwap;
 use App\Actions\Rosters\RequestShiftSwap;
 use App\Actions\SelfService\SelfPunch;
 use App\Enums\CorrectionType;
-use App\Enums\EmployeeStatus;
 use App\Enums\HolidayType;
 use App\Enums\LeaveDayPart;
 use App\Enums\PunchDirection;
@@ -148,8 +147,7 @@ final class MeController
                 'shifts' => $describe->describe($s->requester, $s->partner, $s->date->format('Y-m-d')),
                 'can_answer' => $s->partner_employee_id === $employee->id && $s->status === ShiftSwapStatus::Partner,
             ])->all();
-        $colleagues = Employee::query()->where('status', '!=', EmployeeStatus::Left)->whereKeyNot($employee->id)
-            ->when($employee->branch_id, fn ($q, $b) => $q->where('branch_id', $b))->orderBy('first_name')->limit(500)->get()
+        $colleagues = RequestShiftSwap::colleagues($employee)->orderBy('first_name')->limit(500)->get()
             ->map(fn (Employee $e) => ['id' => $e->id, 'name' => "{$e->fullName()} ({$e->code})"])->all();
 
         return ['enabled' => true, 'colleagues' => $colleagues, 'items' => $items];

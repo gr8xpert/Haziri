@@ -254,3 +254,25 @@ it('lets an employee ask a colleague to swap shifts; the colleague accepts, then
         ->and(NotificationLog::where('event', 'shift_swap_asked')->exists())->toBeTrue()
         ->and(NotificationLog::where('event', 'shift_swap_pending')->exists())->toBeTrue();
 });
+
+it('only lets employees ask colleagues in their own branch and department, a few at a time', function () {
+    $this->travelTo(CarbonImmutable::parse('2026-09-08 10:00', 'Asia/Karachi'));
+    Mail::fake();
+    $night = Shift::create(['name' => 'Night', 'code' => 'NGT', 'start_time' => '22:00', 'end_time' => '06:00', 'crosses_midnight' => true]);
+    $far = Branch::create(['name' => 'Far', 'code' => 'FAR']);
+    $stranger = Employee::create(['code' => 'SS4', 'first_name' => 'Stranger', 'joined_on' => '2025-01-01', 'branch_id' => $far->id]);
+    $pal = Employee::create(['code' => 'SS5', 'first_name' => 'Pal', 'joined_on' => '2025-01-01', 'branch_id' => $this->office->id]);
+    foreach ([$stranger, $pal] as $e) {
+        ShiftAssignment::create(['employee_id' => $e->id, 'shift_id' => $night->id, 'effective_from' => '2026-01-01']);
+    }
+
+    $this->actingAs($this->user)->getJson("{$this->base}/me/attendance")->assertJsonCount(1, 'swaps.colleagues');
+    $this->postJson("{$this->base}/me/shift-swaps", ['partner_employee_id' => $stranger->id, 'date' => '2026-09-10'])
+        ->assertStatus(422)->assertJsonValidationErrors('partner');
+
+    foreach (['2026-09-10', '2026-09-11', '2026-09-12'] as $date) {
+        $this->postJson("{$this->base}/me/shift-swaps", ['partner_employee_id' => $pal->id, 'date' => $date])->assertCreated();
+    }
+    $this->postJson("{$this->base}/me/shift-swaps", ['partner_employee_id' => $pal->id, 'date' => '2026-09-13'])
+        ->assertStatus(422)->assertJsonValidationErrors('swap');
+});

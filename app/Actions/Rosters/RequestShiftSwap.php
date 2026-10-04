@@ -15,6 +15,7 @@ use App\Services\Notifications\Recipient;
 use App\Services\Notifications\Recipients;
 use App\Services\Settings\TenantSettings;
 use Carbon\CarbonImmutable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -23,6 +24,9 @@ use Illuminate\Validation\ValidationException;
  */
 final class RequestShiftSwap
 {
+    /** Open requests one employee may have at a time, so a colleague can't be flooded with notifications. */
+    public const MAX_OPEN = 3;
+
     public function __construct(
         private readonly ApproveShiftSwap $swaps,
         private readonly Notifier $notifier,
@@ -34,8 +38,13 @@ final class RequestShiftSwap
         if (! $this->settings->featureEnabled('rosters')) {
             throw ValidationException::withMessages(['swap' => __('Shift swaps are not enabled for your company.')]);
         }
-        if ($partner->id === $requester->id || $partner->status === EmployeeStatus::Left) {
+        if ($partner->id === $requester->id || $partner->status === EmployeeStatus::Left || ! self::areColleagues($requester, $partner)) {
             throw ValidationException::withMessages(['partner' => __('Choose a colleague to swap with.')]);
+        }
+        $waiting = ShiftSwapRequest::query()->where('requester_employee_id', $requester->id)
+            ->whereIn('status', [ShiftSwapStatus::Partner, ShiftSwapStatus::Pending])->count();
+        if ($waiting >= self::MAX_OPEN) {
+            throw ValidationException::withMessages(['swap' => __('You already have :n swap requests waiting. Wait for an answer first.', ['n' => $waiting])]);
         }
         if ($date < CarbonImmutable::now(tenant('timezone') ?? config('hazri.default_timezone'))->format('Y-m-d')) {
             throw ValidationException::withMessages(['date' => __('Choose today or a later date.')]);
@@ -55,6 +64,23 @@ final class RequestShiftSwap
         ], url('/me'), "swap_asked:{$swap->id}");
 
         return $swap;
+    }
+
+    /**
+     * Who an employee may ask from the app: same branch and same department (when they have one). This also limits
+     * whose names and shifts the app shows them.
+     */
+    public static function colleagues(Employee $employee): Builder
+    {
+        $same = fn ($q, string $column, ?int $value) => $value === null ? $q->whereNull($column) : $q->where($column, $value);
+
+        return $same($same(Employee::query()->where('status', '!=', EmployeeStatus::Left)->whereKeyNot($employee->id),
+            'branch_id', $employee->branch_id), 'department_id', $employee->department_id);
+    }
+
+    public static function areColleagues(Employee $a, Employee $b): bool
+    {
+        return self::colleagues($a)->whereKey($b->id)->exists();
     }
 
     /** The colleague's answer. Accepting sends it to HR / the manager for approval. */
