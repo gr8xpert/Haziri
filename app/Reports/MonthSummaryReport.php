@@ -106,7 +106,7 @@ final class MonthSummaryReport extends Report
                 'overtime' => $s['overtimeMinutes'] ? round($s['overtimeMinutes'] / 60, 1) : null,
                 'deduction' => (float) $s['deductionDays'] ?: null,
                 'payable' => (float) $s['payableDays'],
-                '_url' => MonthlyAttendance::getUrl(['month' => $month, 'employee' => $employee->id]),
+                '_url' => MonthlyAttendance::getUrl(['month' => $month, 'employee' => $employee->id], panel: 'tenant'),
                 '_department' => $employee->department?->name ?? __('No department'),
                 '_branch' => $employee->branch?->name ?? __('No branch'),
             ];

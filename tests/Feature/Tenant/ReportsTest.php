@@ -46,12 +46,14 @@ it('builds the daily muster with local times', function () {
 });
 
 it('builds the monthly grid with codes, totals and late rollup', function () {
+    Filament::setCurrentPanel(Filament::getPanel('tenant'));
     $rows = (new MonthlySheetReport)->rows(['month' => '2026-08']);
     $row = collect($rows)->firstWhere('code', 'R1');
 
     expect($row['d3'])->toBe('L')->and($row['d4'])->toBe('A')->and($row['d8'])->toBe('WO')
         ->and($row['A'])->toBe(4)->and($row['L'])->toBe(3)
-        ->and($row['ded'])->toBe(5.0); // 4 absents + floor(3 lates / 3)
+        ->and($row['ded'])->toBe(5.0) // 4 absents + floor(3 lates / 3)
+        ->and($row['_url'])->toContain('/admin/reports/monthly-attendance')->toContain('month=2026-08')->toContain("employee={$this->e->id}");
 });
 
 it('counts absence streaks across weekly offs', function () {

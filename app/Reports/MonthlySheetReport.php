@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Reports;
 
+use App\Filament\Tenant\Pages\Reports\MonthlyAttendance;
 use App\Models\AttendanceDay;
 use App\Models\LeaveRequest;
 use App\Services\Attendance\Period\PeriodCalculator;
@@ -67,7 +68,8 @@ final class MonthlySheetReport extends Report
         $rows = [];
         foreach ($employees as $e) {
             $own = $days->get($e->id, collect())->keyBy(fn (AttendanceDay $d) => $d->date->format('Y-m-d'));
-            $row = ['code' => $e->code, 'name' => $e->fullName()];
+            // The name opens this employee's detailed monthly report for the same month.
+            $row = ['code' => $e->code, 'name' => $e->fullName(), '_url' => MonthlyAttendance::getUrl(['month' => $filters['month'], 'employee' => $e->id], panel: 'tenant')];
             foreach ($period as $d) {
                 $row['d' . $d->format('j')] = StatusCodes::for($own->get($d->format('Y-m-d')), $leaveCodes);
             }
