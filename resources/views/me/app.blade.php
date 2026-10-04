@@ -300,6 +300,47 @@
             </div>
             <button class="me-btn" :disabled="busy">{{ __('Send request') }}</button>
         </form>
+
+        <div x-show="data.swaps?.enabled" x-cloak class="mt-4 space-y-3">
+            <form @submit.prevent="requestSwap($event.target)" class="me-card space-y-4 p-5">
+                <div>
+                    <h2 class="text-base font-semibold">{{ __('Swap a shift') }}</h2>
+                    <p class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">{{ __('Ask a colleague to swap shifts for one day. They accept first, then your manager or HR approves.') }}</p>
+                </div>
+                <div>
+                    <label for="sw-date" class="me-label">{{ __('Date') }}</label>
+                    <input id="sw-date" type="date" name="date" required class="me-input" :min="todayIso">
+                </div>
+                <div>
+                    <label for="sw-who" class="me-label">{{ __('Swap with') }}</label>
+                    <select id="sw-who" name="partner_employee_id" required class="me-input">
+                        <option value="">{{ __('Choose a colleague') }}</option>
+                        <template x-for="c in data.swaps?.colleagues ?? []" :key="c.id"><option :value="c.id" x-text="c.name"></option></template>
+                    </select>
+                </div>
+                <div>
+                    <label for="sw-reason" class="me-label">{{ __('Reason') }}</label>
+                    <input id="sw-reason" type="text" name="reason" maxlength="255" class="me-input">
+                </div>
+                <button class="me-btn" :disabled="busy">{{ __('Ask my colleague') }}</button>
+            </form>
+
+            <template x-for="s in data.swaps?.items ?? []" :key="s.id">
+                <article class="me-card p-4">
+                    <div class="flex items-start justify-between gap-3">
+                        <div class="min-w-0">
+                            <p class="font-semibold" x-text="`${s.date} · ${s.with}`"></p>
+                            <p class="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400" x-text="s.shifts"></p>
+                        </div>
+                        <span class="shrink-0 rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-medium dark:bg-white/10" x-text="s.status"></span>
+                    </div>
+                    <div x-show="s.can_answer" class="mt-3 flex gap-2">
+                        <button @click="answerSwap(s, true)" class="rounded-lg bg-emerald-600 px-3 py-2 text-sm font-medium text-white">{{ __('Accept') }}</button>
+                        <button @click="answerSwap(s, false)" class="rounded-lg bg-zinc-100 px-3 py-2 text-sm font-medium dark:bg-white/10">{{ __('Decline') }}</button>
+                    </div>
+                </article>
+            </template>
+        </div>
     </section>
 
     <div x-show="toast" x-cloak role="status" aria-live="polite"

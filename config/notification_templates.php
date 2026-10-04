@@ -63,6 +63,21 @@ return [
         'en' => ['{{ month }} attendance locked', 'Attendance for {{ month }} has been locked by {{ by }}. Deduction days: {{ deduction_days }}.'],
         'ur' => ['{{ month }} کی حاضری لاک', '{{ month }} کی حاضری {{ by }} نے لاک کر دی ہے۔ کٹوتی کے دن: {{ deduction_days }}۔'],
     ],
+    'shift_swap_asked' => [
+        'channels' => ['database', 'mail', 'whatsapp'],
+        'en' => ['{{ employee }} asks to swap shifts', '{{ employee }} would like to swap shifts with you on {{ date }}. {{ reason }} Open the app to accept or decline.'],
+        'ur' => ['{{ employee }} شفٹ بدلنا چاہتے ہیں', '{{ employee }} {{ date }} کو آپ کے ساتھ شفٹ بدلنا چاہتے ہیں۔ {{ reason }} قبول یا انکار کے لیے ایپ کھولیں۔'],
+    ],
+    'shift_swap_answered' => [
+        'channels' => ['database', 'mail', 'whatsapp'],
+        'en' => ['Shift swap {{ answer }}', '{{ partner }} {{ answer }} your shift swap for {{ date }}.'],
+        'ur' => ['شفٹ کی تبدیلی: {{ answer }}', '{{ partner }} نے {{ date }} کی شفٹ کی تبدیلی پر جواب دیا: {{ answer }}۔'],
+    ],
+    'shift_swap_pending' => [
+        'channels' => ['database', 'mail'],
+        'en' => ['Shift swap to approve', '{{ employee }} and {{ partner }} agreed to swap shifts on {{ date }}. Please approve or reject.'],
+        'ur' => ['شفٹ کی تبدیلی منظوری کے لیے', '{{ employee }} اور {{ partner }} نے {{ date }} کو شفٹ بدلنے پر اتفاق کیا ہے۔ براہ کرم منظور یا مسترد کریں۔'],
+    ],
     'holiday_unconfirmed' => [
         'channels' => ['mail', 'database'],
         'en' => ['Confirm the holiday: {{ holiday }}', '{{ holiday }} on {{ date }} is still provisional. Confirm the date, or move it, under Holidays.'],

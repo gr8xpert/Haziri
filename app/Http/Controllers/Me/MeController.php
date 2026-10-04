@@ -6,12 +6,16 @@ namespace App\Http\Controllers\Me;
 
 use App\Actions\Corrections\SubmitCorrection;
 use App\Actions\Leave\SubmitLeaveRequest;
+use App\Actions\Rosters\ApproveShiftSwap;
+use App\Actions\Rosters\RequestShiftSwap;
 use App\Actions\SelfService\SelfPunch;
 use App\Enums\CorrectionType;
+use App\Enums\EmployeeStatus;
 use App\Enums\HolidayType;
 use App\Enums\LeaveDayPart;
 use App\Enums\PunchDirection;
 use App\Enums\RequestStatus;
+use App\Enums\ShiftSwapStatus;
 use App\Models\Announcement;
 use App\Models\AnnouncementAck;
 use App\Models\AttendanceDay;
@@ -20,6 +24,7 @@ use App\Models\Holiday;
 use App\Models\HolidayOptIn;
 use App\Models\LeaveRequest;
 use App\Models\LeaveType;
+use App\Models\ShiftSwapRequest;
 use App\Reports\StatusCodes;
 use App\Services\Leave\LeaveBalanceService;
 use App\Services\Leave\LeaveYear;
@@ -97,7 +102,57 @@ final class MeController
                 ->map(fn (Announcement $a) => ['id' => $a->id, 'title' => $a->title, 'body' => $a->body, 'requires_ack' => $a->requires_ack,
                     'acked' => $a->acks->contains('employee_id', $employee->id)]),
             'optional_holidays' => $this->optionalHolidays($employee),
+            'swaps' => $this->swaps($employee),
         ]);
+    }
+
+    /** Ask a colleague to swap shifts on a date. */
+    public function shiftSwap(Request $request, RequestShiftSwap $swaps): JsonResponse
+    {
+        $data = $request->validate([
+            'partner_employee_id' => ['required', 'integer', 'exists:employees,id'],
+            'date' => ['required', 'date_format:Y-m-d'],
+            'reason' => ['nullable', 'string', 'max:255'],
+        ]);
+        $swap = $swaps->ask($request->user()->employee, Employee::query()->findOrFail($data['partner_employee_id']), $data['date'], $data['reason'] ?? null);
+
+        return response()->json(['id' => $swap->id, 'status' => $swap->status->getLabel()], 201);
+    }
+
+    /** The colleague accepts or declines. */
+    public function shiftSwapAnswer(Request $request, ShiftSwapRequest $swap, RequestShiftSwap $swaps): JsonResponse
+    {
+        $data = $request->validate(['accept' => ['required', 'boolean']]);
+        $swaps->answer($swap, $request->user()->employee, (bool) $data['accept'], $request->user());
+
+        return response()->json(['status' => $swap->fresh()->status->getLabel()]);
+    }
+
+    /**
+     * The employee's swap requests (theirs and ones asking them), plus the colleagues they can ask.
+     *
+     * @return array{enabled: bool, colleagues: list<array{id: int, name: string}>, items: list<array<string, mixed>>}
+     */
+    private function swaps(Employee $employee): array
+    {
+        if (! app(TenantSettings::class)->featureEnabled('rosters')) {
+            return ['enabled' => false, 'colleagues' => [], 'items' => []];
+        }
+        $describe = app(ApproveShiftSwap::class);
+        $items = ShiftSwapRequest::query()->with(['requester', 'partner'])
+            ->where(fn ($q) => $q->where('requester_employee_id', $employee->id)->orWhere('partner_employee_id', $employee->id))
+            ->whereDate('date', '>=', now(tenant('timezone'))->subDays(7)->format('Y-m-d'))->orderByDesc('date')->limit(10)->get()
+            ->map(fn (ShiftSwapRequest $s) => [
+                'id' => $s->id, 'date' => $s->date->format('D d M Y'), 'status' => $s->status->getLabel(),
+                'with' => ($s->requester_employee_id === $employee->id ? $s->partner : $s->requester)?->fullName(),
+                'shifts' => $describe->describe($s->requester, $s->partner, $s->date->format('Y-m-d')),
+                'can_answer' => $s->partner_employee_id === $employee->id && $s->status === ShiftSwapStatus::Partner,
+            ])->all();
+        $colleagues = Employee::query()->where('status', '!=', EmployeeStatus::Left)->whereKeyNot($employee->id)
+            ->when($employee->branch_id, fn ($q, $b) => $q->where('branch_id', $b))->orderBy('first_name')->limit(500)->get()
+            ->map(fn (Employee $e) => ['id' => $e->id, 'name' => "{$e->fullName()} ({$e->code})"])->all();
+
+        return ['enabled' => true, 'colleagues' => $colleagues, 'items' => $items];
     }
 
     /** Take or give back an optional holiday (until the day itself). */

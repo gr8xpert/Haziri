@@ -61,6 +61,8 @@ Route::middleware([
             Route::post('corrections', [MeController::class, 'correction'])->name('corrections');
             Route::post('announcements/{announcement}/ack', [MeController::class, 'ack'])->name('announcements.ack');
             Route::post('optional-holidays/{holiday}', [MeController::class, 'optionalHoliday'])->name('optional-holidays.toggle');
+            Route::post('shift-swaps', [MeController::class, 'shiftSwap'])->name('shift-swaps.store');
+            Route::post('shift-swaps/{swap}/answer', [MeController::class, 'shiftSwapAnswer'])->name('shift-swaps.answer');
             Route::get('qr.svg', [MeController::class, 'qr'])->name('qr');
         });
     });

@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Actions\Announcements\BroadcastAnnouncement;
+use App\Actions\Rosters\ApproveShiftSwap;
 use App\Actions\SelfService\DecidePendingPunch;
 use App\Enums\AttendanceStatus;
 use App\Enums\DevicePunchSourceType;
@@ -19,8 +20,12 @@ use App\Models\Kiosk;
 use App\Models\NotificationLog;
 use App\Models\Punch;
 use App\Models\Setting;
+use App\Models\Shift;
+use App\Models\ShiftAssignment;
+use App\Models\ShiftSwapRequest;
 use App\Models\User;
 use App\Services\Attendance\AttendanceRecomputer;
+use App\Services\Attendance\ShiftResolver;
 use App\Services\SelfService\GeoFence;
 use App\Services\SelfService\QrBadge;
 use App\Services\Settings\TenantSettings;
@@ -225,4 +230,27 @@ it('makes an optional holiday a day off only for those who take it', function ()
 
     expect($status($this->emp))->toBe(AttendanceStatus::Holiday)
         ->and($status($other))->toBe(AttendanceStatus::Absent);
+});
+
+it('lets an employee ask a colleague to swap shifts; the colleague accepts, then HR approves', function () {
+    $this->travelTo(CarbonImmutable::parse('2026-09-08 10:00', 'Asia/Karachi'));
+    Mail::fake();
+    $night = Shift::create(['name' => 'Night', 'code' => 'NGT', 'start_time' => '22:00', 'end_time' => '06:00', 'crosses_midnight' => true]);
+    $pal = Employee::create(['code' => 'SS3', 'first_name' => 'Pal', 'joined_on' => '2025-01-01', 'branch_id' => $this->office->id]);
+    ShiftAssignment::create(['employee_id' => $pal->id, 'shift_id' => $night->id, 'effective_from' => '2026-01-01']);
+    $palUser = User::create(['name' => 'Pal', 'email' => 'pal@pest.test', 'password' => 'x', 'employee_id' => $pal->id]);
+    $palUser->assignRole(Role::Employee->value);
+
+    $this->actingAs($this->user)->getJson("{$this->base}/me/attendance")->assertJsonPath('swaps.enabled', true);
+    $id = $this->postJson("{$this->base}/me/shift-swaps", ['partner_employee_id' => $pal->id, 'date' => '2026-09-10', 'reason' => 'Wedding'])
+        ->assertCreated()->assertJsonPath('status', 'Waiting for colleague')->json('id');
+    $this->postJson("{$this->base}/me/shift-swaps/{$id}/answer", ['accept' => true])->assertStatus(422); // only the colleague answers
+
+    $this->actingAs($palUser)->getJson("{$this->base}/me/attendance")->assertJsonPath('swaps.items.0.can_answer', true);
+    $this->postJson("{$this->base}/me/shift-swaps/{$id}/answer", ['accept' => true])->assertOk()->assertJsonPath('status', 'Waiting for approval');
+
+    app(ApproveShiftSwap::class)(ShiftSwapRequest::find($id), User::where('email', 'owner@pest.test')->first(), true);
+    expect(app(ShiftResolver::class)->resolve($this->emp, '2026-09-10', 'Asia/Karachi')->shiftId)->toBe($night->id)
+        ->and(NotificationLog::where('event', 'shift_swap_asked')->exists())->toBeTrue()
+        ->and(NotificationLog::where('event', 'shift_swap_pending')->exists())->toBeTrue();
 });

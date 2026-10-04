@@ -236,6 +236,31 @@ Alpine.data('meApp', ({ canPunch, faceCheck, leaveTypes, locale }) => ({
         }
     },
 
+    /** Ask a colleague to swap shifts. */
+    async requestSwap(form) {
+        this.busy = true;
+        try {
+            await api('/me/shift-swaps', Object.fromEntries(new FormData(form)));
+            form.reset();
+            this.flash('Swap request sent to your colleague');
+            await this.load();
+        } catch (e) {
+            this.flash(e.message, false);
+        } finally {
+            this.busy = false;
+        }
+    },
+
+    async answerSwap(s, accept) {
+        try {
+            await api(`/me/shift-swaps/${s.id}/answer`, { accept });
+            this.flash(accept ? 'Accepted. It now waits for approval.' : 'Declined');
+            await this.load();
+        } catch (e) {
+            this.flash(e.message, false);
+        }
+    },
+
     /** Take or give back an optional holiday. */
     async toggleOptional(h) {
         try {

@@ -47,6 +47,13 @@ class ShiftSwapResource extends Resource
 
     protected static string $managePermission = 'shifts.manage';
 
+    public static function getNavigationBadge(): ?string
+    {
+        $n = ShiftSwapRequest::query()->where('status', ShiftSwapStatus::Pending)->count();
+
+        return $n ? (string) $n : null;
+    }
+
     public static function form(Schema $schema): Schema
     {
         $employees = fn () => Employee::orderBy('code')->get()->mapWithKeys(fn (Employee $e) => [$e->id => "{$e->code} — {$e->fullName()}"]);
