@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models\Central;
 
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Prunable;
 use Illuminate\Support\Facades\Cache;
@@ -59,6 +60,22 @@ class UnknownDevice extends Model
     {
         $this->update(['blocked_at' => null]);
         self::forgetSerial($this->serial_number);
+    }
+
+    /**
+     * Companies that probably own this machine: their registered machines last connected from the same IP address
+     * (machines in one office share its internet connection).
+     *
+     * @return Collection<int, Tenant>
+     */
+    public function likelyTenants(): Collection
+    {
+        if (blank($this->ip)) {
+            return new Collection;
+        }
+        $ids = DeviceRegistry::query()->where('last_ip', $this->ip)->distinct()->pluck('tenant_id');
+
+        return Tenant::query()->whereIn('id', $ids)->orderBy('company_name')->get();
     }
 
     /** The serial was attached to a company or its row deleted: let it through again. */

@@ -113,6 +113,16 @@ it('turns a blocked machine away without recording it, and lets it in once a com
     DeviceRegistry::where('serial_number', 'ZKNOBODY')->delete();
 });
 
+it('suggests the company whose registered machine uses the same IP', function () {
+    Device::create(['name' => 'Front', 'serial_number' => 'ZKADMS01', 'type' => DevicePunchSourceType::Adms]);
+    DeviceRegistry::where('serial_number', 'ZKADMS01')->update(['last_ip' => '203.0.113.7']);
+    $same = UnknownDevice::create(['serial_number' => 'ZKNOBODY', 'ip' => '203.0.113.7', 'first_seen_at' => now(), 'last_seen_at' => now()]);
+    $other = UnknownDevice::create(['serial_number' => 'ZKBLOCKED', 'ip' => '198.51.100.9', 'first_seen_at' => now(), 'last_seen_at' => now()]);
+
+    expect($same->likelyTenants()->pluck('id')->all())->toBe([$this->tenant->id])
+        ->and($other->likelyTenants())->toBeEmpty();
+});
+
 it('prunes machines not seen for 30 days but keeps blocked ones', function () {
     UnknownDevice::create(['serial_number' => 'ZKNOBODY', 'first_seen_at' => now()->subDays(40), 'last_seen_at' => now()->subDays(31)]);
     UnknownDevice::create(['serial_number' => 'ZKBLOCKED', 'first_seen_at' => now()->subDays(40), 'last_seen_at' => now()->subDays(31), 'blocked_at' => now()->subDays(31)]);
