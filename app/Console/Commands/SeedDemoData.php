@@ -35,6 +35,7 @@ use App\Models\SalaryStructure;
 use App\Models\Setting;
 use App\Models\UnmappedPin;
 use App\Models\User;
+use App\Models\Visitor;
 use App\Services\Attendance\AttendanceRecomputer;
 use App\Services\Features\FeatureCatalog;
 use App\Services\Leave\LeaveBalanceService;
@@ -45,6 +46,7 @@ use Carbon\CarbonPeriod;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
+use Illuminate\Support\Collection;
 
 /** Local demo only: fills a company with ~6 weeks of realistic attendance so every screen has something to show. */
 #[Signature('hazri:demo:seed {slug=demo}')]
@@ -194,6 +196,7 @@ final class SeedDemoData extends Command
             'type' => 'add_punch', 'payload' => ['time' => '18:10', 'direction' => 'out'], 'reason' => 'Forgot to punch out', 'status' => RequestStatus::Pending,
             'approver_chain' => [['step' => 'hr', 'user_id' => null, 'decided_by' => null, 'decision' => null, 'at' => null, 'note' => null]], 'current_step' => 0]);
         Announcement::firstOrCreate(['title' => 'Office timings during Rabi ul Awal'], ['body' => 'Office will close at 4 pm on 12 Rabi ul Awal.', 'requires_ack' => true, 'notify' => false]);
+        $this->seedVisitors($employees, $lhr, $khi, $today, $tz);
 
         $this->info('Recomputing attendance…');
         $recomputer = app(AttendanceRecomputer::class);
@@ -213,6 +216,36 @@ final class SeedDemoData extends Command
         app(PayrollActions::class)->generate($period->fresh(), $owner);
 
         $this->line('Kiosk: http://' . tenant('slug') . '.' . config('hazri.central_domain') . ":8000/kiosk/{$kiosk->token}");
+    }
+
+    /**
+     * Visitor log: today (two still inside) and the last few days, each with a badge number per day.
+     *
+     * @param  Collection<int, Employee>  $employees
+     */
+    private function seedVisitors(Collection $employees, Branch $lhr, Branch $khi, CarbonImmutable $today, string $tz): void
+    {
+        $visits = [
+            // [days ago, in, out (null = still inside), name, company, purpose, host index, branch]
+            [0, '09:40', null, 'Imran Qureshi', 'Habib Bank', 'Payroll account opening', 1, $lhr],
+            [0, '10:15', '10:50', 'Sana Javed', 'Al-Noor Manpower', 'Contract staff attendance', 3, $lhr],
+            [0, '11:30', null, 'Waqas Butt', 'TechServe IT', 'Fingerprint machine service', 2, $lhr],
+            [0, '12:05', '12:40', 'Ayesha Siddiqui', null, 'Job interview', 3, $khi],
+            [1, '10:00', '11:20', 'Kamran Akmal', 'Packages Ltd', 'Sales meeting', 0, $lhr],
+            [1, '14:30', '15:00', 'Nadia Hussain', 'TCS Courier', 'Document delivery', 1, $lhr],
+            [2, '09:20', '09:45', 'Bilal Ashraf', 'K-Electric', 'Meter reading', 2, $khi],
+            [3, '11:00', '13:10', 'Rizwan Ahmed', 'FBR', 'Tax audit', 1, $lhr],
+        ];
+        $badges = [];
+        foreach ($visits as [$ago, $in, $out, $name, $company, $purpose, $host, $branch]) {
+            $day = $today->subDays($ago)->format('Y-m-d');
+            $badges[$day] = ($badges[$day] ?? 0) + 1;
+            Visitor::firstOrCreate(['name' => $name, 'checked_in_at' => CarbonImmutable::parse("{$day} {$in}", $tz)->utc()], [
+                'phone' => sprintf('0321%07d', 2000000 + crc32($name) % 1000000), 'company' => $company, 'purpose' => $purpose,
+                'host_employee_id' => $employees[$host]->id, 'branch_id' => $branch->id, 'badge_no' => sprintf('V%03d', $badges[$day]),
+                'checked_out_at' => $out ? CarbonImmutable::parse("{$day} {$out}", $tz)->utc() : null,
+            ]);
+        }
     }
 
     private function punch(Employee $e, Device $device, CarbonImmutable $local): void
