@@ -27,6 +27,7 @@ use App\Models\ShiftSwapRequest;
 use App\Reports\StatusCodes;
 use App\Services\Leave\LeaveBalanceService;
 use App\Services\Leave\LeaveYear;
+use App\Services\Reports\MonthlyAttendanceExport;
 use App\Services\SelfService\QrBadge;
 use App\Services\Settings\TenantSettings;
 use App\Support\Brand;
@@ -38,6 +39,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /** Employee self-service PWA (spec §9 phase 3, §13.2). */
 final class MeController
@@ -151,6 +153,19 @@ final class MeController
             ->map(fn (Employee $e) => ['id' => $e->id, 'name' => "{$e->fullName()} ({$e->code})"])->all();
 
         return ['enabled' => true, 'colleagues' => $colleagues, 'items' => $items];
+    }
+
+    /** The employee's own monthly attendance report (same PDF HR prints), for this or an earlier month. */
+    public function monthlyReport(Request $request, MonthlyAttendanceExport $export): StreamedResponse
+    {
+        $employee = $request->user()->employee;
+        $tz = tenant('timezone') ?? config('hazri.default_timezone');
+        $month = (string) $request->query('month');
+        abort_unless(preg_match('/^\d{4}-\d{2}$/', $month) && $month <= CarbonImmutable::now($tz)->format('Y-m'), 404);
+        [$year, $m] = array_map('intval', explode('-', $month));
+        $bytes = $export->combinedPdf(collect([$employee]), $year, $m, $employee->fullName());
+
+        return response()->streamDownload(fn () => print ($bytes), "attendance-{$employee->code}-{$month}.pdf", ['Content-Type' => 'application/pdf']);
     }
 
     /** Take or give back an optional holiday (until the day itself). */

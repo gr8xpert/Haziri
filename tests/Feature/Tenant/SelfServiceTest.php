@@ -276,3 +276,12 @@ it('only lets employees ask colleagues in their own branch and department, a few
     $this->postJson("{$this->base}/me/shift-swaps", ['partner_employee_id' => $pal->id, 'date' => '2026-09-13'])
         ->assertStatus(422)->assertJsonValidationErrors('swap');
 });
+
+it('lets an employee download their own monthly report, not future months', function () {
+    $this->travelTo(CarbonImmutable::parse('2026-09-20 10:00', 'Asia/Karachi'));
+
+    $pdf = $this->actingAs($this->user)->get("{$this->base}/me/report.pdf?month=2026-09")->assertOk();
+    expect($pdf->headers->get('content-type'))->toBe('application/pdf')
+        ->and($pdf->headers->get('content-disposition'))->toContain('attendance-SS1-2026-09.pdf');
+    $this->get("{$this->base}/me/report.pdf?month=2026-11")->assertNotFound();
+});

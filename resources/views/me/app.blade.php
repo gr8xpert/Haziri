@@ -137,6 +137,11 @@
                 <button @click="shiftMonth(1)" class="flex size-10 items-center justify-center rounded-full text-zinc-600 transition hover:bg-zinc-950/5 dark:text-zinc-300 dark:hover:bg-white/5" aria-label="{{ __('Next month') }}">@svg('heroicon-m-chevron-right', 'size-5 rtl:rotate-180')</button>
             </div>
 
+            <a :href="`/me/report.pdf?month=${month}`" x-show="month && month <= todayIso.slice(0, 7)"
+               class="mb-4 flex items-center justify-center gap-2 rounded-xl bg-zinc-100 py-2.5 text-sm font-medium text-zinc-800 transition active:scale-[0.99] dark:bg-white/10 dark:text-zinc-100">
+                @svg('heroicon-m-document-arrow-down', 'size-4.5') {{ __('Download my monthly report (PDF)') }}
+            </a>
+
             <dl class="mb-4 grid grid-cols-3 gap-2 text-center">
                 <div class="rounded-xl bg-emerald-50 py-2 dark:bg-emerald-500/10"><dt class="text-xs text-emerald-700 dark:text-emerald-400">{{ __('Present') }}</dt><dd class="text-lg font-semibold tabular-nums text-emerald-800 dark:text-emerald-300" x-text="monthCount('ok')">0</dd></div>
                 <div class="rounded-xl bg-amber-50 py-2 dark:bg-amber-500/10"><dt class="text-xs text-amber-700 dark:text-amber-400">{{ __('Late / half') }}</dt><dd class="text-lg font-semibold tabular-nums text-amber-800 dark:text-amber-300" x-text="monthCount('warn')">0</dd></div>
