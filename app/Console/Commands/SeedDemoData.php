@@ -6,6 +6,7 @@ namespace App\Console\Commands;
 
 use App\Actions\Payroll\PayrollActions;
 use App\Actions\Periods\PeriodActions;
+use App\Actions\Rosters\GenerateMonthlyRoster;
 use App\Actions\Tenants\SetTenantFeatureFlags;
 use App\Enums\DevicePunchSourceType;
 use App\Enums\EmploymentType;
@@ -15,6 +16,7 @@ use App\Enums\PunchSource;
 use App\Enums\PunchStatus;
 use App\Enums\RequestStatus;
 use App\Enums\Role;
+use App\Enums\ShiftSwapStatus;
 use App\Models\Announcement;
 use App\Models\AttendanceCorrection;
 use App\Models\AttendanceExemption;
@@ -33,10 +35,14 @@ use App\Models\LeaveType;
 use App\Models\Punch;
 use App\Models\SalaryStructure;
 use App\Models\Setting;
+use App\Models\Shift;
+use App\Models\ShiftAssignment;
+use App\Models\ShiftSwapRequest;
 use App\Models\UnmappedPin;
 use App\Models\User;
 use App\Models\Visitor;
 use App\Services\Attendance\AttendanceRecomputer;
+use App\Services\Attendance\Period\PayCycle;
 use App\Services\Features\FeatureCatalog;
 use App\Services\Leave\LeaveBalanceService;
 use App\Services\Leave\LeaveYear;
@@ -197,6 +203,7 @@ final class SeedDemoData extends Command
             'approver_chain' => [['step' => 'hr', 'user_id' => null, 'decided_by' => null, 'decision' => null, 'at' => null, 'note' => null]], 'current_step' => 0]);
         Announcement::firstOrCreate(['title' => 'Office timings during Rabi ul Awal'], ['body' => 'Office will close at 4 pm on 12 Rabi ul Awal.', 'requires_ack' => true, 'notify' => false]);
         $this->seedVisitors($employees, $lhr, $khi, $today, $tz);
+        $this->seedShifts($employees, $today);
 
         $this->info('Recomputing attendance…');
         $recomputer = app(AttendanceRecomputer::class);
@@ -216,6 +223,40 @@ final class SeedDemoData extends Command
         app(PayrollActions::class)->generate($period->fresh(), $owner);
 
         $this->line('Kiosk: http://' . tenant('slug') . '.' . config('hazri.central_domain') . ":8000/kiosk/{$kiosk->token}");
+    }
+
+    /**
+     * Morning / Evening / Night shifts so the roster and shift swaps have something to show: Karachi staff work
+     * Evening for the current month (monthly roster), two people are on Night for a few days this week, and one
+     * swap is waiting for approval.
+     *
+     * @param  Collection<int, Employee>  $employees
+     */
+    private function seedShifts(Collection $employees, CarbonImmutable $today): void
+    {
+        $make = fn (string $code, string $name, string $from, string $to, bool $night = false) => Shift::firstOrCreate(['code' => $code],
+            ['name' => $name, 'start_time' => $from, 'end_time' => $to, 'crosses_midnight' => $night, 'break_min' => $night ? 30 : 45]);
+        $make('MOR', 'Morning', '06:00', '14:00');
+        $evening = $make('EVE', 'Evening', '14:00', '22:00');
+        $night = $make('NGT', 'Night', '22:00', '06:00', true);
+
+        $owner = User::role(Role::Owner->value)->first();
+        [$y, $m] = app(PayCycle::class)->periodFor($today->format('Y-m-d'));
+        $khi = Branch::where('code', 'KHI')->first();
+        if ($khi && ! ShiftAssignment::where('shift_id', $evening->id)->exists()) {
+            app(GenerateMonthlyRoster::class)($y, $m, $evening, 'branch', $khi->id, $owner);
+        }
+
+        $monday = $today->startOfWeek(CarbonImmutable::MONDAY);
+        foreach ([$employees[8], $employees[9]] as $e) {
+            foreach ([2, 3, 4] as $offset) {
+                $day = $monday->addDays($offset)->format('Y-m-d');
+                ShiftAssignment::firstOrCreate(['employee_id' => $e->id, 'effective_from' => $day, 'effective_to' => $day], ['shift_id' => $night->id]);
+            }
+        }
+
+        ShiftSwapRequest::firstOrCreate(['requester_employee_id' => $employees[16]->id, 'partner_employee_id' => $employees[2]->id,
+            'date' => $today->addDays(2)->format('Y-m-d')], ['reason' => 'Family wedding in the evening', 'status' => ShiftSwapStatus::Pending]);
     }
 
     /**
