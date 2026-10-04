@@ -8,7 +8,6 @@ use App\Models\Employee;
 use App\Models\Holiday;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonPeriod;
-use Illuminate\Database\Eloquent\Builder;
 
 /** Is a date a working day for an employee? (weekly off from the resolved shift, or a holiday) */
 final class WorkingDayCalendar
@@ -28,8 +27,7 @@ final class WorkingDayCalendar
         $shift = $this->shifts->resolve($employee, $date, $tz);
         $weekday = (int) CarbonImmutable::parse($date, $tz)->dayOfWeek;
         $isOff = in_array($weekday, $shift?->weeklyOffDays ?? [0], true);
-        $isHoliday = Holiday::query()->whereDate('date', $date)
-            ->where(fn (Builder $q) => $q->whereNull('branch_id')->orWhere('branch_id', $employee->branch_id))->exists();
+        $isHoliday = Holiday::query()->appliesTo($employee, $date)->exists();
 
         return $this->cache[$key] = $isOff || $isHoliday;
     }

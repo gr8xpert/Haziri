@@ -60,6 +60,7 @@ Route::middleware([
             Route::post('leave', [MeController::class, 'leave'])->name('leave');
             Route::post('corrections', [MeController::class, 'correction'])->name('corrections');
             Route::post('announcements/{announcement}/ack', [MeController::class, 'ack'])->name('announcements.ack');
+            Route::post('optional-holidays/{holiday}', [MeController::class, 'optionalHoliday'])->name('optional-holidays.toggle');
             Route::get('qr.svg', [MeController::class, 'qr'])->name('qr');
         });
     });

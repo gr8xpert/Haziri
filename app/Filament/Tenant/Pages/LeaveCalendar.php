@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Filament\Tenant\Pages;
 
+use App\Enums\HolidayType;
 use App\Enums\RequestStatus;
 use App\Filament\Tenant\NavigationGroup;
 use App\Models\AttendanceMarker;
@@ -99,6 +100,15 @@ class LeaveCalendar extends Page
         $holidays = Holiday::query()->with('branch')->whereBetween('date', [$from->format('Y-m-d'), $to->format('Y-m-d')])
             ->when($this->branchId, fn ($q, $id) => $q->where(fn ($w) => $w->whereNull('branch_id')->orWhere('branch_id', $id)))->get();
         foreach ($holidays as $h) {
+            if ($h->type === HolidayType::Optional) {
+                // An optional holiday is only a day off for the people taking it.
+                foreach ($h->optIns()->whereIn('employee_id', $employees->keys())->pluck('employee_id') as $id) {
+                    $days[$h->date->format('Y-m-d')][] = ['name' => $employees->get($id)?->fullName() ?? '?',
+                        'what' => __('Optional holiday: :name', ['name' => $h->name]), 'tone' => 'success'];
+                }
+
+                continue;
+            }
             $days[$h->date->format('Y-m-d')][] = ['name' => $h->name,
                 'what' => $h->branch ? __('Holiday, :branch only', ['branch' => $h->branch->name]) : __('Holiday'), 'tone' => 'success'];
         }

@@ -47,10 +47,7 @@ final class DayContextLoader
             ->map(fn (Punch $p) => $p->toInput())
             ->all();
 
-        $holiday = Holiday::query()
-            ->whereDate('date', $date)
-            ->where(fn (Builder $q) => $q->whereNull('branch_id')->orWhere('branch_id', $employee->branch_id))
-            ->first();
+        $holiday = Holiday::query()->appliesTo($employee, $date)->first();
 
         $marker = AttendanceMarker::query()->where('employee_id', $employee->id)->whereDate('date', $date)->first();
         $existing = AttendanceDay::query()->where('employee_id', $employee->id)->whereDate('date', $date)->first();

@@ -236,6 +236,17 @@ Alpine.data('meApp', ({ canPunch, faceCheck, leaveTypes, locale }) => ({
         }
     },
 
+    /** Take or give back an optional holiday. */
+    async toggleOptional(h) {
+        try {
+            const r = await api(`/me/optional-holidays/${h.id}`, {});
+            h.taken = r.taken;
+            this.flash(r.taken ? `You are off on ${h.date}.` : `You will work on ${h.date}.`);
+        } catch (e) {
+            this.flash(e.message, false);
+        }
+    },
+
     async ack(a) {
         await api(`/me/announcements/${a.id}/ack`, {});
         a.acked = true;

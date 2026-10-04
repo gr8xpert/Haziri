@@ -8,12 +8,16 @@ use App\Actions\Corrections\SubmitCorrection;
 use App\Actions\Leave\SubmitLeaveRequest;
 use App\Actions\SelfService\SelfPunch;
 use App\Enums\CorrectionType;
+use App\Enums\HolidayType;
 use App\Enums\LeaveDayPart;
 use App\Enums\PunchDirection;
 use App\Enums\RequestStatus;
 use App\Models\Announcement;
 use App\Models\AnnouncementAck;
 use App\Models\AttendanceDay;
+use App\Models\Employee;
+use App\Models\Holiday;
+use App\Models\HolidayOptIn;
 use App\Models\LeaveRequest;
 use App\Models\LeaveType;
 use App\Reports\StatusCodes;
@@ -24,6 +28,7 @@ use App\Services\Settings\TenantSettings;
 use App\Support\Brand;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonPeriod;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -91,7 +96,40 @@ final class MeController
             'announcements' => Announcement::visibleTo($employee)->limit(5)->get()
                 ->map(fn (Announcement $a) => ['id' => $a->id, 'title' => $a->title, 'body' => $a->body, 'requires_ack' => $a->requires_ack,
                     'acked' => $a->acks->contains('employee_id', $employee->id)]),
+            'optional_holidays' => $this->optionalHolidays($employee),
         ]);
+    }
+
+    /** Take or give back an optional holiday (until the day itself). */
+    public function optionalHoliday(Request $request, Holiday $holiday): JsonResponse
+    {
+        $employee = $request->user()->employee;
+        abort_unless($this->optionalHolidaysQuery($employee)->whereKey($holiday->id)->exists(), 404);
+        $existing = HolidayOptIn::query()->where(['holiday_id' => $holiday->id, 'employee_id' => $employee->id])->first();
+        if ($existing !== null) {
+            $existing->delete();
+        } else {
+            HolidayOptIn::create(['holiday_id' => $holiday->id, 'employee_id' => $employee->id, 'created_by' => $request->user()->id]);
+        }
+
+        return response()->json(['taken' => $existing === null]);
+    }
+
+    /** @return list<array{id: int, name: string, date: string, taken: bool}> upcoming optional holidays (next 90 days) */
+    private function optionalHolidays(Employee $employee): array
+    {
+        return $this->optionalHolidaysQuery($employee)->withExists(['optIns as taken' => fn ($q) => $q->where('employee_id', $employee->id)])
+            ->orderBy('date')->get()
+            ->map(fn (Holiday $h) => ['id' => $h->id, 'name' => $h->name, 'date' => $h->date->format('D d M Y'), 'taken' => (bool) $h->taken])->all();
+    }
+
+    private function optionalHolidaysQuery(Employee $employee): Builder
+    {
+        $today = now(tenant('timezone'))->format('Y-m-d');
+
+        return Holiday::query()->where('type', HolidayType::Optional->value)
+            ->whereBetween('date', [$today, now(tenant('timezone'))->addDays(90)->format('Y-m-d')])
+            ->where(fn ($q) => $q->whereNull('branch_id')->orWhere('branch_id', $employee->branch_id));
     }
 
     public function punch(Request $request, SelfPunch $punch): JsonResponse

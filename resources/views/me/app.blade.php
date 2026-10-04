@@ -82,6 +82,24 @@
             </template>
         </div>
 
+        <article x-show="(data.optional_holidays ?? []).length" x-cloak class="me-card p-4">
+            <h3 class="flex items-center gap-2 font-semibold">@svg('heroicon-o-calendar-days', 'size-4.5 text-emerald-600 dark:text-emerald-400') {{ __('Optional holidays') }}</h3>
+            <p class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">{{ __('Take the ones you need; on the others you work as usual.') }}</p>
+            <ul class="mt-3 divide-y divide-zinc-100 dark:divide-white/10">
+                <template x-for="h in data.optional_holidays ?? []" :key="h.id">
+                    <li class="flex items-center justify-between gap-3 py-2.5">
+                        <span class="min-w-0">
+                            <span class="block truncate font-medium" x-text="h.name"></span>
+                            <span class="block text-xs text-zinc-500 dark:text-zinc-400" x-text="h.date"></span>
+                        </span>
+                        <button @click="toggleOptional(h)" class="shrink-0 rounded-lg px-3 py-1.5 text-sm font-medium transition active:scale-[0.98]"
+                                :class="h.taken ? 'bg-emerald-600 text-white' : 'bg-zinc-100 text-zinc-800 dark:bg-white/10 dark:text-zinc-100'"
+                                x-text="h.taken ? '{{ __('Taking it ✓') }}' : '{{ __('Take this day') }}'"></button>
+                    </li>
+                </template>
+            </ul>
+        </article>
+
         <template x-for="a in data.announcements ?? []" :key="a.id">
             <article class="me-card relative overflow-hidden p-4 ps-5">
                 <span aria-hidden="true" class="absolute inset-y-0 start-0 w-1 bg-amber-400"></span>

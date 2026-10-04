@@ -10,6 +10,7 @@ use App\Models\AttendanceExemption;
 use App\Models\AttendanceMarker;
 use App\Models\Employee;
 use App\Models\Holiday;
+use App\Models\HolidayOptIn;
 use App\Models\LeaveRequest;
 use App\Models\Punch;
 use App\Models\Shift;
@@ -32,6 +33,14 @@ final class AttendanceImpactServiceProvider extends ServiceProvider
         $this->on(Holiday::class, function (Holiday $h) {
             foreach ($this->dates($h, 'date') as $date) {
                 AttendanceImpact::dispatch(null, $date, $date, $h->branch_id);
+            }
+        });
+
+        // Someone takes (or gives back) an optional holiday: only their day changes.
+        $this->on(HolidayOptIn::class, function (HolidayOptIn $o) {
+            $date = Holiday::query()->whereKey($o->holiday_id)->value('date');
+            if ($date !== null) {
+                AttendanceImpact::dispatch([$o->employee_id], (string) substr((string) $date, 0, 10));
             }
         });
 

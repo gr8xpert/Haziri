@@ -5,7 +5,10 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Enums\HolidayType;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Spatie\Activitylog\Models\Concerns\LogsActivity;
 use Spatie\Activitylog\Support\LogOptions;
 
@@ -30,8 +33,25 @@ class Holiday extends Model
         return LogOptions::defaults()->logAll()->logOnlyDirty();
     }
 
-    public function branch(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    public function branch(): BelongsTo
     {
         return $this->belongsTo(Branch::class);
+    }
+
+    public function optIns(): HasMany
+    {
+        return $this->hasMany(HolidayOptIn::class);
+    }
+
+    /**
+     * Holidays that apply to this employee on this date: company-wide or their branch, and an optional holiday only
+     * when they take it.
+     */
+    public function scopeAppliesTo(Builder $query, Employee $employee, string $date): Builder
+    {
+        return $query->whereDate('date', $date)
+            ->where(fn (Builder $q) => $q->whereNull('branch_id')->orWhere('branch_id', $employee->branch_id))
+            ->where(fn (Builder $q) => $q->where('type', '!=', HolidayType::Optional->value)
+                ->orWhereHas('optIns', fn (Builder $o) => $o->where('employee_id', $employee->id)));
     }
 }

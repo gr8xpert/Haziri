@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Actions\Announcements\BroadcastAnnouncement;
 use App\Actions\SelfService\DecidePendingPunch;
+use App\Enums\AttendanceStatus;
 use App\Enums\DevicePunchSourceType;
 use App\Enums\PunchStatus;
 use App\Enums\Role;
@@ -13,11 +14,13 @@ use App\Models\Branch;
 use App\Models\Central\DeviceRegistry;
 use App\Models\Device;
 use App\Models\Employee;
+use App\Models\Holiday;
 use App\Models\Kiosk;
 use App\Models\NotificationLog;
 use App\Models\Punch;
 use App\Models\Setting;
 use App\Models\User;
+use App\Services\Attendance\AttendanceRecomputer;
 use App\Services\SelfService\GeoFence;
 use App\Services\SelfService\QrBadge;
 use App\Services\Settings\TenantSettings;
@@ -202,4 +205,24 @@ it('prints an announcement as an A4 notice with an Urdu heading', function () {
     $this->actingAs($owner)->get("{$this->base}/announcements/{$announcement->id}/print")
         ->assertOk()->assertSee('Eid holidays')->assertSee('اطلاع');
     $this->actingAs($this->user)->get("{$this->base}/announcements/{$announcement->id}/print")->assertForbidden();
+});
+
+it('makes an optional holiday a day off only for those who take it', function () {
+    $this->travelTo(CarbonImmutable::parse('2026-09-08 10:00', 'Asia/Karachi'));
+    $other = Employee::create(['code' => 'SS2', 'first_name' => 'Other', 'joined_on' => '2025-01-01', 'branch_id' => $this->office->id]);
+    $diwali = Holiday::create(['date' => '2026-09-15', 'name' => 'Diwali', 'type' => 'optional']);
+
+    $this->actingAs($this->user)->getJson("{$this->base}/me/attendance")
+        ->assertJsonPath('optional_holidays.0.name', 'Diwali')->assertJsonPath('optional_holidays.0.taken', false);
+    $this->postJson("{$this->base}/me/optional-holidays/{$diwali->id}")->assertOk()->assertJsonPath('taken', true);
+
+    $this->travelTo(CarbonImmutable::parse('2026-09-16 10:00', 'Asia/Karachi'));
+    $recompute = app(AttendanceRecomputer::class);
+    foreach ([$this->emp, $other] as $e) {
+        $recompute->recompute($e->id, '2026-09-15', CarbonImmutable::now('UTC'));
+    }
+    $status = fn (Employee $e) => AttendanceDay::where('employee_id', $e->id)->whereDate('date', '2026-09-15')->value('status');
+
+    expect($status($this->emp))->toBe(AttendanceStatus::Holiday)
+        ->and($status($other))->toBe(AttendanceStatus::Absent);
 });
