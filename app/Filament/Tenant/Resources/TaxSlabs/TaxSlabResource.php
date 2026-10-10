@@ -18,7 +18,7 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 
-/** Annual salary income-tax table per tax year (pre-filled for 2025-26 — check against FBR each budget). */
+/** Annual salary income-tax table per tax year (pre-filled for 2025-26 and 2026-27; check against FBR each budget). */
 class TaxSlabResource extends Resource
 {
     use AuthorizesByPermission, RequiresFeature;
@@ -62,7 +62,7 @@ class TaxSlabResource extends Resource
     {
         return $table
             ->defaultSort('from_amount')
-            ->description('Rates for salaried individuals, pre-filled for tax year 2025-26. Check them against the FBR schedule every budget.')
+            ->description('Rates for salaried individuals, pre-filled for tax years 2025-26 and 2026-27. Add the rates for each new tax year after the budget (July); until then payroll uses the latest year and warns.')
             ->columns([
                 TextColumn::make('tax_year')->label('Tax year')->formatStateUsing(fn (int $state) => self::yearLabel($state)),
                 TextColumn::make('from_amount')->label('Income above')->prefix('Rs ')->numeric(),

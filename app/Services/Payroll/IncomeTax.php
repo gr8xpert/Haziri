@@ -10,7 +10,7 @@ use Carbon\CarbonImmutable;
 
 /**
  * Salary income tax (Pakistan, salaried individuals): annual tax from the tenant's editable slab table plus the
- * high-income surcharge; monthly withholding spreads the projected year's tax still due over the months left.
+ * high-income surcharge (up to tax year 2025-26); monthly withholding spreads the projected year's tax still due over the months left.
  */
 final class IncomeTax
 {
@@ -37,19 +37,34 @@ final class IncomeTax
         return 12 - (($month - $this->startMonth() + 12) % 12);
     }
 
+    /**
+     * The tax year whose slabs are used for $taxYear: its own, or the latest earlier one when this year's rates have
+     * not been entered yet (payroll then warns HR, see hasSlabsFor()).
+     */
+    public function slabYear(int $taxYear): ?int
+    {
+        return TaxSlab::query()->where('tax_year', '<=', $taxYear)->max('tax_year') ?? TaxSlab::query()->min('tax_year');
+    }
+
+    public function hasSlabsFor(int $taxYear): bool
+    {
+        return TaxSlab::query()->where('tax_year', $taxYear)->exists();
+    }
+
     public function annualTax(int $income, int $taxYear): int
     {
         if ($income <= 0) {
             return 0;
         }
-        $slabYear = TaxSlab::query()->where('tax_year', '<=', $taxYear)->max('tax_year') ?? TaxSlab::query()->min('tax_year');
-        $slab = TaxSlab::query()->where('tax_year', $slabYear)->where('from_amount', '<', $income)
+        $slab = TaxSlab::query()->where('tax_year', $this->slabYear($taxYear))->where('from_amount', '<', $income)
             ->orderByDesc('from_amount')->first();
         if ($slab === null) {
             return 0;
         }
         $tax = $slab->fixed_tax + ($income - $slab->from_amount) * $slab->rate_percent / 100;
-        if ($income > (int) $this->settings->get('tax_surcharge_threshold', 10000000)) {
+        // The high-income surcharge was abolished from tax year 2026-27 (Finance Act 2026).
+        if ($taxYear <= (int) $this->settings->get('tax_surcharge_last_year', 2025)
+            && $income > (int) $this->settings->get('tax_surcharge_threshold', 10000000)) {
             $tax *= 1 + (float) $this->settings->get('tax_surcharge_percent', 0) / 100;
         }
 

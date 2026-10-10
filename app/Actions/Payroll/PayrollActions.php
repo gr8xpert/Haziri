@@ -18,6 +18,7 @@ use App\Models\SalaryStructure;
 use App\Models\User;
 use App\Services\Notifications\Notifier;
 use App\Services\Notifications\Recipient;
+use App\Services\Payroll\IncomeTax;
 use App\Services\Payroll\PayslipCalculator;
 use App\Services\Payroll\StatutoryPayroll;
 use App\Services\Settings\TenantSettings;
@@ -36,6 +37,7 @@ final class PayrollActions
         private readonly StatutoryPayroll $statutory,
         private readonly TenantSettings $settings,
         private readonly Notifier $notifier,
+        private readonly IncomeTax $tax,
     ) {}
 
     public function generate(AttendancePeriod $period, User $by): PayrollRun
@@ -82,6 +84,11 @@ final class PayrollActions
                 $totals['gross'] += $slip['gross'];
                 $totals['deductions'] += $slip['deductions'];
                 $totals['net'] += $slip['net'];
+            }
+            // This tax year's rates not entered yet: last year's were used, so tell HR.
+            $taxYear = $this->tax->taxYearFor($end->format('Y-m-d'));
+            if ($this->settings->featureEnabled('payroll_tax') && ! $this->tax->hasSlabsFor($taxYear)) {
+                $totals['tax_rates_missing'] = $taxYear;
             }
             $run->update(['totals' => $totals, 'generated_by' => $by->id, 'status' => 'draft']);
 

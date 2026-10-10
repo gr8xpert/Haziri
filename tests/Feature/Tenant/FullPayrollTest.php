@@ -15,6 +15,7 @@ use App\Models\PayItem;
 use App\Models\PfLedgerEntry;
 use App\Models\SalaryStructure;
 use App\Models\Setting;
+use App\Models\TaxSlab;
 use App\Models\User;
 use App\Services\Payroll\GratuityCalculator;
 use App\Services\Payroll\IncomeTax;
@@ -73,6 +74,26 @@ it('works out salary income tax from the slabs, with the high-income surcharge',
         ->and($tax->taxYearFor('2026-06-30'))->toBe(2025)
         ->and($tax->monthsLeft('2026-08-31'))->toBe(11)
         ->and($tax->monthsLeft('2026-06-30'))->toBe(1);
+});
+
+it('uses the 2026-27 rates from July 2026, without the surcharge', function () {
+    $tax = app(IncomeTax::class);
+
+    expect($tax->annualTax(1500000, 2026))->toBe(39000)              // 6,000 + 11% above 1.2m
+        ->and($tax->annualTax(3000000, 2026))->toBe(276000)          // 116k + 20% above 2.2m (was 23%)
+        ->and($tax->annualTax(6000000, 2026))->toBe(1104000)         // 976k + 32% above 5.6m (new band)
+        ->and($tax->annualTax(12000000, 2026))->toBe(3174000)        // 1,424k + 35% above 7m, no 9% surcharge
+        ->and($tax->annualTax(12000000, 2025))->toBe(3685290);       // the surcharge still applies to 2025-26
+});
+
+it('warns on the payroll run when the rates for its tax year are missing', function () {
+    TaxSlab::where('tax_year', 2026)->delete();
+    fullMonth($this->emp, 2026, 8);
+
+    $run = ($this->runFor)(2026, 8);
+
+    expect($run->totals['tax_rates_missing'] ?? null)->toBe(2026)
+        ->and(app(IncomeTax::class)->slabYear(2026))->toBe(2025); // last year's rates are used meanwhile
 });
 
 it('adds bonuses, provident fund, EOBI, social security and income tax to the payslip', function () {

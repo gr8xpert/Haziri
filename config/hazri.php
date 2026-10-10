@@ -55,6 +55,7 @@ return [
         'tax_year_start_month' => 7,              // Pakistan: July – June
         'tax_surcharge_threshold' => 10000000,    // annual income above which the surcharge applies
         'tax_surcharge_percent' => 9,             // % of the tax
+        'tax_surcharge_last_year' => 2025,        // last tax year with the surcharge (abolished by Finance Act 2026)
         'eobi_wage_base' => 37000,                // contributions are on the minimum wage
         'eobi_employee_percent' => 1,
         'eobi_employer_percent' => 5,

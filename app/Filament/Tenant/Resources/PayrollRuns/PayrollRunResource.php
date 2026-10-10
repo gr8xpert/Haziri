@@ -8,6 +8,7 @@ use App\Actions\Payroll\PayrollActions;
 use App\Filament\Concerns\AuthorizesByPermission;
 use App\Filament\Concerns\RequiresFeature;
 use App\Filament\Tenant\NavigationGroup;
+use App\Filament\Tenant\Resources\TaxSlabs\TaxSlabResource;
 use App\Models\PayrollRun;
 use App\Reports\ReportExporter;
 use App\Reports\SalarySheetReport;
@@ -53,6 +54,8 @@ class PayrollRunResource extends Resource
                 TextColumn::make('totals.deductions')->label('Deductions')->prefix('Rs ')->numeric(),
                 TextColumn::make('totals.net')->label('Net')->prefix('Rs ')->numeric(),
                 TextColumn::make('totals.skipped_no_structure')->label('No salary set')->color('warning'),
+                TextColumn::make('totals.tax_rates_missing')->label('Tax rates')->badge()->color('danger')->placeholder('—')
+                    ->formatStateUsing(fn ($state) => __('No :year rates: add them, then recalculate', ['year' => TaxSlabResource::yearLabel((int) $state)])),
             ])
             ->recordActions([
                 ActionGroup::make([
