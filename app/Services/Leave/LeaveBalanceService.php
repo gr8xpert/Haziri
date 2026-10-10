@@ -90,6 +90,28 @@ final class LeaveBalanceService
         ];
     }
 
+    /**
+     * A grade / employment-type entitlement changed: recalculate what everyone has earned of that leave type this
+     * leave year, so balances (and the reports built on them) show the new quota straight away.
+     */
+    public function refreshAccrued(int $leaveTypeId): int
+    {
+        $type = LeaveType::query()->find($leaveTypeId);
+        if ($type === null) {
+            return 0;
+        }
+        $year = $this->leaveYear->current();
+        $n = 0;
+        foreach (LeaveBalance::query()->with('employee')->where(['leave_type_id' => $type->id, 'year' => $year])->get() as $balance) {
+            if ($balance->employee !== null) {
+                $balance->update(['accrued' => $this->accrued($balance->employee, $type, $year)]);
+                $n++;
+            }
+        }
+
+        return $n;
+    }
+
     /** Monthly job: refresh accrued for every active type (idempotent; also applies entitlement changes). */
     public function accrueAll(int $year): int
     {

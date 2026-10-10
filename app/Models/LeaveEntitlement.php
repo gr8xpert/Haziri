@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Enums\EmploymentType;
+use App\Services\Leave\LeaveBalanceService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Spatie\Activitylog\Models\Concerns\LogsActivity;
@@ -39,5 +40,12 @@ class LeaveEntitlement extends Model
     public function grade(): BelongsTo
     {
         return $this->belongsTo(Grade::class);
+    }
+
+    protected static function booted(): void
+    {
+        // A new or changed quota applies to this year's balances at once (not only at the next monthly accrual).
+        static::saved(fn (self $e) => app(LeaveBalanceService::class)->refreshAccrued($e->leave_type_id));
+        static::deleted(fn (self $e) => app(LeaveBalanceService::class)->refreshAccrued($e->leave_type_id));
     }
 }

@@ -33,6 +33,7 @@ use App\Models\Shift;
 use App\Models\User;
 use App\Services\Attendance\MissingPunchSuggester;
 use App\Services\Leave\LeaveBalanceService;
+use App\Services\Leave\LeaveYear;
 use Carbon\CarbonImmutable;
 use Filament\Actions\Testing\TestAction;
 use Filament\Facades\Filament;
@@ -179,6 +180,22 @@ it('lets a grade row set its own carry forward and longest request', function ()
 
     expect(fn () => ($this->submit)($this->emp->fresh(), $this->al, '2026-09-08', '2026-09-10', $this->hr))
         ->toThrow(ValidationException::class, 'At most 2 consecutive days are allowed.');
+});
+
+it('updates this year\'s balances as soon as a grade entitlement changes', function () {
+    $officer = Grade::create(['code' => 'OFF', 'name' => 'Officer']);
+    $this->emp->update(['grade_id' => $officer->id]);
+    $svc = app(LeaveBalanceService::class);
+    $year = app(LeaveYear::class)->current();
+    $accrued = fn () => LeaveBalance::where(['employee_id' => $this->emp->id, 'leave_type_id' => $this->al->id, 'year' => $year])->value('accrued');
+    $svc->balance($this->emp->fresh(), $this->al, $year);
+    expect($accrued())->toBe(14.0);
+
+    $row = LeaveEntitlement::create(['leave_type_id' => $this->al->id, 'grade_id' => $officer->id, 'days_per_year' => 20]);
+    expect($accrued())->toBe(20.0);
+
+    $row->delete();
+    expect($accrued())->toBe(14.0);
 });
 
 it('applies approved corrections automatically', function () {
