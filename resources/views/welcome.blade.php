@@ -46,9 +46,18 @@
                             Sign in to your company
                             @svg('heroicon-m-arrow-right', 'size-4 rtl:rotate-180')
                         </a>
-                        <a href="#features" class="inline-flex items-center gap-2 rounded-xl px-4 py-3 font-medium text-zinc-700 ring-1 ring-zinc-950/10 transition hover:bg-zinc-50 dark:text-zinc-200 dark:ring-white/15 dark:hover:bg-white/5">
-                            See what it does
-                        </a>
+                        @if (filled(config('hazri.demo.tenant')))
+                            {{-- The public demo company: a full working company anyone can log in to (reset nightly). --}}
+                            <a href="{{ request()->getScheme() }}://{{ config('hazri.demo.tenant') }}.{{ config('hazri.central_domain') }}{{ in_array(request()->getPort(), [80, 443], true) ? '' : ':' . request()->getPort() }}/admin/login"
+                               class="inline-flex items-center gap-2 rounded-xl px-4 py-3 font-medium text-zinc-700 ring-1 ring-zinc-950/10 transition hover:bg-zinc-50 dark:text-zinc-200 dark:ring-white/15 dark:hover:bg-white/5">
+                                @svg('heroicon-m-play-circle', 'size-5 text-brand dark:text-emerald-400')
+                                Try the live demo
+                            </a>
+                        @else
+                            <a href="#features" class="inline-flex items-center gap-2 rounded-xl px-4 py-3 font-medium text-zinc-700 ring-1 ring-zinc-950/10 transition hover:bg-zinc-50 dark:text-zinc-200 dark:ring-white/15 dark:hover:bg-white/5">
+                                See what it does
+                            </a>
+                        @endif
                     </div>
                 </div>
                 <figure class="relative">
