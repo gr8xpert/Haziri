@@ -9,10 +9,12 @@ use App\Services\Notifications\Channels\DatabaseChannel;
 use App\Services\Notifications\Channels\LogChannel;
 use App\Services\Notifications\Channels\MailChannel;
 use App\Services\Settings\TenantSettings;
+use App\Support\DemoMode;
 
 /**
  * Resolves a channel name to its driver. WhatsApp / SMS use the provider configured per tenant
  * (settings whatsapp_provider / sms_provider, falling back to HAZRI env defaults); "log" until one is chosen (spec §16).
+ * The public demo company only logs: its addresses are made up and anyone can trigger a message there.
  */
 final class ChannelRegistry
 {
@@ -27,6 +29,10 @@ final class ChannelRegistry
 
     public function resolve(string $channel): ?NotificationChannel
     {
+        if (in_array($channel, ['mail', 'whatsapp', 'sms'], true) && DemoMode::active()) {
+            return new LogChannel($channel);
+        }
+
         return match ($channel) {
             'mail' => new MailChannel,
             'database' => new DatabaseChannel,

@@ -32,3 +32,6 @@ Schedule::command('hazri:billing --enforce')->dailyAt('07:30');
 
 // Unknown ADMS machines not seen for 30 days (blocked ones are kept).
 Schedule::command('model:prune', ['--model' => [UnknownDevice::class]])->dailyAt('04:00');
+
+// The public demo company (HAZRI_DEMO_TENANT) is rebuilt every night: visitors' changes are gone by morning.
+Schedule::command('hazri:demo:reset')->dailyAt('03:30')->withoutOverlapping()->when(fn () => filled(config('hazri.demo.tenant')));

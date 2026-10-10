@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Enums\Role;
+use App\Support\DemoMode;
 use Database\Factories\UserFactory;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
@@ -15,6 +16,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Validation\ValidationException;
 use Spatie\Activitylog\Models\Concerns\LogsActivity;
 use Spatie\Activitylog\Support\LogOptions;
 use Spatie\Permission\Traits\HasRoles;
@@ -63,5 +65,26 @@ class User extends Authenticatable implements FilamentUser
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()->logOnly(['name', 'email', 'phone', 'employee_id', 'is_active'])->logOnlyDirty();
+    }
+
+    /** One of the shared public-demo logins shown on the demo login page (its email is the demo's {slug}.test). */
+    public function isDemoLogin(): bool
+    {
+        return DemoMode::active() && str_ends_with((string) $this->getOriginal('email'), '@' . tenant('slug') . '.test');
+    }
+
+    protected static function booted(): void
+    {
+        // Visitors share the demo logins: nobody may lock the others out (the nightly reset rebuilds everything else).
+        $guard = function (self $user, bool $deleting = false): void {
+            if (! $user->isDemoLogin()) {
+                return;
+            }
+            if ($deleting || $user->isDirty(['email', 'password', 'is_active'])) {
+                throw ValidationException::withMessages(['email' => __('Demo logins can\'t be changed. The demo resets every night.')]);
+            }
+        };
+        static::updating(fn (self $user) => $guard($user));
+        static::deleting(fn (self $user) => $guard($user, true));
     }
 }

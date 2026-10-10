@@ -4,11 +4,13 @@ namespace App\Providers\Filament;
 
 use App\Filament\AvatarProviders\InitialsAvatarProvider;
 use App\Filament\Tenant\Pages\Dashboard;
+use App\Filament\Tenant\Pages\EditProfile;
 use App\Filament\Tenant\Pages\SwitchCompany;
 use App\Http\Middleware\ApplyTenantBranding;
 use App\Http\Middleware\IdentifyTenant;
 use App\Http\Middleware\ScopeToUserBranches;
 use App\Support\Brand;
+use App\Support\DemoMode;
 use Filament\Actions\Action;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
@@ -57,7 +59,7 @@ class TenantPanelProvider extends PanelProvider
             ->path('admin')
             ->login()
             ->passwordReset()
-            ->profile(isSimple: false)
+            ->profile(EditProfile::class, isSimple: false)
             ->brandName(fn () => tenant('company_name') ?? Brand::name())
             ->userMenuItems([
                 Action::make('switchCompany')->label(__('Switch company'))
@@ -70,6 +72,7 @@ class TenantPanelProvider extends PanelProvider
             ->viteTheme('resources/css/filament/app/theme.css')
             ->defaultAvatarProvider(InitialsAvatarProvider::class)
             ->renderHook(PanelsRenderHook::BODY_END, fn (): View => view('filament.hooks.sidebar-accordion'))
+            ->renderHook(PanelsRenderHook::AUTH_LOGIN_FORM_BEFORE, fn (): string => DemoMode::active() ? view('filament.hooks.demo-logins')->render() : '')
             ->sidebarCollapsibleOnDesktop()
             ->sidebarWidth('18rem')
             ->maxContentWidth(Width::Full)

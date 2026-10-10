@@ -16,6 +16,9 @@
 7. **Firewall**: inbound 80/443 only.
 8. **.env** (production): `APP_ENV=production`, `APP_DEBUG=false`, `HAZRI_CENTRAL_DOMAIN=hazri.pk`, `SESSION_SECURE_COOKIE=true`,
    `MAIL_*` (Plesk SMTP), `ANTHROPIC_API_KEY`, `AI_DB_READONLY_*`, `HAZRI_PAYMENT_INSTRUCTIONS`.
+   Public demo company: `HAZRI_DEMO_TENANT=kunsystems` (+ `HAZRI_DEMO_COMPANY`, `HAZRI_DEMO_PASSWORD`). Create it once with
+   `php artisan hazri:demo:reset`; the scheduler rebuilds it every night at 03:30. Its messages are only logged and
+   its login page lists the demo logins (`owner@kunsystems.test` …).
 9. **Dedicated instance**: same steps on the client's VPS, `.env` `HAZRI_MODE=dedicated`, `HAZRI_DEDICATED_TENANT={slug}`,
    restore the tenant DB dump + one central tenant row. No code differences.
 
