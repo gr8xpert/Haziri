@@ -141,10 +141,10 @@ class DeviceResource extends Resource
                 HTML,
             DevicePunchSourceType::Agent => <<<HTML
                 <ol class="list-decimal ps-5 space-y-1 text-sm">
-                  <li>Install the <b>sync agent</b> on any always-on PC or Raspberry Pi on the same network as the device.</li>
-                  <li>Create an agent key: <b>Devices → Agent keys</b>. Copy it — it is shown once.</li>
-                  <li>In <code>agent.yaml</code>: <code>server: https://{$api}</code>, <code>api_key: …</code>, and add this device with serial <code>{$serial}</code> and its LAN IP (port 4370).</li>
-                  <li>Start the service. This page shows <b>online</b> after the first poll (60 s).</li>
+                  <li>Save this device with its <b>LAN IP</b> (and comm key, if the machine has one).</li>
+                  <li>On the Devices list, click <b>Sync agent</b>: download the program and the setup file (it already contains this device and a key).</li>
+                  <li>Put both in one folder on an always-on PC on the same network, test with <code>hazri-agent.exe -c agent.yaml --once</code>, then install it as a service (steps in that window).</li>
+                  <li>This page shows <b>online</b> after the first poll (60 s). Server address used: <code>https://{$api}</code>.</li>
                 </ol>
                 HTML,
             DevicePunchSourceType::Usb => '<p class="text-sm">No network needed: on the device use <b>Menu → Data Mgt. → USB → Download attendance</b>, then upload the <code>*_attlog.dat</code> file under <b>Devices → Import from USB</b>.</p>',
