@@ -42,7 +42,7 @@ class LateRegisterReport extends Report
 
     public function subtitle(array $filters): string
     {
-        return ($this->isEarly($filters) ? __('Early leaving') : __('Late arrivals')) . " · {$filters['from']} → {$filters['to']}";
+        return ($this->isEarly($filters) ? __('Early leaving') : __('Late arrivals')) . ' · ' . self::day($filters['from']) . ' → ' . self::day($filters['to']);
     }
 
     public function columns(array $filters): array
@@ -71,12 +71,12 @@ class LateRegisterReport extends Report
             $e = $employees[$d->employee_id];
             $running[$e->id] = ($running[$e->id] ?? 0) + 1;
             $rows[] = $early ? [
-                'date' => $d->date->format('Y-m-d'), 'code' => $e->code, 'name' => $e->fullName(),
+                'date' => self::day($d->date), 'code' => $e->code, 'name' => $e->fullName(),
                 'shift_end' => substr((string) $d->shift?->end_time, 0, 5),
                 'out' => $d->last_out?->setTimezone($tz)->format('H:i'),
                 'minutes' => $d->early_out_min, 'count' => $running[$e->id],
             ] : [
-                'date' => $d->date->format('Y-m-d'), 'code' => $e->code, 'name' => $e->fullName(),
+                'date' => self::day($d->date), 'code' => $e->code, 'name' => $e->fullName(),
                 'shift_start' => substr((string) $d->shift?->start_time, 0, 5),
                 'in' => $d->first_in?->setTimezone($tz)->format('H:i'),
                 'minutes' => $d->late_min, 'count' => $running[$e->id],

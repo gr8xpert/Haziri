@@ -323,6 +323,6 @@ it('lists exemptions with who they apply to', function () {
     $rows = (new ExemptionReport)->rows(['from' => '2026-07-01', 'to' => '2026-07-31']);
 
     expect(array_column($rows, 'reason'))->toBe(['Heavy rain', 'Strike'])
-        ->and($rows[0])->toMatchArray(['date' => '20-07-2026', 'day' => 'Monday', 'scope' => 'Whole company', 'by' => $this->owner->name])
+        ->and($rows[0])->toMatchArray(['date' => '20 Jul 2026', 'day' => 'Monday', 'scope' => 'Whole company', 'by' => $this->owner->name])
         ->and($rows[1]['scope'])->toBe('Department: Operations');
 });

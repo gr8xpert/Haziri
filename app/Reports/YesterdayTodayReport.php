@@ -68,7 +68,7 @@ final class YesterdayTodayReport extends Report
                 'shift' => $shift ? substr((string) $shift->start_time, 0, 5) . '–' . substr((string) $shift->end_time, 0, 5) : null,
                 'yesterday_out' => $y?->last_out?->setTimezone($tz)->format('H:i'),
                 'today_in' => $t?->first_in?->setTimezone($tz)->format('H:i'),
-                'status' => $t?->status?->name,
+                'status' => $t?->status?->getLabel(),
             ];
         }
 

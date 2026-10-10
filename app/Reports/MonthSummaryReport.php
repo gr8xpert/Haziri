@@ -43,6 +43,12 @@ final class MonthSummaryReport extends Report
         return (bool) preg_match('/^\d{4}-\d{2}$/', (string) ($filters['month'] ?? ''));
     }
 
+    /** "monthly-totals-september-2026.pdf", not the whole lock sentence. */
+    public function fileLabel(array $filters): string
+    {
+        return $this->cycleLabel($filters['month']);
+    }
+
     public function subtitle(array $filters): string
     {
         $period = $this->period($filters['month']);
@@ -94,7 +100,7 @@ final class MonthSummaryReport extends Report
             }
             $rows[] = [
                 'code' => $s['code'] ?? $employee->code,
-                'name' => $s['name'] ?? $employee->fullName(),
+                'name' => self::nameWithPayBasis($employee, $s['name'] ?? null),
                 'present' => $s['presentDays'] ?: null,
                 'late' => $s['lateCount'] ?: null,
                 'half' => ($s['halfDays'] + $s['halfDayLeaves']) ?: null,
@@ -147,7 +153,7 @@ final class MonthSummaryReport extends Report
             'Absent days' => array_sum(array_column($rows, 'absent')),
             'Lates' => array_sum(array_column($rows, 'late')),
             'Deduction days' => array_sum(array_column($rows, 'deduction')),
-        ];
+        ] + self::dailyWageNote($rows);
     }
 
     private function period(string $month): ?AttendancePeriod

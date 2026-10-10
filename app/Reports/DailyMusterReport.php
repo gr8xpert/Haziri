@@ -23,7 +23,7 @@ final class DailyMusterReport extends Report
         return [
             DatePicker::make('date')->required()->maxDate(now()),
             Select::make('att_status')->label(__('Attendance status'))->placeholder(__('All'))
-                ->options(['late' => 'Late'] + collect(AttendanceStatus::cases())->mapWithKeys(fn (AttendanceStatus $s) => [$s->value => $s->name])->all()),
+                ->options(['late' => __('Late')] + collect(AttendanceStatus::cases())->mapWithKeys(fn (AttendanceStatus $s) => [$s->value => $s->getLabel()])->all()),
             ...$this->orgFilters(),
         ];
     }
@@ -78,9 +78,9 @@ final class DailyMusterReport extends Report
                 'worked' => self::hm($d->worked_min ?? 0),
                 'late' => ($d->late_min ?? 0) ?: null,
                 'early' => ($d->early_out_min ?? 0) ?: null,
-                'status' => $d?->status?->name ?? 'Pending',
-                'flags' => implode(', ', $d->flags ?? []),
-                'source' => implode(', ', array_keys($d->source_summary ?? [])),
+                'status' => $d?->status?->getLabel() ?? __('Pending'),
+                'flags' => self::flagLabels($d?->flags),
+                'source' => self::sourceLabels($d?->source_summary),
             ];
         }
 

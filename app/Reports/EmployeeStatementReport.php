@@ -84,7 +84,7 @@ final class EmployeeStatementReport extends Report
                 'late' => ($d->late_min ?? 0) ?: null,
                 'early' => ($d->early_out_min ?? 0) ?: null,
                 'ot' => self::hm($d->overtime_min ?? 0),
-                'flags' => implode(', ', array_diff($d->flags ?? [], ['late', 'early_out'])),
+                'flags' => self::flagLabels($d?->flags, ['late', 'early_out']),
             ];
         }
 

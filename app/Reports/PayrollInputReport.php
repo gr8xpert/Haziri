@@ -33,12 +33,23 @@ final class PayrollInputReport extends Report
         return ['month' => CarbonImmutable::parse($this->currentCycleMonth() . '-01')->subMonth()->format('Y-m')];
     }
 
+    /** "monthly-totals-september-2026.pdf", not the whole lock sentence. */
+    public function fileLabel(array $filters): string
+    {
+        return $this->cycleLabel($filters['month']);
+    }
+
     public function subtitle(array $filters): string
     {
         [$y, $m] = array_map('intval', explode('-', $filters['month']));
         $locked = AttendancePeriod::where(['year' => $y, 'month' => $m, 'status' => PeriodStatus::Locked])->exists();
 
         return $this->cycleLabel($filters['month']) . ($locked ? ' · ' . __('locked') : ' · ' . __('NOT locked — provisional'));
+    }
+
+    public function summary(array $filters, array $rows): array
+    {
+        return self::dailyWageNote($rows);
     }
 
     public function paper(): string
@@ -77,7 +88,7 @@ final class PayrollInputReport extends Report
                 continue;
             }
             $rows[] = [
-                'code' => $e->code, 'name' => $e->fullName(), 'calendar' => $s['calendarDays'], 'present' => $s['presentDays'],
+                'code' => $e->code, 'name' => self::nameWithPayBasis($e), 'calendar' => $s['calendarDays'], 'present' => $s['presentDays'],
                 'absent' => $s['absentDays'], 'half' => $s['halfDays'], 'unpaid' => $s['unpaidLeaveDays'], 'lates' => $s['lateCount'],
                 'late_rollup' => $s['lateRollupDays'], 'leave_adjusted' => $s['leaveAdjustedDays'] ?? 0, 'deduction' => $s['deductionDays'], 'payable' => $s['payableDays'],
                 'ot_hours' => round($s['overtimeMinutes'] / 60, 1),

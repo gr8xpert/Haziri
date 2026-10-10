@@ -30,7 +30,7 @@ final class MissingPunchReport extends DateRangeReport
             ->where(fn (Builder $q) => $q->whereJsonContains('flags', 'missing_out')->orWhereJsonContains('flags', 'missing_in'))
             ->orderBy('date')->get()
             ->map(fn (AttendanceDay $d) => [
-                'date' => $d->date->format('Y-m-d'),
+                'date' => self::day($d->date),
                 'code' => $employees[$d->employee_id]->code,
                 'name' => $employees[$d->employee_id]->fullName(),
                 'missing' => in_array('missing_in', $d->flags ?? [], true) ? 'In' : 'Out',

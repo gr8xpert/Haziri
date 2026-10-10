@@ -3,7 +3,10 @@
 declare(strict_types=1);
 
 use App\Actions\Periods\PeriodActions;
+use App\Enums\AttendanceFlag;
 use App\Enums\AttendanceStatus;
+use App\Enums\EmploymentType;
+use App\Enums\PunchSource;
 use App\Filament\Tenant\Pages\Reports\LateRegister;
 use App\Filament\Tenant\Pages\Reports\MonthlyAttendance;
 use App\Filament\Tenant\Pages\Reports\ReportsHub;
@@ -12,7 +15,9 @@ use App\Models\Department;
 use App\Models\Employee;
 use App\Models\User;
 use App\Reports\AbsentRegisterReport;
+use App\Reports\CellFormat;
 use App\Reports\DailyMusterReport;
+use App\Reports\EmployeeInformationReport;
 use App\Reports\EmployeeStatementReport;
 use App\Reports\LateRegisterReport;
 use App\Reports\MonthlySheetReport;
@@ -74,6 +79,35 @@ it('produces a statement with a day row for every date', function () {
 
     expect($r->rows($filters))->toHaveCount(31)
         ->and($r->summary($filters, [])['Absent'])->toBe(4);
+});
+
+it('shows flags, sources and categories as words, never codes', function () {
+    AttendanceDay::where('employee_id', $this->e->id)->whereDate('date', '2026-08-03')
+        ->update(['flags' => json_encode(['late', 'early_out', 'overtime']), 'source_summary' => json_encode(['adms' => 2])]);
+    $this->e->forceFill(['employment_type' => EmploymentType::DailyWage])->saveQuietly();
+
+    $muster = collect((new DailyMusterReport)->rows(['date' => '2026-08-03']))->firstWhere('code', 'R1');
+    $info = collect((new EmployeeInformationReport)->rows([]))->firstWhere('code', 'R1');
+
+    expect($muster['flags'])->toBe(implode(', ', [AttendanceFlag::Late->getLabel(), AttendanceFlag::EarlyOut->getLabel(), AttendanceFlag::Overtime->getLabel()]))
+        ->and($muster['source'])->toBe(PunchSource::Adms->getLabel())
+        ->and($info['category'])->toBe(EmploymentType::DailyWage->getLabel())
+        ->and($info['joined'])->toBe('01 Jan 2025');
+});
+
+it('names export files after the month, not the whole subtitle', function () {
+    $pdf = app(ReportExporter::class)->pdf(new MonthSummaryReport, ['month' => '2026-08', 'group_by' => 'employee']);
+
+    expect($pdf->headers->get('content-disposition'))->toContain('monthly-totals-august-2026.pdf');
+});
+
+it('shows amounts with thousand separators on screen and in the PDF', function () {
+    expect(CellFormat::show(87125))->toBe('87,125')
+        ->and(CellFormat::show(1234.5))->toBe('1,234.5')
+        ->and(CellFormat::show(14.3))->toBe('14.3')
+        ->and(CellFormat::show(28.0))->toBe('28')
+        ->and(CellFormat::show('320001'))->toBe('320001') // IDs are strings: untouched
+        ->and(CellFormat::show(null))->toBe('');
 });
 
 it('exports xlsx and pdf', function () {
@@ -158,4 +192,13 @@ it('merges late and early-out, and groups monthly totals by department', functio
     $byDept = (new MonthSummaryReport)->rows(['month' => '2026-08', 'group_by' => 'department']);
     $sales = collect($byDept)->firstWhere('name', 'Sales');
     expect($sales['employees'])->toBe(1)->and($sales['absent'])->toEqual(4)->and($sales['off'])->toEqual(1);
+});
+
+it('marks daily-wage staff in the month reports and explains it', function () {
+    $this->e->forceFill(['employment_type' => EmploymentType::DailyWage])->saveQuietly();
+    $report = new MonthlySheetReport;
+    $rows = $report->rows(['month' => '2026-08']);
+
+    expect(collect($rows)->firstWhere('code', 'R1')['name'])->toBe('Rep · daily wage')
+        ->and($report->summary(['month' => '2026-08'], $rows))->toHaveKey('Daily wage');
 });

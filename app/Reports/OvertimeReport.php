@@ -27,10 +27,10 @@ final class OvertimeReport extends DateRangeReport
             ->whereBetween('date', [$filters['from'], $filters['to']])->where('overtime_min', '>', 0)
             ->orderBy('date')->get()
             ->map(fn (AttendanceDay $d) => [
-                'date' => $d->date->format('Y-m-d'),
+                'date' => self::day($d->date),
                 'code' => $employees[$d->employee_id]->code,
                 'name' => $employees[$d->employee_id]->fullName(),
-                'status' => $d->status?->name,
+                'status' => $d->status?->getLabel(),
                 'worked' => self::hm($d->worked_min),
                 'expected' => self::hm($d->expected_min),
                 'ot' => self::hm($d->overtime_min),

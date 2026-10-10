@@ -53,6 +53,6 @@ final class ReportExporter
     /** @param array<string, mixed> $filters */
     private function filename(Report $report, array $filters, string $ext): string
     {
-        return Str::slug($report->title() . ' ' . $report->subtitle($filters)) . '.' . $ext;
+        return Str::limit(Str::slug($report->title() . ' ' . $report->fileLabel($filters)), 80, '') . '.' . $ext;
     }
 }

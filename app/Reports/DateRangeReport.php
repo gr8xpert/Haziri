@@ -24,7 +24,7 @@ abstract class DateRangeReport extends Report
 
     public function subtitle(array $filters): string
     {
-        return ($filters['from'] ?? '') . ' → ' . ($filters['to'] ?? '');
+        return self::day($filters['from'] ?? null) . ' → ' . self::day($filters['to'] ?? null);
     }
 
     public function ready(array $filters): bool

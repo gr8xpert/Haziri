@@ -29,7 +29,7 @@ final class GratuityLiabilityReport extends Report
 
     public function subtitle(array $filters): string
     {
-        return __('As of :d', ['d' => $filters['as_of'] ?? '']);
+        return __('As of :d', ['d' => self::day($filters['as_of'] ?? null)]);
     }
 
     public function columns(array $filters): array
@@ -43,7 +43,7 @@ final class GratuityLiabilityReport extends Report
         $rows = [];
         foreach ($this->employees($filters)->where('status', '!=', EmployeeStatus::Left)->get() as $e) {
             $g = $calc->accrued($e, $filters['as_of']);
-            $rows[] = ['code' => $e->code, 'name' => $e->fullName(), 'joined' => $e->joined_on?->format('d-m-Y'),
+            $rows[] = ['code' => $e->code, 'name' => $e->fullName(), 'joined' => self::day($e->joined_on),
                 'years' => $g['years'], 'basis' => $g['monthly_basis'] ?: null, 'amount' => $g['amount']];
         }
 

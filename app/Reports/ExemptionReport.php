@@ -39,7 +39,7 @@ final class ExemptionReport extends Report
 
     public function subtitle(array $filters): string
     {
-        return ($filters['from'] ?? '') . ' → ' . ($filters['to'] ?? '');
+        return self::day($filters['from'] ?? null) . ' → ' . self::day($filters['to'] ?? null);
     }
 
     public function columns(array $filters): array
@@ -54,7 +54,7 @@ final class ExemptionReport extends Report
 
         return AttendanceExemption::query()->whereBetween('date', [$filters['from'], $filters['to']])->orderBy('date')->get()
             ->map(fn (AttendanceExemption $x) => [
-                'date' => $x->date->format('d-m-Y'),
+                'date' => self::day($x->date),
                 'day' => $x->date->format('l'),
                 'type' => $x->type->getLabel(),
                 'reason' => $x->reason,
@@ -64,7 +64,7 @@ final class ExemptionReport extends Report
                     default => __('Whole company'),
                 },
                 'by' => $users[$x->created_by] ?? null,
-                'created' => $x->created_at?->setTimezone($this->tz())->format('d-m-Y'),
+                'created' => self::day($x->created_at?->setTimezone($this->tz())),
             ])->all();
     }
 

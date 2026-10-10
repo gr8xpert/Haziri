@@ -86,7 +86,7 @@ final class MonthlyLeaveSummaryReport extends Report
                 'code' => $e->code,
                 'name' => $e->fullName(),
                 'designation' => $e->designation?->name,
-                'doj' => $e->joined_on?->format('d-M-Y'),
+                'doj' => self::day($e->joined_on),
                 'previous' => $m['previous'],
                 'allotted' => $m['allotted'],
                 'total' => $m['total'],

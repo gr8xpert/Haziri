@@ -27,7 +27,7 @@
         </thead>
         <tbody>
             @forelse ($rows as $row)
-                <tr>@foreach (array_keys($columns) as $key)<td>{{ $row[$key] ?? '' }}</td>@endforeach</tr>
+                <tr>@foreach (array_keys($columns) as $key)<td>{{ \App\Reports\CellFormat::show($row[$key] ?? '') }}</td>@endforeach</tr>
             @empty
                 <tr><td colspan="{{ count($columns) }}">{{ __('No data') }}</td></tr>
             @endforelse

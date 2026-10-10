@@ -36,11 +36,11 @@ final class ManualEntryAuditReport extends DateRangeReport
             ->where(fn ($q) => $q->where('is_manual', true)->orWhereNotNull('deleted_at'))
             ->orderBy('punched_at')->get()
             ->map(fn (Punch $p) => [
-                'date' => $p->local_date->format('Y-m-d'),
+                'date' => self::day($p->local_date),
                 'time' => $p->punched_at->setTimezone($tz)->format('H:i'),
                 'code' => $employees[$p->employee_id]->code,
                 'name' => $employees[$p->employee_id]->fullName(),
-                'direction' => $p->direction->value,
+                'direction' => $p->direction->getLabel(),
                 'reason' => $p->reason ?? ($p->meta['removed_reason'] ?? ''),
                 'by' => $p->enteredBy?->name,
                 'entered_at' => $p->created_at->setTimezone($tz)->format('Y-m-d H:i'),

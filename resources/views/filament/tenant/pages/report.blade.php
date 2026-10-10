@@ -54,7 +54,7 @@
                                         @if ($loop->index === 1 && filled($row['_url'] ?? null))
                                             <a href="{{ $row['_url'] }}" class="text-primary-600 hover:underline dark:text-primary-400">{{ $value }}</a>
                                         @else
-                                            {{ $value }}
+                                            {{ \App\Reports\CellFormat::show($value) }}
                                         @endif
                                     </td>
                                 @endif

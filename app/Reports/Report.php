@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Reports;
 
+use App\Enums\AttendanceFlag;
 use App\Enums\EmployeeStatus;
 use App\Enums\EmploymentType;
+use App\Enums\PunchSource;
 use App\Models\Branch;
 use App\Models\Contractor;
 use App\Models\Department;
@@ -19,6 +21,7 @@ use Carbon\CarbonImmutable;
 use Filament\Forms\Components\Select;
 use Filament\Schemas\Components\Component;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Str;
 
 /**
  * A tabular report (spec §10). Rendered on screen by App\Filament\Tenant\Pages\Reports\ReportPage
@@ -53,6 +56,12 @@ abstract class Report
     public function subtitle(array $filters): string
     {
         return '';
+    }
+
+    /** What the export file is named after, besides the title (the subtitle unless that is a sentence). @param array<string, mixed> $filters */
+    public function fileLabel(array $filters): string
+    {
+        return $this->subtitle($filters);
     }
 
     /** Are the filters complete enough to run? (e.g. an employee has been picked) */
@@ -141,6 +150,54 @@ abstract class Report
         [$y, $m] = array_map('intval', explode('-', $month));
 
         return app(PayCycle::class)->label($y, $m);
+    }
+
+    /**
+     * The employee's name, marked when they are paid per day worked: their "payable days" are the days they came, so
+     * a 25 next to colleagues' 29 is right, not a mistake.
+     */
+    protected static function nameWithPayBasis(Employee $e, ?string $name = null): string
+    {
+        return ($name ?? $e->fullName()) . ($e->employment_type === EmploymentType::DailyWage ? ' · ' . __('daily wage') : '');
+    }
+
+    /**
+     * A legend line when the report has daily-wage staff.
+     *
+     * @param  list<array<string, mixed>>  $rows
+     * @return array<string, string>
+     */
+    protected static function dailyWageNote(array $rows): array
+    {
+        $marker = ' · ' . __('daily wage');
+
+        return collect($rows)->contains(fn (array $r) => str_ends_with((string) ($r['name'] ?? ''), $marker))
+            ? [__('Daily wage') => __('paid only for the days worked')] : [];
+    }
+
+    /** A date as reports show it everywhere: "15 Sep 2026". */
+    protected static function day(mixed $date): string
+    {
+        return blank($date) ? '' : CarbonImmutable::parse($date)->format('d M Y');
+    }
+
+    /**
+     * Day flags as words ("Late, Overtime"), never codes like early_out.
+     *
+     * @param  list<string>|null  $flags
+     * @param  list<string>  $except
+     */
+    protected static function flagLabels(?array $flags, array $except = []): string
+    {
+        return collect($flags ?? [])->reject(fn (string $f) => in_array($f, $except, true))
+            ->map(fn (string $f) => AttendanceFlag::tryFrom($f)?->getLabel() ?? Str::headline($f))->implode(', ');
+    }
+
+    /** Where the day's punches came from, as words ("Machine (ADMS), Kiosk"). @param array<string, mixed>|null $summary */
+    protected static function sourceLabels(?array $summary): string
+    {
+        return collect(array_keys($summary ?? []))
+            ->map(fn (string $s) => PunchSource::tryFrom($s)?->getLabel() ?? Str::headline($s))->implode(', ');
     }
 
     /** 'Y-m' of the pay-cycle month containing today. */

@@ -69,7 +69,7 @@ final class MonthlySheetReport extends Report
         foreach ($employees as $e) {
             $own = $days->get($e->id, collect())->keyBy(fn (AttendanceDay $d) => $d->date->format('Y-m-d'));
             // The name opens this employee's detailed monthly report for the same month.
-            $row = ['code' => $e->code, 'name' => $e->fullName(), '_url' => MonthlyAttendance::getUrl(['month' => $filters['month'], 'employee' => $e->id], panel: 'tenant')];
+            $row = ['code' => $e->code, 'name' => self::nameWithPayBasis($e), '_url' => MonthlyAttendance::getUrl(['month' => $filters['month'], 'employee' => $e->id], panel: 'tenant')];
             foreach ($period as $d) {
                 $row['d' . $d->format('j')] = StatusCodes::for($own->get($d->format('Y-m-d')), $leaveCodes);
             }
@@ -96,7 +96,7 @@ final class MonthlySheetReport extends Report
 
     public function summary(array $filters, array $rows): array
     {
-        return StatusCodes::legend();
+        return StatusCodes::legend() + self::dailyWageNote($rows);
     }
 
     private function period(array $filters): CarbonPeriod

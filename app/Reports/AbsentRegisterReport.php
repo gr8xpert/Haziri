@@ -34,7 +34,7 @@ final class AbsentRegisterReport extends Report
 
     public function subtitle(array $filters): string
     {
-        return "{$filters['from']} → {$filters['to']}";
+        return self::day($filters['from']) . ' → ' . self::day($filters['to']);
     }
 
     public function columns(array $filters): array
@@ -69,12 +69,12 @@ final class AbsentRegisterReport extends Report
                 }
                 $streak++;
                 $rows[] = [
-                    'date' => $d->date->format('Y-m-d'), 'code' => $e->code, 'name' => $e->fullName(),
+                    'date' => self::day($d->date), '_date' => $d->date->format('Y-m-d'), 'code' => $e->code, 'name' => $e->fullName(),
                     'department' => $e->department?->name, 'streak' => $streak,
                 ];
             }
         }
-        usort($rows, fn ($a, $b) => [$a['date'], $a['code']] <=> [$b['date'], $b['code']]);
+        usort($rows, fn ($a, $b) => [$a['_date'], $a['code']] <=> [$b['_date'], $b['code']]);
 
         return $rows;
     }

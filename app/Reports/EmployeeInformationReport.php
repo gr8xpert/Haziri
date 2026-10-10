@@ -42,13 +42,13 @@ final class EmployeeInformationReport extends Report
                 'father' => $e->father_name,
                 'cnic' => $e->cnic ? substr($e->cnic, 0, 5) . '-' . substr($e->cnic, 5, 7) . '-' . substr($e->cnic, 12) : null,
                 'address' => implode(', ', array_filter([$e->address, $e->city])) ?: null,
-                'dob' => $e->dob?->format('d-m-Y'),
-                'joined' => $e->joined_on?->format('d-m-Y'),
+                'dob' => self::day($e->dob),
+                'joined' => self::day($e->joined_on),
                 'grade' => $e->grade?->name,
                 'department' => $e->department?->name,
                 'designation' => $e->designation?->name,
-                'category' => $e->employment_type?->name,
-                'status' => $e->status?->name,
+                'category' => $e->employment_type?->getLabel(),
+                'status' => $e->status?->getLabel(),
             ])->values()->all();
     }
 

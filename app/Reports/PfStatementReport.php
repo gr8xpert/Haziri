@@ -28,7 +28,7 @@ final class PfStatementReport extends Report
 
     public function subtitle(array $filters): string
     {
-        return __('As of :d', ['d' => $filters['as_of'] ?? '']);
+        return __('As of :d', ['d' => self::day($filters['as_of'] ?? null)]);
     }
 
     public function columns(array $filters): array
