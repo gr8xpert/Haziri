@@ -46,3 +46,9 @@ agent/agent.yaml
 /docs/*.pdf
 /docs/*.DMP
 /docs/*.dmp
+
+# Sync agent build output (agent/build.bat)
+/agent/.venv/
+/agent/build/
+/agent/dist/
+/public/downloads/hazri-agent.exe

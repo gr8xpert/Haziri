@@ -12,9 +12,10 @@ them to Haziri's agent API (spec §6.2).
 
 ## Setup
 
-1. In Haziri: **Devices → New device**, type **agent**, with the machine's serial number (Menu → System Info → Device Info).
-2. **Devices → New agent key** — copy the key (shown once).
-3. Put `hazri-agent.exe` (or `hazri-agent` on Linux) and `agent.yaml` (from `agent.example.yaml`) in one folder.
+1. In Haziri: **Devices → New device**, type **agent**, with the machine's serial number (Menu → System Info → Device Info) and its LAN IP.
+2. **Devices → Sync agent**: download the program and the setup file. The setup file is a ready `agent.yaml` with the
+   server address, a new agent key and every agent machine. (Or by hand: **Devices → New agent key** and copy `agent.example.yaml`.)
+3. Put `hazri-agent.exe` (or `hazri-agent` on Linux) and `agent.yaml` in one folder.
 4. Test: `hazri-agent -c agent.yaml --once` → exit code 0 when every device was reached and uploaded.
 
 ### Windows service (NSSM)
@@ -31,6 +32,9 @@ nssm start HazriAgent
 See `hazri-agent.service` (systemd).
 
 ## Build
+
+The Windows build goes to `public/downloads/hazri-agent.exe` on the server (shipped with the release ZIP, not in git) so **Sync agent** can offer it.
+
 
 - Windows: `build.bat` → `dist\hazri-agent.exe`
 - Linux / Pi: `./build.sh` → `dist/hazri-agent`

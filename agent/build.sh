@@ -4,6 +4,6 @@ set -e
 python3 -m venv .venv
 . .venv/bin/activate
 pip install -r requirements.txt 'pyinstaller==6.*'
-pyinstaller --onefile --name hazri-agent hazri_agent/__main__.py
+pyinstaller --onefile --name hazri-agent run_agent.py
 cp agent.example.yaml dist/
 echo "Built dist/hazri-agent"
