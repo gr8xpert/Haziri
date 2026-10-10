@@ -21,7 +21,7 @@ class NotificationLogResource extends Resource
 
     protected static ?string $model = NotificationLog::class;
 
-    protected static string | \BackedEnum | null $navigationIcon = Heroicon::OutlinedListBullet;
+    protected static string | \BackedEnum | null $navigationIcon = Heroicon::OutlinedBellAlert;
 
     protected static string | \UnitEnum | null $navigationGroup = NavigationGroup::System;
 

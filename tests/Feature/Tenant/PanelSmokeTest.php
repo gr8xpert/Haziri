@@ -78,3 +78,14 @@ it('links the panel to real, global CSS/JS files (not tenant asset URLs)', funct
         expect(file_exists(public_path($path)))->toBeTrue("missing published asset {$path} — run php artisan filament:assets");
     }
 });
+
+it('gives every menu item its own icon', function () {
+    $panel = Filament::getPanel('tenant');
+    $icons = collect([...$panel->getResources(), ...$panel->getPages()])
+        ->filter(fn (string $class) => $class::shouldRegisterNavigation())
+        ->mapWithKeys(fn (string $class) => [class_basename($class) => $class::getNavigationIcon()])
+        ->filter()
+        ->map(fn ($icon) => $icon instanceof BackedEnum ? $icon->value : (string) $icon);
+
+    expect($icons->count())->toBeGreaterThan(20)->and($icons->duplicates()->all())->toBe([]);
+});

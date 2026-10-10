@@ -34,7 +34,7 @@ class AnnouncementResource extends Resource
 
     protected static ?string $model = Announcement::class;
 
-    protected static string | \BackedEnum | null $navigationIcon = Heroicon::OutlinedListBullet;
+    protected static string | \BackedEnum | null $navigationIcon = Heroicon::OutlinedMegaphone;
 
     protected static string | \UnitEnum | null $navigationGroup = NavigationGroup::People;
 

@@ -18,7 +18,7 @@ class Billing extends Page
 {
     protected string $view = 'filament.tenant.pages.billing';
 
-    protected static string | \BackedEnum | null $navigationIcon = Heroicon::OutlinedDocumentChartBar;
+    protected static string | \BackedEnum | null $navigationIcon = Heroicon::OutlinedReceiptRefund;
 
     protected static string | \UnitEnum | null $navigationGroup = NavigationGroup::System;
 

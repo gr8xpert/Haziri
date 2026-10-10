@@ -18,7 +18,7 @@ class PunchPhotos extends Page
 {
     protected string $view = 'filament.tenant.pages.punch-photos';
 
-    protected static string | \BackedEnum | null $navigationIcon = Heroicon::OutlinedIdentification;
+    protected static string | \BackedEnum | null $navigationIcon = Heroicon::OutlinedCamera;
 
     protected static string | \UnitEnum | null $navigationGroup = NavigationGroup::Attendance;
 

@@ -29,7 +29,7 @@ class Integrations extends Page
 {
     protected string $view = 'filament.tenant.pages.company-settings';
 
-    protected static string | \BackedEnum | null $navigationIcon = Heroicon::OutlinedCpuChip;
+    protected static string | \BackedEnum | null $navigationIcon = Heroicon::OutlinedPuzzlePiece;
 
     protected static string | \UnitEnum | null $navigationGroup = NavigationGroup::System;
 

@@ -20,7 +20,7 @@ class SetupAssistantPage extends Page
 
     protected static ?string $slug = 'setup-assistant';
 
-    protected static string | \BackedEnum | null $navigationIcon = Heroicon::OutlinedSparkles;
+    protected static string | \BackedEnum | null $navigationIcon = Heroicon::OutlinedRocketLaunch;
 
     protected static string | \UnitEnum | null $navigationGroup = NavigationGroup::System;
 

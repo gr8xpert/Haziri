@@ -7,6 +7,7 @@ namespace App\Filament\Tenant\Resources\Webhooks;
 use App\Filament\Concerns\AuthorizesByPermission;
 use App\Filament\Concerns\RequiresFeature;
 use App\Filament\Tenant\NavigationGroup;
+use App\Jobs\DeliverWebhook;
 use App\Models\WebhookEndpoint;
 use App\Services\Webhooks\Webhooks;
 use App\Support\Security\PublicUrl;
@@ -23,6 +24,7 @@ use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Illuminate\Support\Str;
 
 /** Outgoing webhooks (spec §13.3): HMAC-signed, retried, public URLs only. */
 class WebhookEndpointResource extends Resource
@@ -35,7 +37,7 @@ class WebhookEndpointResource extends Resource
 
     protected static ?string $slug = 'webhooks';
 
-    protected static string | \BackedEnum | null $navigationIcon = Heroicon::OutlinedArrowPath;
+    protected static string | \BackedEnum | null $navigationIcon = Heroicon::OutlinedLink;
 
     protected static string | \UnitEnum | null $navigationGroup = NavigationGroup::System;
 
@@ -74,9 +76,9 @@ class WebhookEndpointResource extends Resource
                 Action::make('ping')->label('Send test')->icon(Heroicon::OutlinedArrowPath)->color('gray')
                     ->action(function (WebhookEndpoint $record) {
                         $delivery = $record->deliveries()->create(['event' => 'ping', 'payload' => [
-                            'id' => (string) \Illuminate\Support\Str::uuid(), 'event' => 'ping', 'tenant' => tenant('id'), 'created_at' => now()->toIso8601String(), 'data' => [],
+                            'id' => (string) Str::uuid(), 'event' => 'ping', 'tenant' => tenant('id'), 'created_at' => now()->toIso8601String(), 'data' => [],
                         ]]);
-                        \App\Jobs\DeliverWebhook::dispatch($delivery->id);
+                        DeliverWebhook::dispatch($delivery->id);
                         Notification::make()->success()->title(__('Test delivery queued'))->send();
                     }),
                 Action::make('secret')->label('Show secret')->icon(Heroicon::OutlinedShieldCheck)->color('gray')

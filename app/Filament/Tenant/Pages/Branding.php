@@ -29,7 +29,7 @@ class Branding extends Page
 {
     protected string $view = 'filament.tenant.pages.branding';
 
-    protected static string | \BackedEnum | null $navigationIcon = Heroicon::OutlinedSun;
+    protected static string | \BackedEnum | null $navigationIcon = Heroicon::OutlinedPaintBrush;
 
     protected static string | \UnitEnum | null $navigationGroup = NavigationGroup::System;
 

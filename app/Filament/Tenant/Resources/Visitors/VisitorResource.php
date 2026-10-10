@@ -30,7 +30,7 @@ class VisitorResource extends Resource
 
     protected static string $feature = 'visitors';
 
-    protected static string | \BackedEnum | null $navigationIcon = Heroicon::OutlinedIdentification;
+    protected static string | \BackedEnum | null $navigationIcon = Heroicon::OutlinedUserPlus;
 
     protected static string | \UnitEnum | null $navigationGroup = NavigationGroup::Attendance;
 

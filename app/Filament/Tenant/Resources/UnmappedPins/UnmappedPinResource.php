@@ -27,7 +27,7 @@ class UnmappedPinResource extends Resource
 
     protected static ?string $model = UnmappedPin::class;
 
-    protected static string | \BackedEnum | null $navigationIcon = Heroicon::OutlinedExclamationTriangle;
+    protected static string | \BackedEnum | null $navigationIcon = Heroicon::OutlinedQuestionMarkCircle;
 
     protected static string | \UnitEnum | null $navigationGroup = NavigationGroup::Devices;
 

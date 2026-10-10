@@ -20,7 +20,7 @@ class Analytics extends Page
 {
     protected string $view = 'filament.tenant.pages.analytics';
 
-    protected static string | \BackedEnum | null $navigationIcon = Heroicon::OutlinedDocumentChartBar;
+    protected static string | \BackedEnum | null $navigationIcon = Heroicon::OutlinedChartPie;
 
     protected static string | \UnitEnum | null $navigationGroup = NavigationGroup::Reports;
 

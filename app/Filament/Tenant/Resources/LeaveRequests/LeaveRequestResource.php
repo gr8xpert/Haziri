@@ -32,7 +32,7 @@ class LeaveRequestResource extends Resource
 
     protected static ?string $model = LeaveRequest::class;
 
-    protected static string | \BackedEnum | null $navigationIcon = Heroicon::OutlinedCalendarDays;
+    protected static string | \BackedEnum | null $navigationIcon = Heroicon::OutlinedPaperAirplane;
 
     protected static string | \UnitEnum | null $navigationGroup = NavigationGroup::Leave;
 

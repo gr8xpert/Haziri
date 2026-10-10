@@ -27,7 +27,7 @@ class PeriodResource extends Resource
 
     protected static ?string $model = AttendancePeriod::class;
 
-    protected static string | \BackedEnum | null $navigationIcon = Heroicon::OutlinedShieldCheck;
+    protected static string | \BackedEnum | null $navigationIcon = Heroicon::OutlinedLockClosed;
 
     protected static string | \UnitEnum | null $navigationGroup = NavigationGroup::Attendance;
 

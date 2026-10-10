@@ -29,7 +29,7 @@ class SalaryStructureResource extends Resource
 
     protected static string $feature = 'payroll_lite';
 
-    protected static string | \BackedEnum | null $navigationIcon = Heroicon::OutlinedBriefcase;
+    protected static string | \BackedEnum | null $navigationIcon = Heroicon::OutlinedWallet;
 
     protected static string | \UnitEnum | null $navigationGroup = NavigationGroup::Payroll;
 

@@ -29,7 +29,7 @@ class PayrollRunResource extends Resource
 
     protected static string $feature = 'payroll_lite';
 
-    protected static string | \BackedEnum | null $navigationIcon = Heroicon::OutlinedTableCells;
+    protected static string | \BackedEnum | null $navigationIcon = Heroicon::OutlinedBanknotes;
 
     protected static string | \UnitEnum | null $navigationGroup = NavigationGroup::Payroll;
 

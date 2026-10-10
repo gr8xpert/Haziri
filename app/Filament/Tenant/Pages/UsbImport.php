@@ -16,6 +16,7 @@ use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Storage;
 
 /** Import from USB (spec §6.3): upload → preview (duplicates, unmapped PINs with inline mapping) → import. */
@@ -23,7 +24,7 @@ class UsbImport extends Page
 {
     protected string $view = 'filament.tenant.pages.usb-import';
 
-    protected static string | \BackedEnum | null $navigationIcon = Heroicon::OutlinedArrowPath;
+    protected static string | \BackedEnum | null $navigationIcon = Heroicon::OutlinedArrowUpTray;
 
     protected static string | \UnitEnum | null $navigationGroup = NavigationGroup::Devices;
 
@@ -102,8 +103,8 @@ class UsbImport extends Page
         $this->form->fill();
     }
 
-    /** @return \Illuminate\Support\Collection<int, UsbImportRecord> */
-    public function getHistory(): \Illuminate\Support\Collection
+    /** @return Collection<int, UsbImportRecord> */
+    public function getHistory(): Collection
     {
         return UsbImportRecord::query()->with(['device', 'importedBy'])->latest()->limit(10)->get();
     }

@@ -28,7 +28,7 @@ class NotificationTemplateResource extends Resource
 
     protected static ?string $model = NotificationTemplate::class;
 
-    protected static string | \BackedEnum | null $navigationIcon = Heroicon::OutlinedPencilSquare;
+    protected static string | \BackedEnum | null $navigationIcon = Heroicon::OutlinedChatBubbleBottomCenterText;
 
     protected static string | \UnitEnum | null $navigationGroup = NavigationGroup::System;
 

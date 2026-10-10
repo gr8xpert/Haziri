@@ -26,7 +26,7 @@ class DailySheet extends Page
 {
     protected string $view = 'filament.tenant.pages.daily-sheet';
 
-    protected static string | \BackedEnum | null $navigationIcon = Heroicon::OutlinedTableCells;
+    protected static string | \BackedEnum | null $navigationIcon = Heroicon::OutlinedClipboardDocumentList;
 
     protected static string | \UnitEnum | null $navigationGroup = NavigationGroup::Attendance;
 

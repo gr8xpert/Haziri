@@ -29,7 +29,7 @@ class LeaveBalanceResource extends Resource
 
     protected static ?string $model = LeaveBalance::class;
 
-    protected static string | \BackedEnum | null $navigationIcon = Heroicon::OutlinedTableCells;
+    protected static string | \BackedEnum | null $navigationIcon = Heroicon::OutlinedScale;
 
     protected static string | \UnitEnum | null $navigationGroup = NavigationGroup::Leave;
 

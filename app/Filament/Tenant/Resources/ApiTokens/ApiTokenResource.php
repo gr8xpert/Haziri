@@ -22,7 +22,7 @@ class ApiTokenResource extends Resource
 
     protected static string $feature = 'public_api';
 
-    protected static string | \BackedEnum | null $navigationIcon = Heroicon::OutlinedShieldCheck;
+    protected static string | \BackedEnum | null $navigationIcon = Heroicon::OutlinedKey;
 
     protected static string | \UnitEnum | null $navigationGroup = NavigationGroup::System;
 

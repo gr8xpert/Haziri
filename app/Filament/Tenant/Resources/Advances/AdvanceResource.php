@@ -29,7 +29,7 @@ class AdvanceResource extends Resource
 
     protected static string $feature = 'payroll_lite';
 
-    protected static string | \BackedEnum | null $navigationIcon = Heroicon::OutlinedArrowPath;
+    protected static string | \BackedEnum | null $navigationIcon = Heroicon::OutlinedCreditCard;
 
     protected static string | \UnitEnum | null $navigationGroup = NavigationGroup::Payroll;
 

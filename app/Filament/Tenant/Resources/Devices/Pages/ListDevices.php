@@ -9,6 +9,7 @@ use App\Filament\Tenant\Resources\Devices\DeviceResource;
 use App\Models\Central\AgentKey;
 use Filament\Actions\Action;
 use Filament\Actions\CreateAction;
+use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ListRecords;
@@ -33,7 +34,7 @@ class ListDevices extends ListRecords
             Action::make('revokeKeys')->label(__('Agent keys'))->icon(Heroicon::OutlinedListBullet)->color('gray')
                 ->modalSubmitActionLabel(__('Revoke selected'))
                 ->schema([
-                    \Filament\Forms\Components\CheckboxList::make('revoke')->label(__('Active keys (tick to revoke)'))
+                    CheckboxList::make('revoke')->label(__('Active keys (tick to revoke)'))
                         ->options(fn () => AgentKey::where('tenant_id', tenant('id'))->whereNull('revoked_at')->get()
                             ->mapWithKeys(fn (AgentKey $k) => [$k->id => $k->label . ' · last used ' . ($k->last_used_at?->diffForHumans() ?? 'never')])),
                 ])

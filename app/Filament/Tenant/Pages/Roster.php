@@ -36,7 +36,7 @@ class Roster extends Page
 {
     protected string $view = 'filament.tenant.pages.roster';
 
-    protected static string | \BackedEnum | null $navigationIcon = Heroicon::OutlinedTableCells;
+    protected static string | \BackedEnum | null $navigationIcon = Heroicon::OutlinedViewColumns;
 
     protected static string | \UnitEnum | null $navigationGroup = NavigationGroup::TimeRules;
 

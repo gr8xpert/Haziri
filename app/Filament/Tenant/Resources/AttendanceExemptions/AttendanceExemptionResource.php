@@ -31,7 +31,7 @@ class AttendanceExemptionResource extends Resource
 
     protected static ?string $model = AttendanceExemption::class;
 
-    protected static string | \BackedEnum | null $navigationIcon = Heroicon::OutlinedShieldCheck;
+    protected static string | \BackedEnum | null $navigationIcon = Heroicon::OutlinedHandRaised;
 
     protected static string | \UnitEnum | null $navigationGroup = NavigationGroup::TimeRules;
 

@@ -35,7 +35,7 @@ class ShiftSwapResource extends Resource
 
     protected static ?string $model = ShiftSwapRequest::class;
 
-    protected static string | \BackedEnum | null $navigationIcon = Heroicon::OutlinedArrowPath;
+    protected static string | \BackedEnum | null $navigationIcon = Heroicon::OutlinedArrowsRightLeft;
 
     protected static string | \UnitEnum | null $navigationGroup = NavigationGroup::TimeRules;
 

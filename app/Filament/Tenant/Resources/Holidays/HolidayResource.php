@@ -35,7 +35,7 @@ class HolidayResource extends Resource
 
     protected static ?string $model = Holiday::class;
 
-    protected static string | \BackedEnum | null $navigationIcon = Heroicon::OutlinedCalendarDays;
+    protected static string | \BackedEnum | null $navigationIcon = Heroicon::OutlinedFlag;
 
     protected static string | \UnitEnum | null $navigationGroup = NavigationGroup::TimeRules;
 
