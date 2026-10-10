@@ -3,8 +3,9 @@
 @section('title', __('Sign in'))
 
 @section('content')
+@php($demo = \App\Support\DemoMode::active())
 <main class="relative isolate flex min-h-dvh flex-col px-5 pt-[max(env(safe-area-inset-top),2.5rem)] pb-[max(env(safe-area-inset-bottom),2rem)]"
-      x-data="{ mode: '{{ session('otp_phone') ? 'otp' : ($errors->has('email') || old('email') ? 'email' : 'phone') }}' }">
+      x-data="{ mode: '{{ session('otp_phone') ? 'otp' : ($errors->has('email') || old('email') || $demo ? 'email' : 'phone') }}' }">
     <div aria-hidden="true" class="pointer-events-none absolute inset-x-0 top-0 -z-10 h-80 bg-[radial-gradient(70%_100%_at_50%_0%,rgb(4_120_87/0.16),transparent)] dark:bg-[radial-gradient(70%_100%_at_50%_0%,rgb(52_211_153/0.12),transparent)]"></div>
 
     <div class="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center">
@@ -24,6 +25,16 @@
             <div role="alert" class="mb-4 flex items-start gap-2.5 rounded-xl bg-rose-50 p-3 text-sm text-rose-700 ring-1 ring-rose-600/15 dark:bg-rose-500/10 dark:text-rose-300 dark:ring-rose-400/20">
                 @svg('heroicon-m-exclamation-circle', 'mt-0.5 size-5 shrink-0')
                 <span>{{ $errors->first() }}</span>
+            </div>
+        @endif
+
+        @if ($demo)
+            {{-- Public demo: codes are never sent, so point visitors at the shared email login. --}}
+            <div class="mb-4 rounded-xl bg-emerald-50 p-3 text-sm text-emerald-900 ring-1 ring-emerald-600/15 dark:bg-emerald-500/10 dark:text-emerald-200 dark:ring-emerald-400/20">
+                <p class="font-semibold">{{ __('Demo company') }}</p>
+                <p class="mt-0.5">{{ __('Sign in with :email and the password :password. Phone codes are not sent in the demo.', ['email' => \App\Support\DemoMode::email((string) tenant('slug'), 'employee'), 'password' => config('hazri.demo.password')]) }}</p>
+                <button type="button" class="mt-2 font-semibold underline underline-offset-2"
+                        @click="mode = 'email'; $nextTick(() => { document.getElementById('me-email').value = @js(\App\Support\DemoMode::email((string) tenant('slug'), 'employee')); document.getElementById('me-password').value = @js(config('hazri.demo.password')); })">{{ __('Fill it in for me') }}</button>
             </div>
         @endif
 
