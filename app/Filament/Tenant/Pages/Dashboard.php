@@ -24,7 +24,7 @@ class Dashboard extends BaseDashboard
             Section::make()->schema([
                 Select::make('branch_id')->label(__('Branch'))->placeholder(__('All branches'))
                     ->options(fn () => self::branchOptions()),
-            ])->columns(3)->visible(fn () => count(self::branchOptions()) > 1),
+            ])->visible(fn () => count(self::branchOptions()) > 1),
         ]);
     }
 
