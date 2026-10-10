@@ -6,8 +6,6 @@ namespace App\Services\Demo;
 
 use App\Enums\DevicePunchSourceType;
 use App\Enums\EmploymentType;
-use App\Enums\PunchSource;
-use App\Enums\PunchStatus;
 use App\Enums\Role;
 use App\Models\Branch;
 use App\Models\Contractor;
@@ -19,7 +17,6 @@ use App\Models\Grade;
 use App\Models\Kiosk;
 use App\Models\LeaveEntitlement;
 use App\Models\LeaveType;
-use App\Models\Punch;
 use App\Models\SalaryStructure;
 use App\Models\Setting;
 use App\Models\User;
@@ -53,6 +50,7 @@ final class DemoCompanySeeder
         private readonly DemoSelfServiceSeeder $selfService,
         private readonly DemoCalendarSeeder $calendar,
         private readonly DemoPayrollSeeder $payroll,
+        private readonly DemoDay $day,
         private readonly LeaveBalanceService $balances,
         private readonly LeaveYear $leaveYear,
         private readonly AttendanceRecomputer $recomputer,
@@ -74,16 +72,21 @@ final class DemoCompanySeeder
         $employees = $this->people($slug);
         $this->logins($employees, $slug);
         $this->salaries($employees);
-        $adms = $this->devices();
+        $this->devices();
 
         $today = CarbonImmutable::now($tz);
         $start = $today->subMonthNoOverflow()->startOfMonth();
+        $say('Rosters, holidays…');
+        $this->calendar->run($employees, $today, $say); // before the punches: they follow each person's shift
         $say('Punches…');
-        $this->punches($employees, $adms, $start, $today, $tz);
+        foreach (CarbonPeriod::create($start, $today->subDays(2)) as $day) {
+            $date = CarbonImmutable::parse($day->format('Y-m-d'), $tz);
+            $this->day->play($employees, $date->format('Y-m-d'), $date->addDays(2), selfService: false);
+        }
+        $this->day->catchUp($today); // yesterday and today so far, with kiosk and phone punches
         $this->leaveSetup($employees);
 
-        $say('Requests, corrections, rosters, visitors…');
-        $this->calendar->run($employees, $today, $say);
+        $say('Requests, corrections, visitors…');
         $this->activity->run($employees, $today, $say);
         $this->selfService->run($employees, $today, $say);
 
@@ -177,52 +180,16 @@ final class DemoCompanySeeder
         }
     }
 
-    private function devices(): Device
+    private function devices(): void
     {
         $lhr = Branch::where('code', 'LHE')->firstOrFail();
         $khi = Branch::where('code', 'KHI')->firstOrFail();
-        $adms = Device::firstOrCreate(['serial_number' => self::serial('ADMS-01')], ['name' => 'Lahore reception K40', 'type' => DevicePunchSourceType::Adms,
+        Device::firstOrCreate(['serial_number' => self::serial('ADMS-01')], ['name' => 'Lahore reception K40', 'type' => DevicePunchSourceType::Adms,
             'branch_id' => $lhr->id, 'status' => 'online', 'last_seen_at' => now()]);
         Device::firstOrCreate(['serial_number' => self::serial('AGENT-01')], ['name' => 'Karachi office (agent)', 'type' => DevicePunchSourceType::Agent,
             'branch_id' => $khi->id, 'status' => 'offline', 'last_seen_at' => now()->subHours(3), 'ip' => '192.168.1.201']);
         $kioskDevice = Device::firstOrCreate(['serial_number' => self::serial('KIOSK')], ['name' => 'Reception tablet', 'type' => DevicePunchSourceType::Kiosk, 'branch_id' => $lhr->id]);
         Kiosk::firstOrCreate(['device_id' => $kioskDevice->id], ['token' => Kiosk::newToken(), 'allowed_modes' => ['pin', 'qr', 'face'], 'require_photo' => true]);
-
-        return $adms;
-    }
-
-    /**
-     * Last month and this month up to yesterday: mostly on time, some late, a few absent, a few missing punch-outs.
-     * Today: half the staff are already in.
-     *
-     * @param  Collection<int, Employee>  $employees
-     */
-    private function punches(Collection $employees, Device $adms, CarbonImmutable $start, CarbonImmutable $today, string $tz): void
-    {
-        mt_srand(42);
-        foreach (CarbonPeriod::create($start, $today->subDay()) as $day) {
-            if ($day->dayOfWeek === 0) {
-                continue;
-            }
-            foreach ($employees as $e) {
-                if ($e->joined_on !== null && $day->format('Y-m-d') < $e->joined_on->format('Y-m-d')) {
-                    continue;
-                }
-                $roll = mt_rand(1, 100);
-                if ($roll <= 4) {
-                    continue; // absent
-                }
-                $in = $day->copy()->setTime(8, 45)->addMinutes(mt_rand(0, 25) + ($roll > 85 ? mt_rand(20, 150) : 0));
-                $out = $day->copy()->setTime(18, 0)->addMinutes(mt_rand(-20, 90));
-                $this->punch($e, $adms, CarbonImmutable::parse($in->format('Y-m-d H:i:s'), $tz));
-                if ($roll > 7) {
-                    $this->punch($e, $adms, CarbonImmutable::parse($out->format('Y-m-d H:i:s'), $tz));
-                }
-            }
-        }
-        foreach ($employees->take(12) as $e) {
-            $this->punch($e, $adms, CarbonImmutable::parse($today->format('Y-m-d') . ' 09:0' . mt_rand(0, 9), $tz));
-        }
     }
 
     /**
@@ -242,15 +209,5 @@ final class DemoCompanySeeder
                 $this->balances->balance($e, $type, $year);
             }
         }
-    }
-
-    private function punch(Employee $e, Device $device, CarbonImmutable $local): void
-    {
-        $utc = $local->utc();
-        Punch::query()->firstOrCreate(['dedupe_hash' => sha1("{$device->serial_number}|{$e->device_pin}|{$utc->format('Y-m-d H:i:s')}")], [
-            'employee_id' => $e->id, 'device_pin' => $e->device_pin, 'device_id' => $device->id, 'punched_at' => $utc->format('Y-m-d H:i:s'),
-            'local_date' => $local->format('Y-m-d'), 'source' => $device->type === DevicePunchSourceType::Agent ? PunchSource::Agent : PunchSource::Adms,
-            'status' => PunchStatus::Valid, 'verify_type' => 'fp',
-        ]);
     }
 }
