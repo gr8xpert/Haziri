@@ -21,6 +21,7 @@ use App\Filament\Tenant\Resources\Corrections\Pages\ListCorrections;
 use App\Filament\Tenant\Resources\LeaveBalances\Pages\ListLeaveBalances;
 use App\Filament\Tenant\Resources\LeaveRequests\Pages\ListLeaveRequests;
 use App\Models\AttendanceDay;
+use App\Models\AttendancePeriod;
 use App\Models\Branch;
 use App\Models\Employee;
 use App\Models\EmployeeLeaveRule;
@@ -283,6 +284,18 @@ it('says a correction approved by the manager waits for HR, and is applied after
     Livewire::test(ListCorrections::class)->callTableAction('approve', $add, data: ['note' => 'ok'])
         ->assertNotified('Approved and applied');
     expect($add->fresh()->status)->toBe(RequestStatus::Approved);
+});
+
+it('recomputes approved changes for days older than two months in an open month', function () {
+    $this->travelTo(CarbonImmutable::parse('2026-10-12 12:00', 'Asia/Karachi'));
+    AttendancePeriod::create(['year' => 2026, 'month' => 5, 'status' => 'locked']);
+
+    $od = app(SubmitCorrection::class)($this->emp, '2026-07-01', CorrectionType::MarkOd, [], 'client visit', $this->hr);
+    app(DecideCorrection::class)($od, $this->hr, true);
+    expect(dayStatus($this->emp, '2026-07-01'))->toBe(AttendanceStatus::OfficialDuty);
+
+    Holiday::create(['date' => '2026-06-10', 'name' => 'Late-added holiday']);
+    expect(dayStatus($this->emp, '2026-06-10'))->toBe(AttendanceStatus::Holiday);
 });
 
 it('stops managers from requesting for people outside their team', function () {

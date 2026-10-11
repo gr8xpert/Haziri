@@ -5,16 +5,20 @@ declare(strict_types=1);
 namespace App\Services\Attendance;
 
 use App\Enums\EmployeeStatus;
+use App\Enums\PeriodStatus;
 use App\Jobs\RecomputeAttendanceDay;
 use App\Jobs\RecomputeAttendanceRange;
+use App\Models\AttendancePeriod;
 use App\Models\Employee;
 use App\Models\Scopes\BranchScope;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonPeriod;
 
 /**
- * Turns "something attendance-related changed" into recompute jobs, clamped to a sane window:
- * never the future, never older than LOOKBACK_DAYS (older months are normally locked anyway).
+ * Turns "something attendance-related changed" into recompute jobs, clamped to a sane window: never the future.
+ * A change for named employees (a correction, leave, a punch) is recomputed however old the day is; the recomputer
+ * itself leaves locked months alone. A company- or branch-wide change reaches back LOOKBACK_DAYS, or further to the
+ * first day after the latest locked month, so no open month is skipped.
  */
 final class AttendanceImpact
 {
@@ -27,9 +31,9 @@ final class AttendanceImpact
     {
         $tz = tenant('timezone') ?? config('hazri.default_timezone');
         $today = CarbonImmutable::now($tz)->format('Y-m-d');
-        $floor = CarbonImmutable::now($tz)->subDays(self::LOOKBACK_DAYS)->format('Y-m-d');
-
-        $from = max($from, $floor);
+        if ($employeeIds === null) {
+            $from = max($from, self::companyWideFloor($tz));
+        }
         $to = min($to ?? $today, $today);
         if ($from > $to) {
             return;
@@ -42,6 +46,13 @@ final class AttendanceImpact
         if ($ids === []) {
             return;
         }
+        if ($employeeIds !== null) {
+            $joined = Employee::query()->withoutGlobalScope(BranchScope::class)->whereIn('id', $ids)->min('joined_on');
+            $from = $joined !== null ? max($from, substr((string) $joined, 0, 10)) : $from;
+            if ($from > $to) {
+                return;
+            }
+        }
 
         $days = iterator_to_array(CarbonPeriod::create($from, $to));
         if (count($ids) === 1 && count($days) <= 3) {
@@ -53,5 +64,19 @@ final class AttendanceImpact
         }
 
         RecomputeAttendanceRange::dispatchChunked($ids, $from, $to);
+    }
+
+    /** LOOKBACK_DAYS ago, or the first day after the latest locked month when that is earlier. */
+    private static function companyWideFloor(string $tz): string
+    {
+        $floor = CarbonImmutable::now($tz)->subDays(self::LOOKBACK_DAYS)->format('Y-m-d');
+        $latestLocked = AttendancePeriod::query()->where('status', PeriodStatus::Locked)
+            ->orderByDesc('year')->orderByDesc('month')->first();
+        if ($latestLocked === null) {
+            return $floor;
+        }
+        $afterLock = CarbonImmutable::parse($latestLocked->dates()[1])->addDay()->format('Y-m-d');
+
+        return min($floor, $afterLock);
     }
 }

@@ -208,7 +208,7 @@ Late and half-day deductions come from the salary, or from a leave balance first
 - **Every night**, the last 3 days are worked out again for everyone.
 - **By hand**: **Recompute this month** at the top of **System → Company settings** works out the whole current month again. Use it after you change a company rule. Only people who can open Company settings (owner and admin) see this button.
 
-Days in a **locked** month are never worked out again. Automatic updates also do not reach back more than about two months.
+Days in a **locked** month are never worked out again. A change for one employee (a punch, leave or an approved correction) is applied however old the day is, as long as its month is not locked. A change for the whole company or a branch (a holiday, a shift) reaches back about two months, or further, to the day after the last locked month.
 
 ## Common problems
 
