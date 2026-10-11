@@ -20,12 +20,17 @@ use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Illuminate\Auth\Access\Response;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Hash;
+use UnitEnum;
 
-/** Tenant logins and their roles (spec §8). Only the owner can grant the owner role. */
+/** Tenant logins and their roles (spec §8). Only the owner can grant the owner role or change an owner's login. */
 class UserResource extends Resource
 {
-    use AuthorizesByPermission;
+    use AuthorizesByPermission {
+        getAuthorizationResponse as permissionResponse;
+    }
 
     protected static ?string $model = User::class;
 
@@ -41,6 +46,17 @@ class UserResource extends Resource
 
     protected static string $managePermission = 'users.manage';
 
+    /** An admin may not edit an owner's login: that would let them take it over or drop its Owner role. */
+    public static function getAuthorizationResponse(string | UnitEnum $action, ?Model $record = null): Response
+    {
+        if ($record instanceof User && ! in_array($action, ['viewAny', 'view'], true)
+            && $record->hasRole(Role::Owner->value) && ! auth()->user()?->hasRole(Role::Owner->value)) {
+            return Response::deny(__('Only an owner can change an owner login.'));
+        }
+
+        return static::permissionResponse($action, $record);
+    }
+
     public static function form(Schema $schema): Schema
     {
         return $schema->columns(2)->components([
@@ -55,7 +71,7 @@ class UserResource extends Resource
                 ->relationship('roles', 'name', modifyQueryUsing: fn ($query) => auth()->user()->hasRole(Role::Owner->value)
                     ? $query
                     : $query->where('name', '!=', Role::Owner->value))
-                ->getOptionLabelFromRecordUsing(fn ($role) => Role::tryFrom($role->name)?->getLabel() ?? $role->name),
+                ->getOptionLabelFromRecordUsing(fn ($record) => Role::tryFrom($record->name)?->getLabel() ?? $record->name),
             Select::make('branches')->multiple()->preload()->relationship('branches', 'name')
                 ->label('Limit to branches')->placeholder('All branches')
                 ->helperText('A shop/branch manager sees only these branches. Leave empty for all branches. Owners and admins always see everything.')

@@ -14,7 +14,7 @@ screens: users-and-roles-list=/admin/users | users-and-roles-new=/admin/users >>
 - The **role** decides what a login can do: Owner, Admin, HR, Manager, Branch manager, Receptionist or Employee.
 - Staff who should use the phone app (**/me**) need a user with the **Employee** role and **Linked employee** set to themselves.
 - Managers approve leave for the people who report to them, so a manager's login must be linked to their own employee record.
-- To stop someone logging in, switch **Is active** off. Only the owner and admins can open this page; only an owner can make another owner.
+- To stop someone logging in, switch **Is active** off. Only the owner and admins can open this page; only an owner can make another owner or edit an owner's login.
 
 ## What you see on this page
 
@@ -92,6 +92,10 @@ Another login uses this phone number. Each number can belong to one login only, 
 ### I can't pick the Owner role
 
 Only an owner can give the Owner role. Admins see every other role.
+
+### There is no Edit button on the owner's login
+
+Only an owner can change an owner's login (name, email, password or roles). This stops anyone else taking over the owner's account. Ask the owner to make the change.
 
 ### A manager can't see their team or approve leave
 
