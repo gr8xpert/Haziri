@@ -77,7 +77,7 @@ Absent days lower the score the most (100 × their share), then half days, then 
 
 ### Deduction days here differ from Monthly totals
 
-**Analytics** works the number out with the company's general rules. **Monthly totals** and payroll use each employee's own rules (for example daily wage staff or a special shift), so small differences are possible. Use **Monthly totals** or **Payroll input** for salaries.
+**Analytics** uses the same rules per employee as **Monthly totals** and payroll (for example daily wage staff, or staff excused from late deductions), so the totals match for the same month. If they differ, someone changed attendance after you opened one of the pages, or the month in **Monthly totals** is locked and shows the numbers saved at lock time. Use **Monthly totals** or **Payroll input** for salaries.
 
 ### I can't see Analytics in the menu
 

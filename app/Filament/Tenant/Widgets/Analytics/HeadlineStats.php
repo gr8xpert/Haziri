@@ -5,17 +5,20 @@ declare(strict_types=1);
 namespace App\Filament\Tenant\Widgets\Analytics;
 
 use App\Models\AttendanceDay;
+use App\Models\Employee;
 use App\Models\SalaryStructure;
 use App\Services\Analytics\PunctualityScore;
 use App\Services\Attendance\Period\PayCycle;
 use App\Services\Attendance\Period\PeriodCalculator;
-use App\Services\Attendance\Period\PeriodRules;
-use App\Services\Settings\TenantSettings;
+use App\Services\Attendance\Period\PeriodRulesFactory;
 use Carbon\CarbonImmutable;
 use Filament\Widgets\StatsOverviewWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 
-/** Hero numbers: company punctuality score and last month's absenteeism cost (deduction days × per-day rate). */
+/**
+ * Hero numbers: company punctuality score and last month's absenteeism cost (deduction days × per-day rate).
+ * Deduction days use each employee's own rules, as Monthly totals and payroll do.
+ */
 class HeadlineStats extends StatsOverviewWidget
 {
     protected static bool $isDiscovered = false;
@@ -33,11 +36,17 @@ class HeadlineStats extends StatsOverviewWidget
         [$start, $end] = $cycle->range($previous->year, $previous->month);
         $periodDays = (int) $start->diffInDays($end) + 1;
         $days = AttendanceDay::query()->whereBetween('date', [$start->format('Y-m-d'), $end->format('Y-m-d')])->get()->groupBy('employee_id');
-        $settings = app(TenantSettings::class)->all();
+        $employees = Employee::query()->whereIn('id', $days->keys())->get()->keyBy('id');
+        $rules = app(PeriodRulesFactory::class);
+        $calculator = new PeriodCalculator;
         $cost = 0;
         $deduction = 0.0;
         foreach ($days as $employeeId => $list) {
-            $summary = (new PeriodCalculator)->summarise($list->map(fn ($d) => $d->toResult()), PeriodRules::fromSettings($settings, false, false));
+            $employee = $employees->get($employeeId);
+            if ($employee === null) {
+                continue;
+            }
+            $summary = $calculator->summarise($list->map(fn (AttendanceDay $d) => $d->toResult()), $rules->forEmployee($employee, $end->format('Y-m-d')));
             $deduction += $summary->deductionDays;
             $structure = SalaryStructure::effectiveFor($employeeId, $end->format('Y-m-d'));
             if ($structure) {

@@ -10,6 +10,7 @@ use App\Enums\PunchSource;
 use App\Filament\Tenant\Pages\Reports\LateRegister;
 use App\Filament\Tenant\Pages\Reports\MonthlyAttendance;
 use App\Filament\Tenant\Pages\Reports\ReportsHub;
+use App\Filament\Tenant\Widgets\Analytics\HeadlineStats;
 use App\Models\AttendanceDay;
 use App\Models\Department;
 use App\Models\Employee;
@@ -23,6 +24,7 @@ use App\Reports\LateRegisterReport;
 use App\Reports\MonthlySheetReport;
 use App\Reports\MonthSummaryReport;
 use App\Reports\ReportExporter;
+use Carbon\CarbonImmutable;
 use Filament\Facades\Filament;
 use Livewire\Livewire;
 
@@ -201,4 +203,14 @@ it('marks daily-wage staff in the month reports and explains it', function () {
 
     expect(collect($rows)->firstWhere('code', 'R1')['name'])->toBe('Rep · daily wage')
         ->and($report->summary(['month' => '2026-08'], $rows))->toHaveKey('Daily wage');
+});
+
+it('counts analytics deduction days with each employee\'s own rules, as Monthly totals does', function () {
+    $this->travelTo(CarbonImmutable::parse('2026-09-15 12:00'));
+    $this->e->forceFill(['late_deduction_exempt' => true])->saveQuietly(); // 4 absents; the 3 lates are excused
+
+    $stats = (new ReflectionMethod(HeadlineStats::class, 'getStats'))->invoke(new HeadlineStats);
+
+    expect($stats[1]->getLabel())->toBe('Deduction days, August')->and($stats[1]->getValue())->toBe('4')
+        ->and(collect((new MonthSummaryReport)->rows(['month' => '2026-08']))->firstWhere('code', 'R1')['deduction'])->toEqual(4);
 });
