@@ -8,6 +8,7 @@ use App\Enums\PunchSource;
 use App\Enums\PunchStatus;
 use App\Enums\RequestStatus;
 use App\Jobs\RecomputeAttendanceDay;
+use App\Jobs\RecomputeAttendanceRange;
 use App\Models\AttendanceDay;
 use App\Models\AttendancePeriod;
 use App\Models\Branch;
@@ -16,11 +17,14 @@ use App\Models\Holiday;
 use App\Models\LeaveRequest;
 use App\Models\LeaveType;
 use App\Models\Punch;
+use App\Models\Setting;
 use App\Models\Shift;
 use App\Models\ShiftAssignment;
 use App\Models\ShiftOverride;
 use App\Services\Attendance\AttendanceRecomputer;
+use App\Services\Settings\TenantSettings;
 use Carbon\CarbonImmutable;
+use Illuminate\Support\Facades\Queue;
 
 const TZ = 'Asia/Karachi';
 
@@ -192,3 +196,14 @@ it('runs through the queued job', function () {
     expect(AttendanceDay::where('employee_id', $e->id)->value('status'))->toBe(AttendanceStatus::Present);
 });
 
+it('reaches back at least Mark absent after (days) + 1 every night', function () {
+    $this->travelTo(CarbonImmutable::parse('2026-09-20 02:00', TZ));
+    employee();
+    Setting::updateOrCreate(['key' => 'auto_absent_after_days'], ['value' => 5]);
+    app(TenantSettings::class)->flush();
+    Queue::fake();
+
+    $this->artisan('hazri:attendance:recompute-recent')->assertSuccessful();
+
+    Queue::assertPushed(RecomputeAttendanceRange::class, fn (RecomputeAttendanceRange $job) => $job->from === '2026-09-14' && $job->to === '2026-09-20');
+});
