@@ -11,6 +11,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\Http;
 use RuntimeException;
+use Throwable;
 
 /**
  * POST one signed webhook (spec §13.3). Headers: X-Hazri-Event, X-Hazri-Delivery, X-Hazri-Timestamp,
@@ -26,6 +27,15 @@ final class DeliverWebhook implements ShouldQueue
     public array $backoff = [30, 120, 600, 1800];
 
     public function __construct(public readonly int $deliveryId) {}
+
+    /** Out of tries (also after a timeout or connection error): mark it failed and keep the reason for the Deliveries view. */
+    public function failed(?Throwable $e): void
+    {
+        $delivery = WebhookDelivery::query()->find($this->deliveryId);
+        if ($delivery !== null && $delivery->status !== 'delivered') {
+            $delivery->update(['status' => 'failed', 'response_body' => $delivery->response_body ?? mb_substr((string) $e?->getMessage(), 0, 1000)]);
+        }
+    }
 
     public function handle(): void
     {

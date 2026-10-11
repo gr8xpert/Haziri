@@ -20,10 +20,12 @@ use Filament\Forms\Components\Toggle;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
+use Filament\Support\Enums\Width;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Str;
 
 /** Outgoing webhooks (spec §13.3): HMAC-signed, retried, public URLs only. */
@@ -49,6 +51,8 @@ class WebhookEndpointResource extends Resource
 
     protected static string $managePermission = 'settings.manage';
 
+    private const RECENT_DELIVERIES = 20;
+
     public static function form(Schema $schema): Schema
     {
         return $schema->components([
@@ -66,13 +70,26 @@ class WebhookEndpointResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            ->modifyQueryUsing(fn (Builder $query) => $query->withCount([
+                'deliveries as delivered_count' => fn (Builder $q) => $q->where('status', 'delivered'),
+                'deliveries as failed_count' => fn (Builder $q) => $q->where('status', 'failed'),
+                'deliveries as pending_count' => fn (Builder $q) => $q->where('status', 'pending'),
+            ]))
             ->columns([
                 TextColumn::make('url')->limit(50),
                 TextColumn::make('events')->badge(),
                 IconColumn::make('is_active')->boolean(),
-                TextColumn::make('deliveries_count')->counts('deliveries')->label('Deliveries'),
+                TextColumn::make('delivered_count')->label('Deliveries')
+                    ->formatStateUsing(fn (WebhookEndpoint $record) => static::deliverySummary($record))
+                    ->color(fn (WebhookEndpoint $record) => $record->failed_count > 0 ? 'danger' : null),
             ])
             ->recordActions([
+                Action::make('deliveries')->label('Deliveries')->icon(Heroicon::OutlinedQueueList)->color('gray')
+                    ->modalHeading(fn (WebhookEndpoint $record) => __('Last :n deliveries to :url', ['n' => self::RECENT_DELIVERIES, 'url' => Str::limit($record->url, 60)]))
+                    ->modalContent(fn (WebhookEndpoint $record) => view('filament.tenant.webhook-deliveries', [
+                        'deliveries' => $record->deliveries()->latest('id')->limit(self::RECENT_DELIVERIES)->get(),
+                    ]))
+                    ->modalSubmitAction(false)->modalCancelActionLabel(__('Close'))->modalWidth(Width::FiveExtraLarge),
                 Action::make('ping')->label('Send test')->icon(Heroicon::OutlinedArrowPath)->color('gray')
                     ->action(function (WebhookEndpoint $record) {
                         $delivery = $record->deliveries()->create(['event' => 'ping', 'payload' => [
@@ -88,6 +105,16 @@ class WebhookEndpointResource extends Resource
                 EditAction::make(),
                 DeleteAction::make(),
             ]);
+    }
+
+    /** "12 delivered · 2 failed · 1 waiting": successes and failures counted apart. */
+    public static function deliverySummary(WebhookEndpoint $endpoint): string
+    {
+        return collect([
+            __(':n delivered', ['n' => (int) $endpoint->delivered_count]),
+            __(':n failed', ['n' => (int) $endpoint->failed_count]),
+            $endpoint->pending_count > 0 ? __(':n waiting', ['n' => (int) $endpoint->pending_count]) : null,
+        ])->filter()->implode(' · ');
     }
 
     public static function getPages(): array

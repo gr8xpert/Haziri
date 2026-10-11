@@ -59,7 +59,7 @@ Click **Revoke** on the row and confirm. Any program using it stops working at o
 
 ![The Webhooks list](api-and-webhooks-webhooks.jpg)
 
-The list shows the **Url**, the **Events** it receives, whether it **Is active**, and how many **Deliveries** were made.
+The list shows the **Url**, the **Events** it receives, whether it **Is active**, and **Deliveries**: how many messages arrived (*delivered*), how many gave up (*failed*, in red) and how many are still being retried (*waiting*).
 
 ### Add a webhook
 
@@ -79,7 +79,8 @@ The list shows the **Url**, the **Events** it receives, whether it **Is active**
 
 ### Test and secure it
 
-- **Send test** sends a small `ping` message to the address. You see *Test delivery queued*. Ask your IT person whether it arrived.
+- **Deliveries** opens the last 20 messages to that address: time, event, status (*Delivered*, *Failed* or *Waiting / retrying*), the HTTP code the other program answered, the number of tries, and the error or answer.
+- **Send test** sends a small `ping` message to the address. You see *Test delivery queued*. Click **Deliveries** a moment later to see whether it arrived.
 - **Show secret** (confirm first) shows the signing secret and how to check the signature. Your IT person uses it to make sure a message really came from {app}: every message carries the headers `X-Webhook-Timestamp` and `X-Webhook-Signature` (`sha256=` + HMAC-SHA256 of `{timestamp}.{raw body}` with the secret), plus `X-Webhook-Event` and `X-Webhook-Delivery`.
 - **Edit** to change the address or events; **Delete** to stop sending.
 
@@ -111,6 +112,6 @@ Webhook addresses must be reachable on the internet. Addresses such as `localhos
 
 The address does not exist on the internet, often a typing mistake. Check the address.
 
-### The Deliveries number goes up but the other program received nothing
+### Deliveries shows failed messages
 
-**Deliveries** counts every message {app} has prepared, including ones that failed. The panel does not show whether each one arrived. Check that the webhook **Is active** and the address is right, and ask your IT person to look at their program's log. Messages are retried for about 45 minutes before {app} gives up.
+Click **Deliveries** on the row. The **HTTP code** and **Error / response** say why: for example *404* (wrong address), *401* or *403* (the other program refused it), *500* (the other program had an error), or a connection error when the address could not be reached. Fix the address or ask your IT person to look at their program's log. Messages are retried for about 45 minutes before {app} gives up and marks them *Failed*.

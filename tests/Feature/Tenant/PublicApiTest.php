@@ -2,16 +2,21 @@
 
 declare(strict_types=1);
 
+use App\Filament\Tenant\Resources\Webhooks\Pages\ManageWebhookEndpoints;
+use App\Jobs\DeliverWebhook;
 use App\Models\ApiToken;
 use App\Models\AttendanceDay;
 use App\Models\Employee;
 use App\Models\Punch;
 use App\Models\Setting;
+use App\Models\User;
 use App\Models\WebhookDelivery;
 use App\Models\WebhookEndpoint;
 use App\Services\Settings\TenantSettings;
 use App\Services\Webhooks\Webhooks;
+use Filament\Facades\Filament;
 use Illuminate\Support\Facades\Http;
+use Livewire\Livewire;
 
 beforeEach(function () {
     Setting::updateOrCreate(['key' => 'feature.public_api'], ['value' => true]);
@@ -72,4 +77,20 @@ it('is closed when the plan has no API', function () {
     app(TenantSettings::class)->flush();
 
     $this->getJson("{$this->base}/employees", ['Authorization' => "Bearer {$this->read}"])->assertStatus(403);
+});
+
+it('counts webhook successes and failures apart and lists recent deliveries with their errors', function () {
+    $endpoint = WebhookEndpoint::create(['url' => 'https://203.0.113.20/hook', 'secret' => 's', 'events' => ['punch.created']]);
+    $endpoint->deliveries()->create(['event' => 'punch.created', 'payload' => ['id' => 'a'], 'status' => 'delivered', 'response_status' => 200, 'attempts' => 1]);
+    $endpoint->deliveries()->create(['event' => 'punch.created', 'payload' => ['id' => 'b'], 'status' => 'failed', 'response_status' => 404, 'response_body' => 'Not here', 'attempts' => 5]);
+    $timedOut = $endpoint->deliveries()->create(['event' => 'ping', 'payload' => ['id' => 'c'], 'status' => 'pending', 'attempts' => 5]);
+    (new DeliverWebhook($timedOut->id))->failed(new RuntimeException('Connection timed out'));
+    $this->actingAs(User::where('email', 'owner@pest.test')->first());
+    Filament::setCurrentPanel(Filament::getPanel('tenant'));
+
+    Livewire::test(ManageWebhookEndpoints::class)->assertSee('1 delivered · 2 failed');
+    $html = view('filament.tenant.webhook-deliveries', ['deliveries' => $endpoint->deliveries()->latest('id')->get()])->render();
+
+    expect($timedOut->fresh()->status)->toBe('failed')
+        ->and($html)->toContain('Not here')->toContain('404')->toContain('Connection timed out')->toContain('Delivered');
 });
