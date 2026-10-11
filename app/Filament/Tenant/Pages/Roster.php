@@ -176,14 +176,14 @@ class Roster extends Page
     {
         return [
             Action::make('newShift')->label(__('New shift'))->icon(Heroicon::OutlinedPlus)->color('gray')
-                ->modalDescription(__('A quick shift. Grace minutes, overtime and other rules can be set later under Time Rules → Shifts.'))
+                ->modalDescription(__('A quick shift. Grace minutes, overtime and other rules can be set later under Shifts & Holidays → Shifts.'))
                 ->schema(ShiftResource::quickCreateSchema())
                 ->action(function (array $data) {
                     $shift = ShiftResource::quickCreate($data);
                     Notification::make()->success()->title(__('Shift :name added', ['name' => $shift->displayName()]))->send();
                 }),
             Action::make('generateMonth')->label(__('Generate monthly roster'))->icon(Heroicon::OutlinedCalendarDays)
-                ->modalDescription(__('Puts the chosen employees on one shift for the whole month. Day cells below still win. Shifts are set up under Time Rules → Shifts, or add one with "+" next to Shift.'))
+                ->modalDescription(__('Puts the chosen employees on one shift for the whole month. Day cells below still win. Shifts are set up under Shifts & Holidays → Shifts, or add one with "+" next to Shift.'))
                 ->schema([
                     TextInput::make('month')->type('month')->required()->default(function () {
                         [$y, $m] = app(PayCycle::class)->periodFor(CarbonImmutable::now(tenant('timezone'))->format('Y-m-d'));
