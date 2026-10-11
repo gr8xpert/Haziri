@@ -141,7 +141,7 @@ it('lets HR change the amount of an advance or delete it until something is reco
         ->assertHasNoTableActionErrors();
     expect($advance->fresh()->only(['amount', 'remaining']))->toBe(['amount' => 12000, 'remaining' => 12000]);
 
-    $advance->update(['remaining' => 9000]); // one instalment recovered
+    $advance->refresh()->update(['remaining' => 9000]); // one instalment recovered
     Livewire::test(ManageAdvances::class)->assertTableActionHidden('delete', $advance);
 
     $advance->update(['remaining' => 12000]);

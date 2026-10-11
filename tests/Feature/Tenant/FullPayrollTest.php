@@ -279,7 +279,8 @@ it('refuses a bonus for a month whose payroll is final', function () {
 
     Livewire::test(ManagePayItems::class)
         ->callAction('create', data: ['employee_id' => $this->emp->id, 'pay_month' => '2026-08', 'type' => 'earning', 'label' => 'Late bonus', 'amount' => 5000, 'taxable' => true])
-        ->assertHasActionErrors(['pay_month'])
+        ->assertHasActionErrors(['pay_month']);
+    Livewire::test(ManagePayItems::class)
         ->assertTableActionHidden('edit', $item)
         ->assertTableActionHidden('delete', $item);
 
