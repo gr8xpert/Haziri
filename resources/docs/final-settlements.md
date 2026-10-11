@@ -60,8 +60,8 @@ If the employee already has a draft settlement, it is recalculated with the new 
 
 | Line | How it is worked out |
 |---|---|
-| **Salary** for the last pay month | (Basic + allowances) ÷ days in the pay month × payable days up to the last working day. Daily-wage staff: per-day rate × days worked. Left out if that month's payroll run already has a payslip for the employee. |
-| **Leave encashment** | For each leave type with **Paid out on leaving** switched on: days left in the balance × (basic + allowances) ÷ 30. See [Leave types](/help/leave-types). |
+| **Salary** for the last pay month | (Basic + allowances) ÷ the per-day divisor on [Payroll rules](/help/payroll-rules) × payable days up to the last working day, never more than a full month's salary. Daily-wage staff: per-day rate × days worked. Left out if that month's payroll run already has a payslip for the employee. |
+| **Leave encashment** | For each leave type with **Paid out on leaving** switched on: days left in the balance × the same per-day rate as the salary line ((basic + allowances) ÷ the per-day divisor on Payroll rules). See [Leave types](/help/leave-types). |
 | **Gratuity** | If gratuity is in your plan: (salary ÷ 30) × days' pay per year × years of service, as set on [Payroll rules](/help/payroll-rules). Nothing below the minimum years. |
 | **Provident fund balance** | If the employee is a provident fund member: their own share plus the company share built up so far. |
 | **Outstanding advances / loans** | Deducted: everything still owed on active [advances](/help/bonuses-and-advances). |

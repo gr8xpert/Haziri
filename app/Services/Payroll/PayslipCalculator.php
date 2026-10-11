@@ -54,8 +54,7 @@ final class PayslipCalculator
                 $earn((string) $a['name'], (int) $a['amount'], 'allowance', (bool) ($a['taxable'] ?? true));
             }
             $monthly = (int) $structure->basic + $structure->allowancesTotal();
-            $days = $divisor === 'calendar' ? $daysInMonth : max(1, (int) $divisor);
-            $perDay = (int) round($monthly / $days);
+            $perDay = self::perDayRate($monthly, $daysInMonth, $divisor);
             $deductionDays = (float) $summary['deductionDays'];
             if ($deductionDays > 0) {
                 $deduct(sprintf('Attendance deduction (%s days × Rs %s)', rtrim(rtrim(number_format($deductionDays, 2), '0'), '.'), number_format($perDay)),
@@ -79,5 +78,13 @@ final class PayslipCalculator
         $deductions = array_sum(array_map(fn ($l) => $l['type'] === 'deduction' ? $l['amount'] : 0, $lines));
 
         return ['lines' => $lines, 'gross' => $gross, 'deductions' => $deductions, 'net' => $gross - $deductions, 'per_day' => $perDay];
+    }
+
+    /** Monthly salary ÷ the Payroll rules divisor ("calendar" = days in the pay month). Used by payroll and final settlements. */
+    public static function perDayRate(int $monthly, int $daysInMonth, string | int $divisor): int
+    {
+        $days = $divisor === 'calendar' ? $daysInMonth : max(1, (int) $divisor);
+
+        return (int) round($monthly / $days);
     }
 }

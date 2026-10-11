@@ -183,17 +183,30 @@ it('settles a leaving employee in full and final', function () {
     $by = collect($settlement->lines)->keyBy('code');
 
     expect($by['salary']['amount'])->toBe(15 * 4839)            // 150,000 ÷ 31 days, 15 days worked
-        ->and($by['leave_encashment']['amount'])->toBe(50000)   // 10 days × 5,000
+        ->and($by['leave_encashment']['amount'])->toBe(10 * 4839) // same per-day rate: 10 days × 4,839
         ->and($by['gratuity']['amount'])->toBe(200000)
         ->and($by['pf']['amount'])->toBe(100000)
         ->and($by['advance']['amount'])->toBe(9000)
-        ->and($settlement->net)->toBe(72585 + 50000 + 200000 + 100000 - 9000 - 20000);
+        ->and($settlement->net)->toBe(72585 + 48390 + 200000 + 100000 - 9000 - 20000);
 
     $actions->finalise($settlement, $this->owner);
     expect($settlement->fresh()->status)->toBe('final')
         ->and(Advance::where('employee_id', $this->emp->id)->value('status'))->toBe('settled')
         ->and(PfLedgerEntry::balance($this->emp->id)['total'])->toBe(0)
         ->and(Storage::disk('local')->exists($settlement->fresh()->pdf_path))->toBeTrue();
+});
+
+it('values settlement salary and leave encashment with the per-day rule from Payroll rules', function () {
+    fullMonth($this->emp, 2026, 10, 15);
+    LeaveType::where('code', 'CL')->update(['encashable' => true]); // 10 days unused
+    Setting::updateOrCreate(['key' => 'payroll_day_divisor'], ['value' => '30']);
+    app(TenantSettings::class)->flush();
+    $this->emp->forceFill(['left_on' => '2026-10-15'])->saveQuietly();
+
+    $by = collect(app(FinalSettlementActions::class)->calculate($this->emp, '2026-10-15', $this->owner)->lines)->keyBy('code');
+
+    expect($by['salary']['amount'])->toBe(15 * 5000)              // 150,000 ÷ 30
+        ->and($by['leave_encashment']['amount'])->toBe(10 * 5000);
 });
 
 it('records a bonus for the chosen pay month from the screen', function () {

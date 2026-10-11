@@ -20,6 +20,7 @@ use App\Services\Attendance\Period\PeriodRulesFactory;
 use App\Services\Leave\LeaveBalanceService;
 use App\Services\Leave\LeaveYear;
 use App\Services\Payroll\GratuityCalculator;
+use App\Services\Payroll\PayslipCalculator;
 use App\Services\Settings\TenantSettings;
 use App\Support\Brand;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -51,7 +52,8 @@ final class FinalSettlementActions
         $structure = SalaryStructure::effectiveFor($employee->id, $lastDay);
         $this->assert($structure !== null, __('Add a salary structure for this employee first.'));
 
-        $lines = [...$this->lastSalary($employee, $structure, $lastDay), ...$this->leaveEncashment($employee, $structure, $lastDay)];
+        $perDay = $this->perDay($structure, $lastDay);
+        $lines = [...$this->lastSalary($employee, $structure, $lastDay, $perDay), ...$this->leaveEncashment($employee, $lastDay, $perDay)];
         if ($this->settings->featureEnabled('payroll_gratuity')) {
             $g = $this->gratuity->accrued($employee, $lastDay);
             if ($g['amount'] > 0) {
@@ -129,12 +131,23 @@ final class FinalSettlementActions
         return $path;
     }
 
+    /** Per-day rate of a monthly salary in the last pay month, by the Payroll rules divisor (same rule as payroll). */
+    private function perDay(SalaryStructure $structure, string $lastDay): int
+    {
+        [$from, $to] = $this->cycle->dates(...$this->cycle->periodFor($lastDay));
+        $periodDays = (int) CarbonImmutable::parse($from)->diffInDays(CarbonImmutable::parse($to)) + 1;
+
+        return PayslipCalculator::perDayRate((int) $structure->basic + $structure->allowancesTotal(), $periodDays,
+            $this->settings->get('payroll_day_divisor', 'calendar'));
+    }
+
     /**
-     * Salary for the last pay month up to the last working day, unless a payroll run already paid it.
+     * Salary for the last pay month up to the last working day, unless a payroll run already paid it. Never more
+     * than a full month's salary.
      *
      * @return list<array<string, mixed>>
      */
-    private function lastSalary(Employee $employee, SalaryStructure $structure, string $lastDay): array
+    private function lastSalary(Employee $employee, SalaryStructure $structure, string $lastDay, int $monthlyPerDay): array
     {
         [$y, $m] = $this->cycle->periodFor($lastDay);
         $paid = Payslip::query()->where('employee_id', $employee->id)->whereHas('run.period', fn ($q) => $q->where(['year' => $y, 'month' => $m]))->exists();
@@ -144,21 +157,21 @@ final class FinalSettlementActions
         [$from, $to] = $this->cycle->dates($y, $m);
         $attendance = AttendanceDay::query()->where('employee_id', $employee->id)->whereBetween('date', [$from, min($to, $lastDay)])->get();
         $summary = (new PeriodCalculator)->summarise($attendance->map(fn (AttendanceDay $d) => $d->toResult()), $this->rules->forEmployee($employee, $to));
-        $periodDays = (int) CarbonImmutable::parse($from)->diffInDays(CarbonImmutable::parse($to)) + 1;
-        $perDay = $employee->employment_type === EmploymentType::DailyWage
-            ? (int) $structure->per_day_rate
-            : (int) round(((int) $structure->basic + $structure->allowancesTotal()) / $periodDays);
+        $isDailyWage = $employee->employment_type === EmploymentType::DailyWage;
+        $perDay = $isDailyWage ? (int) $structure->per_day_rate : $monthlyPerDay;
         $days = $summary->payableDays;
         $amount = (int) round($perDay * $days);
+        if (! $isDailyWage) {
+            $amount = min($amount, (int) $structure->basic + $structure->allowancesTotal());
+        }
 
         return $amount > 0 ? [['label' => __('Salary :from – :to (:d days × Rs :r)', ['from' => $from, 'to' => min($to, $lastDay),
             'd' => rtrim(rtrim(number_format($days, 2), '0'), '.'), 'r' => number_format($perDay)]), 'type' => 'earning', 'amount' => $amount, 'code' => 'salary']] : [];
     }
 
     /** @return list<array<string, mixed>> */
-    private function leaveEncashment(Employee $employee, SalaryStructure $structure, string $lastDay): array
+    private function leaveEncashment(Employee $employee, string $lastDay, int $perDay): array
     {
-        $perDay = (int) round(((int) $structure->basic + $structure->allowancesTotal()) / 30);
         $lines = [];
         foreach (LeaveType::query()->where('encashable', true)->get() as $type) {
             $days = $this->balances->balance($employee, $type, $this->leaveYear->yearFor($lastDay))->remaining();

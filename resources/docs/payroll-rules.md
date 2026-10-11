@@ -29,7 +29,7 @@ Change the values and click **Save settings**. You see *"Payroll rules saved —
 
 | Field | What it does |
 |---|---|
-| **Per-day rate = monthly salary ÷** | *Days in the pay month* (default): 28 to 31, depending on the month. *30*: the same rate every month. *26 (working days)*: a higher per-day rate, so each absent day costs more. Used for attendance deductions of monthly staff. |
+| **Per-day rate = monthly salary ÷** | *Days in the pay month* (default): 28 to 31, depending on the month. *30*: the same rate every month. *26 (working days)*: a higher per-day rate, so each absent day costs more. Used for attendance deductions of monthly staff, and for the last salary and leave encashment in [final settlements](/help/final-settlements). |
 
 ### Income tax (Payroll Full)
 
