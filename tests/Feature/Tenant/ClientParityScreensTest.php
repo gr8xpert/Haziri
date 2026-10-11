@@ -178,6 +178,17 @@ it('replaces the day when Manual Entry changes a time that was already recorded'
         ->and(Punch::onlyTrashed()->where('employee_id', $e->id)->count())->toBe(2);
 });
 
+it('says how many Manual Entry rows were and were not saved, without a success message', function () {
+    $this->travelTo(CarbonImmutable::parse('2026-09-20 12:00', 'Asia/Karachi'));
+    $e = Employee::create(['code' => 'UI6', 'first_name' => 'Ui', 'joined_on' => '2025-01-01']);
+    AttendancePeriod::create(['year' => 2026, 'month' => 8, 'status' => 'locked']);
+
+    Livewire::test(DailySheet::class)->set('date', '2026-08-10')
+        ->set("rows.{$e->id}.in", '09:00')->call('save')
+        ->assertNotified('0 saved, 1 not saved')
+        ->assertNotNotified('0 employees updated');
+});
+
 it('stores no weekly offs as blank on a shift and a branch so the fallback applies', function () {
     Livewire::test(CreateShift::class)
         ->fillForm(['name' => 'Late', 'code' => 'LTE', 'start_time' => '11:00', 'end_time' => '20:00', 'weekly_off_days' => []])

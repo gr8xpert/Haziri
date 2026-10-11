@@ -155,9 +155,11 @@ class DailySheet extends Page
         }
 
         if ($errors) {
-            Notification::make()->danger()->title(__('Some rows were not saved'))->body(implode("\n", $errors))->persistent()->send();
+            Notification::make()->danger()->title(__(':n saved, :m not saved', ['n' => $saved, 'm' => count($errors)]))
+                ->body(implode("\n", $errors))->persistent()->send();
+        } else {
+            Notification::make()->success()->title(__(':n employees updated', ['n' => $saved]))->send();
         }
-        Notification::make()->success()->title(__(':n employees updated', ['n' => $saved]))->send();
         $this->loadRows();
     }
 

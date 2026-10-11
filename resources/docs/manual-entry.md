@@ -56,7 +56,7 @@ Each row:
 3. Type the **In** and **Out** times for each employee who came. Or click **Fill empty rows with shift times** and then clear the rows of people who were absent.
 4. Click **Save changes** at the bottom.
 
-A message tells you how many employees were updated. Their days are worked out again within a minute: lates, early outs and half days are judged on the times you entered, the same as machine punches. Every punch entered here gets the flag *Manual punch* and is listed in the **Manual entry audit** report (see [Other reports](/help/other-reports)).
+A message tells you how many employees were updated. If some rows could not be saved, the message says how many were and were not saved, and why. Their days are worked out again within a minute: lates, early outs and half days are judged on the times you entered, the same as machine punches. Every punch entered here gets the flag *Manual punch* and is listed in the **Manual entry audit** report (see [Other reports](/help/other-reports)).
 
 **Night shifts:** if the out time is earlier than the in time (for example in 22:00, out 06:00), the out punch is saved on the next morning.
 
@@ -81,9 +81,9 @@ Typing a time into an **empty** box only adds that punch; the other punches of t
 
 ## Common problems
 
-### "Some rows were not saved"
+### "2 saved, 1 not saved"
 
-The message lists each row by employee code with the reason. Fix those rows and save again. The other rows were saved.
+Some rows could not be saved. The message says how many were saved and lists each row that was not, by employee code with the reason. Fix those rows and save again. The other rows were saved.
 
 ### "Receptionists can only enter punches for today or yesterday."
 
@@ -101,6 +101,6 @@ The sheet shows only employees who joined on or before this date and are not mar
 
 Receptionists can fill empty boxes but not change a time that is there. Ask HR, or send a [correction](/help/corrections).
 
-### I saved, but nothing changed for that date
+### "That month is locked."
 
-The month may be locked. Days in a locked month do not change. See [Month lock](/help/month-lock).
+Days in a locked month are frozen, so no times can be saved for them. Ask the owner or an admin to unlock the month under [Month lock](/help/month-lock) first.
