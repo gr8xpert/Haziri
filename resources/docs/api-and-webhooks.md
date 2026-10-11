@@ -80,7 +80,7 @@ The list shows the **Url**, the **Events** it receives, whether it **Is active**
 ### Test and secure it
 
 - **Send test** sends a small `ping` message to the address. You see *Test delivery queued*. Ask your IT person whether it arrived.
-- **Show secret** (confirm first) shows the signing secret and how to check the signature. Your IT person uses it to make sure a message really came from {app}.
+- **Show secret** (confirm first) shows the signing secret and how to check the signature. Your IT person uses it to make sure a message really came from {app}: every message carries the headers `X-Webhook-Timestamp` and `X-Webhook-Signature` (`sha256=` + HMAC-SHA256 of `{timestamp}.{raw body}` with the secret), plus `X-Webhook-Event` and `X-Webhook-Delivery`.
 - **Edit** to change the address or events; **Delete** to stop sending.
 
 If the other program does not answer, {app} tries again up to 5 times, over about 45 minutes, then gives up on that message.

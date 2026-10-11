@@ -14,7 +14,7 @@ use RuntimeException;
 
 /**
  * POST one signed webhook (spec §13.3). Headers: X-Hazri-Event, X-Hazri-Delivery, X-Hazri-Timestamp,
- * X-Hazri-Signature (sha256=hex). SSRF guard on every attempt, no redirects, 10 s timeout, 5 tries with backoff.
+ * X-Hazri-Signature (sha256=hex), also sent as X-Webhook-*. SSRF guard on every attempt, no redirects, 10 s timeout, 5 tries with backoff.
  */
 final class DeliverWebhook implements ShouldQueue
 {
@@ -43,14 +43,18 @@ final class DeliverWebhook implements ShouldQueue
 
         $body = json_encode($delivery->payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         $ts = time();
-        $response = Http::timeout(10)->withoutRedirecting()->withHeaders([
-            'Content-Type' => 'application/json',
-            'User-Agent' => 'Hazri-Webhooks/1',
-            'X-Hazri-Event' => $delivery->event,
-            'X-Hazri-Delivery' => (string) $delivery->payload['id'],
-            'X-Hazri-Timestamp' => (string) $ts,
-            'X-Hazri-Signature' => 'sha256=' . Webhooks::signature((string) $delivery->endpoint->secret, $ts, $body),
-        ])->withBody($body, 'application/json')->post($delivery->endpoint->url);
+        $signed = [
+            'Event' => $delivery->event,
+            'Delivery' => (string) $delivery->payload['id'],
+            'Timestamp' => (string) $ts,
+            'Signature' => 'sha256=' . Webhooks::signature((string) $delivery->endpoint->secret, $ts, $body),
+        ];
+        $headers = ['Content-Type' => 'application/json', 'User-Agent' => 'Hazri-Webhooks/1'];
+        foreach ($signed as $name => $value) {
+            $headers["X-Hazri-{$name}"] = $value; // original names, kept for existing integrations
+            $headers["X-Webhook-{$name}"] = $value; // brand-neutral names shown to white-label clients
+        }
+        $response = Http::timeout(10)->withoutRedirecting()->withHeaders($headers)->withBody($body, 'application/json')->post($delivery->endpoint->url);
 
         $delivery->update([
             'response_status' => $response->status(),

@@ -84,7 +84,7 @@ class WebhookEndpointResource extends Resource
                 Action::make('secret')->label('Show secret')->icon(Heroicon::OutlinedShieldCheck)->color('gray')
                     ->requiresConfirmation()
                     ->action(fn (WebhookEndpoint $record) => Notification::make()->persistent()->title(__('Signing secret'))
-                        ->body($record->secret . "\n" . __('Verify X-Hazri-Signature = sha256=HMAC_SHA256(secret, "{X-Hazri-Timestamp}.{raw body}").'))->send()),
+                        ->body($record->secret . "\n" . __('Each request carries the signature header shown below. Check that X-Webhook-Signature = sha256=HMAC_SHA256(secret, "{X-Webhook-Timestamp}.{raw body}").'))->send()),
                 EditAction::make(),
                 DeleteAction::make(),
             ]);

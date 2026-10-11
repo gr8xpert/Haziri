@@ -43,7 +43,8 @@ it('accepts punches through the API and emits signed webhooks', function () {
     Http::assertSent(function ($req) {
         [$ts, $sig] = [$req->header('X-Hazri-Timestamp')[0], $req->header('X-Hazri-Signature')[0]];
 
-        return $sig === 'sha256=' . Webhooks::signature('whsec_test', (int) $ts, $req->body());
+        return $sig === 'sha256=' . Webhooks::signature('whsec_test', (int) $ts, $req->body())
+            && $req->header('X-Webhook-Signature')[0] === $sig && $req->header('X-Webhook-Timestamp')[0] === $ts;
     });
 });
 
