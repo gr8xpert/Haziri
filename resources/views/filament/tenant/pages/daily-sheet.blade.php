@@ -64,7 +64,9 @@
                             </x-filament::input.wrapper>
                         </td>
                         <td>
-                            @if (! $row['in'] && ! $row['out'])
+                            @if (! $row['in'] && ! $row['out'] && ($row['day_off'] ?? null))
+                                <x-filament::badge color="info">{{ $row['day_off'] }}</x-filament::badge>
+                            @elseif (! $row['in'] && ! $row['out'])
                                 <x-filament::badge color="gray">{{ __('Absent') }}</x-filament::badge>
                             @elseif ($row['in'] && ! $row['out'])
                                 <x-filament::badge color="warning">{{ __('No out') }}</x-filament::badge>

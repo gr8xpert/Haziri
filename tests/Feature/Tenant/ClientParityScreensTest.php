@@ -19,6 +19,7 @@ use App\Models\Branch;
 use App\Models\Employee;
 use App\Models\Grade;
 use App\Models\Holiday;
+use App\Models\LeaveRequest;
 use App\Models\LeaveType;
 use App\Models\Punch;
 use App\Models\Shift;
@@ -187,6 +188,23 @@ it('says how many Manual Entry rows were and were not saved, without a success m
         ->set("rows.{$e->id}.in", '09:00')->call('save')
         ->assertNotified('0 saved, 1 not saved')
         ->assertNotNotified('0 employees updated');
+});
+
+it('shows leave, holiday and off day instead of Absent for empty Manual Entry rows', function () {
+    $this->travelTo(CarbonImmutable::parse('2026-09-20 12:00', 'Asia/Karachi'));
+    Holiday::query()->delete();
+    $onLeave = Employee::create(['code' => 'UI7', 'first_name' => 'Ui', 'joined_on' => '2025-01-01']);
+    $absent = Employee::create(['code' => 'UI8', 'first_name' => 'Ui', 'joined_on' => '2025-01-01']);
+    $type = LeaveType::create(['name' => 'Casual leave', 'code' => 'CLU', 'annual_quota_days' => 10]);
+    LeaveRequest::create(['employee_id' => $onLeave->id, 'leave_type_id' => $type->id, 'from_date' => '2026-09-15', 'to_date' => '2026-09-15',
+        'days' => 1, 'status' => 'approved']);
+    Holiday::create(['date' => '2026-09-16', 'name' => 'Company day']);
+
+    Livewire::test(DailySheet::class)
+        ->set('date', '2026-09-15')->assertSet("rows.{$onLeave->id}.day_off", 'Leave')->assertSet("rows.{$absent->id}.day_off", null)
+        ->assertSee('Leave')->assertSee('Absent')
+        ->set('date', '2026-09-16')->assertSet("rows.{$absent->id}.day_off", 'Holiday')
+        ->set('date', '2026-09-13')->assertSet("rows.{$absent->id}.day_off", 'Off day');
 });
 
 it('stores no weekly offs as blank on a shift and a branch so the fallback applies', function () {

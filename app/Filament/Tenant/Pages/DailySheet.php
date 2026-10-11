@@ -6,10 +6,14 @@ namespace App\Filament\Tenant\Pages;
 
 use App\Actions\Punches\CreateManualPunches;
 use App\Enums\EmployeeStatus;
+use App\Enums\LeaveDayPart;
 use App\Enums\PunchStatus;
+use App\Enums\RequestStatus;
 use App\Filament\Tenant\NavigationGroup;
 use App\Models\Branch;
 use App\Models\Employee;
+use App\Models\Holiday;
+use App\Models\LeaveRequest;
 use App\Models\Punch;
 use App\Services\Attendance\ShiftResolver;
 use Carbon\CarbonImmutable;
@@ -43,7 +47,7 @@ class DailySheet extends Page
 
     public string $reason = 'Manual entry';
 
-    /** @var array<int, array{name: string, code: string, in: ?string, out: ?string, had_in: ?string, had_out: ?string, shift_start: ?string, shift_end: ?string}> */
+    /** @var array<int, array{name: string, code: string, in: ?string, out: ?string, had_in: ?string, had_out: ?string, shift_start: ?string, shift_end: ?string, day_off: ?string}> */
     public array $rows = [];
 
     public static function canAccess(): bool
@@ -92,7 +96,18 @@ class DailySheet extends Page
             ->get()
             ->groupBy('employee_id');
 
+        $onLeave = LeaveRequest::query()
+            ->whereIn('employee_id', $employees->pluck('id'))
+            ->where('status', RequestStatus::Approved)
+            ->whereNull('short_leave_from')
+            ->where(fn ($q) => $q->whereNull('day_part')->orWhere('day_part', LeaveDayPart::Full))
+            ->where(fn ($q) => $q->where(fn ($r) => $r->where('from_date', '<=', $this->date)->where('to_date', '>=', $this->date))
+                ->orWhereJsonContains('sandwich_dates', $this->date))
+            ->pluck('employee_id')
+            ->flip();
+
         $resolver = app(ShiftResolver::class);
+        $weekday = (int) CarbonImmutable::parse($this->date, $tz)->dayOfWeek;
         $this->rows = [];
         foreach ($employees as $e) {
             $own = $punches->get($e->id, collect())->reject(fn (Punch $p) => ($p->meta['override_for'] ?? $this->date) !== $this->date);
@@ -110,6 +125,12 @@ class DailySheet extends Page
                 'had_out' => $last,
                 'shift_start' => $shift?->startTime,
                 'shift_end' => $shift?->endTime,
+                'day_off' => match (true) {
+                    isset($onLeave[$e->id]) => __('Leave'),
+                    Holiday::query()->appliesTo($e, $this->date)->exists() => __('Holiday'),
+                    in_array($weekday, $shift?->weeklyOffDays ?? [0], true) => __('Off day'),
+                    default => null,
+                },
             ];
         }
     }

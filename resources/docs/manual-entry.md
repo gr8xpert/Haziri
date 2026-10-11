@@ -45,7 +45,7 @@ Each row:
 | **Shift** | The employee's shift times for this date, or *No shift*. |
 | **In** | The first punch of the day if there is one. Type or change the in time here. |
 | **Out** | The last punch if there are two or more. Type or change the out time here. |
-| **Status** | A quick check of what you typed: *Absent* (both empty), *No out* (in only) or *Present*. It does not know about leave, holidays or off days; the real status is worked out after saving. |
+| **Status** | A quick check of what you typed: *Present*, *No out* (in only) or, when both boxes are empty, *Leave* (approved full-day leave), *Holiday*, *Off day* (weekly off) or *Absent*. The real status is worked out after saving. |
 | **Present** button | Fills this row with the shift start and end. |
 | **Reset** (arrow icon) | Puts the row back to the punches that were recorded. |
 
