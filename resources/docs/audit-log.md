@@ -26,7 +26,7 @@ Each row is one change, newest first:
 |---|---|
 | **Created at** | Date and time of the change. |
 | **By** | The login that made the change. *System* = {app} did it by itself (for example a scheduled job or a machine). |
-| **Event** | *Created*, *Updated* or *Deleted*, or a special event such as *Unlocked*, *Face enrolled* or *Face deleted*. |
+| **Event** | *Created*, *Updated* or *Deleted*, or a special event such as *Unlocked*, *Roles changed*, *Face enrolled* or *Face deleted*. |
 | **Record** | The kind of record, for example *Employee*, *LeaveRequest*, *Setting* or *Punch*. |
 | **#** | The record's number. |
 | **Description** | A short description of the change. |
@@ -38,7 +38,7 @@ Click the **Created at** column header to change the sort order.
 1. Go to **System → Audit log**.
 2. Click the **filters** button.
 3. In **Record type**, pick the kind of record, for example *Employee*.
-4. In **Event**, pick *Created*, *Updated* or *Deleted* if you want only one kind.
+4. In **Event**, pick one kind if you want, for example *Updated*, *Unlocked* or *Roles changed*. The list offers every event already in your log.
 5. Click **View** on a row to see the details.
 
 The **View** window shows **Created at**, **By**, **Event**, **Record**, and two lists:
@@ -52,7 +52,7 @@ Only the fields that changed are listed. For example, if HR changed an employee'
 
 Changes to, among others:
 
-- employees, branches, departments, users (name, email, phone, linked employee, active)
+- employees, branches, departments, users (name, email, phone, linked employee, active, and their roles as *Roles changed*)
 - punches entered by hand and changes to any punch, corrections, manual entries
 - leave types, leave requests, leave balances and adjustments
 - shifts, shift assignments, timing overrides, holidays, exemptions
@@ -84,11 +84,11 @@ The change was made by {app} itself, not by a person: for example a scheduled ta
 
 ### I changed someone's role but I can't find it
 
-Role changes on **Users & roles** are not recorded in the audit log. Changes to a login's name, email, phone, linked employee and *Is active* are.
+Pick *Roles changed* in the **Event** filter. **View** shows the old roles under *Before* and the new ones under *After*. Role changes made before this was added are not in the log.
 
 ### I can't filter on Unlocked or Face enrolled
 
-The **Event** filter offers only *Created*, *Updated* and *Deleted*. To find an unlock, filter **Record type** on the month record (*AttendancePeriod*) and look at the **Event** column.
+The **Event** filter lists only events that have happened at least once in your company. If nobody has unlocked a month yet, *Unlocked* is not offered.
 
 ### The Before or After list is empty
 

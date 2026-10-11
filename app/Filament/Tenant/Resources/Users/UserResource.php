@@ -23,6 +23,7 @@ use Filament\Tables\Table;
 use Illuminate\Auth\Access\Response;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Hash;
+use Spatie\Permission\Models\Role as SpatieRole;
 use UnitEnum;
 
 /** Tenant logins and their roles (spec §8). Only the owner can grant the owner role or change an owner's login. */
@@ -71,7 +72,8 @@ class UserResource extends Resource
                 ->relationship('roles', 'name', modifyQueryUsing: fn ($query) => auth()->user()->hasRole(Role::Owner->value)
                     ? $query
                     : $query->where('name', '!=', Role::Owner->value))
-                ->getOptionLabelFromRecordUsing(fn ($record) => Role::tryFrom($record->name)?->getLabel() ?? $record->name),
+                ->getOptionLabelFromRecordUsing(fn ($record) => Role::tryFrom($record->name)?->getLabel() ?? $record->name)
+                ->saveRelationshipsUsing(fn (User $record, ?array $state) => static::syncRoles($record, $state ?? [])),
             Select::make('branches')->multiple()->preload()->relationship('branches', 'name')
                 ->label('Limit to branches')->placeholder('All branches')
                 ->helperText('A shop/branch manager sees only these branches. Leave empty for all branches. Owners and admins always see everything.')
@@ -81,6 +83,30 @@ class UserResource extends Resource
             Select::make('locale')->options(['en' => 'English', 'ur' => 'اردو'])->default('en'),
             Toggle::make('is_active')->default(true),
         ]);
+    }
+
+    /**
+     * Saves the picked roles, keeps an Owner role the editor may not take away, and writes any change to the audit log.
+     *
+     * @param  array<int|string>  $roleIds
+     */
+    public static function syncRoles(User $user, array $roleIds): void
+    {
+        $names = fn (): array => $user->roles()->pluck('name')->sort()->values()->all();
+        $before = $names();
+        $ids = array_map('intval', $roleIds);
+        if (in_array(Role::Owner->value, $before, true) && ! auth()->user()?->hasRole(Role::Owner->value)) {
+            $ids[] = (int) SpatieRole::findByName(Role::Owner->value)->getKey();
+        }
+        $user->syncRoles(array_values(array_unique($ids)));
+        $after = $names();
+        if ($before === $after) {
+            return;
+        }
+        $label = fn (array $roles): string => collect($roles)->map(fn (string $r) => Role::tryFrom($r)?->getLabel() ?? $r)->implode(', ');
+        activity()->causedBy(auth()->user())->performedOn($user)->event('roles_changed')
+            ->withChanges(['old' => ['roles' => $label($before)], 'attributes' => ['roles' => $label($after)]])
+            ->log("Roles changed for {$user->email}");
     }
 
     public static function table(Table $table): Table

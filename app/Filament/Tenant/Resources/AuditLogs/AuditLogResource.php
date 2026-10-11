@@ -66,7 +66,9 @@ class AuditLogResource extends Resource
                 SelectFilter::make('subject_type')->label('Record type')
                     ->options(fn () => Activity::query()->distinct()->pluck('subject_type')->filter()
                         ->mapWithKeys(fn ($t) => [$t => class_basename($t)])->all()),
-                SelectFilter::make('event')->options(['created' => 'Created', 'updated' => 'Updated', 'deleted' => 'Deleted']),
+                SelectFilter::make('event')
+                    ->options(fn () => Activity::query()->distinct()->orderBy('event')->pluck('event')->filter()
+                        ->mapWithKeys(fn (string $e) => [$e => ucfirst(str_replace('_', ' ', $e))])->all()),
             ])
             ->recordActions([ViewAction::make()]);
     }
