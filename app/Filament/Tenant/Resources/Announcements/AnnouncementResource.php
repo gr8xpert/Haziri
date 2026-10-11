@@ -38,7 +38,7 @@ class AnnouncementResource extends Resource
 
     protected static string | \UnitEnum | null $navigationGroup = NavigationGroup::People;
 
-    protected static ?int $navigationSort = 30;
+    protected static ?int $navigationSort = 40;
 
     protected static string $viewPermission = 'announcements.manage';
 
