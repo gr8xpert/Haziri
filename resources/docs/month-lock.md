@@ -45,6 +45,10 @@ screens: month-lock=/admin/periods
 
 Click a month, or **View**, to open the **Month summary** report: every employee's numbers for that month, with a link to each person's day-by-day sheet.
 
+## Recompute an open month
+
+**Recompute this month** on an Open or In review month works out every day of that month again for everyone (up to today), with the current rules. Use it after you change a rule in Company settings and want an earlier month that is not locked yet to follow it. It runs in the background and takes a minute or two. Locked months have no such button. Owner, admin and HR can use it.
+
 ## How to close a month
 
 1. Click **Add month** at the top right. Pick the **Month** (last month is chosen at first) and submit. Skip this if the month is already in the list.
@@ -62,7 +66,7 @@ The month must be over before you can lock it. After locking:
 - The owner is told that the month was locked.
 - If your plan includes the AI assistant, a short written **Summary** of the month in English and Urdu appears. Click **Summary** to read or edit it.
 
-> **Tip:** Rule changes in Company settings never reach a locked month. Make rule changes before you lock, and use **Recompute this month** in Company settings while the month is still current.
+> **Tip:** Rule changes in Company settings never reach a locked month. Make rule changes before you lock, then click **Recompute this month** on the month here (or in Company settings for the current month).
 
 ## Unlock a month
 

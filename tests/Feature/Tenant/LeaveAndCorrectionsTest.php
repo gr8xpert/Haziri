@@ -20,6 +20,8 @@ use App\Filament\Tenant\Pages\LeaveCalendar;
 use App\Filament\Tenant\Resources\Corrections\Pages\ListCorrections;
 use App\Filament\Tenant\Resources\LeaveBalances\Pages\ListLeaveBalances;
 use App\Filament\Tenant\Resources\LeaveRequests\Pages\ListLeaveRequests;
+use App\Filament\Tenant\Resources\Periods\Pages\ListPeriods;
+use App\Jobs\RecomputeAttendanceRange;
 use App\Models\AttendanceDay;
 use App\Models\AttendancePeriod;
 use App\Models\Branch;
@@ -40,6 +42,7 @@ use App\Services\Leave\LeaveYear;
 use Carbon\CarbonImmutable;
 use Filament\Actions\Testing\TestAction;
 use Filament\Facades\Filament;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Validation\ValidationException;
 use Livewire\Livewire;
 
@@ -296,6 +299,22 @@ it('recomputes approved changes for days older than two months in an open month'
 
     Holiday::create(['date' => '2026-06-10', 'name' => 'Late-added holiday']);
     expect(dayStatus($this->emp, '2026-06-10'))->toBe(AttendanceStatus::Holiday);
+});
+
+it('recomputes any open month from the Months page, but not a locked one', function () {
+    Filament::setCurrentPanel(Filament::getPanel('tenant'));
+    $this->travelTo(CarbonImmutable::parse('2026-10-12 12:00', 'Asia/Karachi'));
+    $open = AttendancePeriod::create(['year' => 2026, 'month' => 7, 'status' => 'open']);
+    $locked = AttendancePeriod::create(['year' => 2026, 'month' => 6, 'status' => 'locked']);
+    $this->actingAs($this->hr);
+    Queue::fake();
+
+    Livewire::test(ListPeriods::class)
+        ->assertTableActionHidden('recompute', $locked)
+        ->callTableAction('recompute', $open)->assertNotified('Recompute queued');
+
+    Queue::assertPushed(RecomputeAttendanceRange::class, fn (RecomputeAttendanceRange $job) => $job->from === '2026-07-01' && $job->to === '2026-07-31'
+        && in_array($this->emp->id, $job->employeeIds, true));
 });
 
 it('stops managers from requesting for people outside their team', function () {

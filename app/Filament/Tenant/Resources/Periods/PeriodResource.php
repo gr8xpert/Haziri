@@ -9,8 +9,11 @@ use App\Enums\PeriodStatus;
 use App\Filament\Concerns\AuthorizesByPermission;
 use App\Filament\Tenant\NavigationGroup;
 use App\Filament\Tenant\Pages\Reports\MonthSummary;
+use App\Jobs\RecomputeAttendanceRange;
 use App\Models\AttendancePeriod;
+use App\Models\Employee;
 use App\Models\PayrollRun;
+use Carbon\CarbonImmutable;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Checkbox;
 use Filament\Forms\Components\Textarea;
@@ -66,6 +69,11 @@ class PeriodResource extends Resource
                     fn (PeriodActions $a, AttendancePeriod $p) => $a->lock($p, auth()->user()))
                     ->visible(fn (AttendancePeriod $r) => $r->status !== PeriodStatus::Locked)
                     ->requiresConfirmation()->modalDescription(__('Locked months cannot be edited or recomputed. The summary is snapshotted.')),
+                Action::make('recompute')->label(__('Recompute this month'))->icon(Heroicon::OutlinedArrowPath)->color('gray')
+                    ->visible(fn (AttendancePeriod $r) => $r->status !== PeriodStatus::Locked && auth()->user()->can('attendance.recompute'))
+                    ->requiresConfirmation()
+                    ->modalDescription(__('Works out every day of this month again for everyone, with the current rules. It runs in the background.'))
+                    ->action(fn (AttendancePeriod $record) => self::recompute($record)),
                 Action::make('narrative')->label('Summary')->icon(Heroicon::OutlinedDocumentChartBar)->color('gray')
                     ->visible(fn (AttendancePeriod $r) => $r->narrative !== null)
                     ->fillForm(fn (AttendancePeriod $r) => ['en' => $r->narrative['en'] ?? '', 'ur' => $r->narrative['ur'] ?? ''])
@@ -88,6 +96,20 @@ class PeriodResource extends Resource
                     ])
                     ->action(fn (AttendancePeriod $record, array $data, PeriodActions $a) => self::run(fn () => $a->unlock($record, auth()->user(), $data['reason']))),
             ]);
+    }
+
+    /** An open month (not only the current one) is worked out again up to today, e.g. after a rule change. */
+    private static function recompute(AttendancePeriod $period): void
+    {
+        [$from, $to] = $period->dates();
+        $to = min($to, CarbonImmutable::now(tenant('timezone') ?? config('hazri.default_timezone'))->format('Y-m-d'));
+        if ($from > $to) {
+            Notification::make()->warning()->title(__('This month has not started yet.'))->send();
+
+            return;
+        }
+        RecomputeAttendanceRange::dispatchChunked(Employee::pluck('id')->all(), $from, $to);
+        Notification::make()->success()->title(__('Recompute queued'))->send();
     }
 
     private static function hasFinalPayroll(AttendancePeriod $period): bool
