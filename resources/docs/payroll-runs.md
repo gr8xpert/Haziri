@@ -76,7 +76,7 @@ What happens:
 
 ## Download payslips
 
-On a final run, open the row menu (⋮) → **Payslip PDFs**. Pick one **Employee** to get their payslip, or **Everyone (ZIP)** to get all payslips of the month in one ZIP file.
+On a final run, open the row menu (⋮) → **Payslip PDFs**. Pick one **Employee** to get their payslip, or **Everyone (ZIP)** to get all payslips of the month in one ZIP file. Staff can also download their own payslip in the [staff app](/help/staff-app), on the **Month** tab.
 
 ## Pay the bank
 

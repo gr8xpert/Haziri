@@ -13,7 +13,7 @@ screens: staff-app-home=/me
 - The app is a web page. Open the link your company gives you (it ends in **/me**) and add it to your phone's home screen. You do not need the Play Store.
 - Sign in with your **mobile number** (you get a 6-digit code) or with your **email and password**.
 - **Today**: punch in and out (if your company allows it), see today's times, notices and your QR badge for the kiosk.
-- **Month**: your attendance for each day, and your monthly report as a PDF.
+- **Month**: your attendance for each day, your monthly report as a PDF and, once that month's payroll is final, your payslip.
 - **Leave**: see how many leave days you have left and ask for leave.
 - **Correction**: tell HR if you forgot to punch, worked outside, or worked from home.
 
@@ -99,6 +99,7 @@ A **½** after a code means half a day. Tap **What do the codes mean?** in the a
 - If a day is wrong, tap it and then **Request a correction for this day**.
 - Use the arrows to go to the **Previous month** or **Next month**.
 - Tap **Download my monthly report (PDF)** to get the same report HR prints.
+- When HR has finalised the month's payroll, **Download my payslip (PDF)** appears too (only if your company runs payroll in {app}).
 
 ## Leave
 

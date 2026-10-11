@@ -68,6 +68,7 @@ Route::middleware([
             Route::post('shift-swaps/{swap}/answer', [MeController::class, 'shiftSwapAnswer'])->name('shift-swaps.answer');
             Route::get('qr.svg', [MeController::class, 'qr'])->name('qr');
             Route::get('report.pdf', [MeController::class, 'monthlyReport'])->middleware('throttle:20,1')->name('report');
+            Route::get('payslip.pdf', [MeController::class, 'payslip'])->middleware('throttle:20,1')->name('payslip');
         });
     });
 

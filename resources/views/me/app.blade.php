@@ -141,6 +141,10 @@
                class="mb-4 flex items-center justify-center gap-2 rounded-xl bg-zinc-100 py-2.5 text-sm font-medium text-zinc-800 transition active:scale-[0.99] dark:bg-white/10 dark:text-zinc-100">
                 @svg('heroicon-m-document-arrow-down', 'size-4.5') {{ __('Download my monthly report (PDF)') }}
             </a>
+            <a :href="`/me/payslip.pdf?month=${month}`" x-show="data.payslip" x-cloak
+               class="mb-4 flex items-center justify-center gap-2 rounded-xl bg-zinc-100 py-2.5 text-sm font-medium text-zinc-800 transition active:scale-[0.99] dark:bg-white/10 dark:text-zinc-100">
+                @svg('heroicon-m-banknotes', 'size-4.5') {{ __('Download my payslip (PDF)') }}
+            </a>
 
             <dl class="mb-4 grid grid-cols-3 gap-2 text-center">
                 <div class="rounded-xl bg-emerald-50 py-2 dark:bg-emerald-500/10"><dt class="text-xs text-emerald-700 dark:text-emerald-400">{{ __('Present') }}</dt><dd class="text-lg font-semibold tabular-nums text-emerald-800 dark:text-emerald-300" x-text="monthCount('ok')">0</dd></div>

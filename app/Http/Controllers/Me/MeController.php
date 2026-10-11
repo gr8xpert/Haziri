@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Me;
 
 use App\Actions\Corrections\SubmitCorrection;
 use App\Actions\Leave\SubmitLeaveRequest;
+use App\Actions\Payroll\PayrollActions;
 use App\Actions\Rosters\ApproveShiftSwap;
 use App\Actions\Rosters\RequestShiftSwap;
 use App\Actions\SelfService\SelfPunch;
@@ -23,6 +24,7 @@ use App\Models\Holiday;
 use App\Models\HolidayOptIn;
 use App\Models\LeaveRequest;
 use App\Models\LeaveType;
+use App\Models\Payslip;
 use App\Models\ShiftSwapRequest;
 use App\Reports\StatusCodes;
 use App\Services\Leave\LeaveBalanceService;
@@ -95,6 +97,7 @@ final class MeController
             'next_direction' => SelfPunch::nextDirection($employee->id)->value,
             'month' => $month,
             'calendar' => $calendar,
+            'payslip' => $this->finalPayslip($employee, $month) !== null,
             'balances' => $leaveBalances,
             'requests' => LeaveRequest::query()->with('leaveType')->where('employee_id', $employee->id)->latest()->limit(10)->get()
                 ->map(fn (LeaveRequest $l) => ['type' => $l->leaveType?->code, 'from' => $l->from_date->format('Y-m-d'),
@@ -166,6 +169,30 @@ final class MeController
         $bytes = $export->combinedPdf(collect([$employee]), $year, $m, $employee->fullName());
 
         return response()->streamDownload(fn () => print ($bytes), "attendance-{$employee->code}-{$month}.pdf", ['Content-Type' => 'application/pdf']);
+    }
+
+    /** The employee's own payslip PDF for a pay month whose payroll is final. */
+    public function payslip(Request $request, PayrollActions $payroll): StreamedResponse
+    {
+        $employee = $request->user()->employee;
+        $month = (string) $request->query('month');
+        $slip = $this->finalPayslip($employee, $month);
+        abort_if($slip === null, 404);
+
+        return response()->streamDownload(fn () => print ($payroll->payslipPdf($slip)), "payslip-{$employee->code}-{$month}.pdf", ['Content-Type' => 'application/pdf']);
+    }
+
+    /** Payslip of a final payroll run for the pay month "Y-m" (only when the company has payroll). */
+    private function finalPayslip(Employee $employee, string $month): ?Payslip
+    {
+        if (! preg_match('/^\d{4}-\d{2}$/', $month) || ! app(TenantSettings::class)->featureEnabled('payroll_lite')) {
+            return null;
+        }
+        [$year, $m] = array_map('intval', explode('-', $month));
+
+        return Payslip::query()->where('employee_id', $employee->id)
+            ->whereHas('run', fn (Builder $q) => $q->where('status', 'final')->whereHas('period', fn (Builder $p) => $p->where(['year' => $year, 'month' => $m])))
+            ->first();
     }
 
     /** Take or give back an optional holiday (until the day itself). */

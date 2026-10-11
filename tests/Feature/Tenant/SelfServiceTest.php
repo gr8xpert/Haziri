@@ -3,6 +3,8 @@
 declare(strict_types=1);
 
 use App\Actions\Announcements\BroadcastAnnouncement;
+use App\Actions\Payroll\PayrollActions;
+use App\Actions\Periods\PeriodActions;
 use App\Actions\Rosters\ApproveShiftSwap;
 use App\Actions\SelfService\DecidePendingPunch;
 use App\Enums\AttendanceStatus;
@@ -19,6 +21,7 @@ use App\Models\Holiday;
 use App\Models\Kiosk;
 use App\Models\NotificationLog;
 use App\Models\Punch;
+use App\Models\SalaryStructure;
 use App\Models\Setting;
 use App\Models\Shift;
 use App\Models\ShiftAssignment;
@@ -32,6 +35,7 @@ use App\Services\Settings\TenantSettings;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Storage;
 
 beforeEach(function () {
     // Office hours, so punches fall inside the day shift's punch window whatever time CI runs.
@@ -284,4 +288,29 @@ it('lets an employee download their own monthly report, not future months', func
     expect($pdf->headers->get('content-type'))->toBe('application/pdf')
         ->and($pdf->headers->get('content-disposition'))->toContain('attendance-SS1-2026-09.pdf');
     $this->get("{$this->base}/me/report.pdf?month=2026-11")->assertNotFound();
+});
+
+it('lets an employee download their own payslip once the payroll is final', function () {
+    Storage::fake('local');
+    Setting::updateOrCreate(['key' => 'feature.payroll_lite'], ['value' => true]);
+    app(TenantSettings::class)->flush();
+    SalaryStructure::create(['employee_id' => $this->emp->id, 'effective_from' => '2025-01-01', 'basic' => 31000]);
+    foreach (range(1, 31) as $d) {
+        AttendanceDay::create(['employee_id' => $this->emp->id, 'date' => sprintf('2026-08-%02d', $d), 'status' => AttendanceStatus::Present, 'flags' => []]);
+    }
+    $owner = User::where('email', 'owner@pest.test')->firstOrFail();
+    $period = app(PeriodActions::class)->period(2026, 8);
+    app(PeriodActions::class)->lock($period, $owner);
+    $payroll = app(PayrollActions::class);
+    $run = $payroll->generate($period->fresh(), $owner);
+    $this->actingAs($this->user);
+
+    $this->getJson("{$this->base}/me/attendance?month=2026-08")->assertJsonPath('payslip', false); // draft: not yet
+    $this->get("{$this->base}/me/payslip.pdf?month=2026-08")->assertNotFound();
+
+    $payroll->finalise($run->fresh(), $owner);
+    $this->getJson("{$this->base}/me/attendance?month=2026-08")->assertJsonPath('payslip', true);
+    $pdf = $this->get("{$this->base}/me/payslip.pdf?month=2026-08")->assertOk();
+    expect($pdf->headers->get('content-disposition'))->toContain('payslip-SS1-2026-08.pdf');
+    $this->get("{$this->base}/me/payslip.pdf?month=2026-07")->assertNotFound();
 });
