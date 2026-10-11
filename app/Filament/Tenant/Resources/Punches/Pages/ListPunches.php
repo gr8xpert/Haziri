@@ -19,6 +19,7 @@ use Filament\Forms\Components\Toggle;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ListRecords;
 use Filament\Support\Icons\Heroicon;
+use Illuminate\Validation\ValidationException;
 
 class ListPunches extends ListRecords
 {
@@ -92,16 +93,21 @@ class ListPunches extends ListRecords
                     TextInput::make('reason')->required()->maxLength(255)->placeholder('Machine down / forgot to punch'),
                     TextInput::make('note')->maxLength(255),
                 ])
-                ->action(function (array $data, CreateManualPunches $create) {
-                    $create(
-                        Employee::findOrFail($data['employee_id']),
-                        substr((string) $data['date'], 0, 10),
-                        $data['in_time'] ? substr((string) $data['in_time'], 0, 5) : null,
-                        $data['out_time'] ? substr((string) $data['out_time'], 0, 5) : null,
-                        (string) $data['reason'],
-                        auth()->user(),
-                        $data['note'] ?? null,
-                    );
+                ->action(function (array $data, CreateManualPunches $create, Action $action) {
+                    try {
+                        $create(
+                            Employee::findOrFail($data['employee_id']),
+                            substr((string) $data['date'], 0, 10),
+                            $data['in_time'] ? substr((string) $data['in_time'], 0, 5) : null,
+                            $data['out_time'] ? substr((string) $data['out_time'], 0, 5) : null,
+                            (string) $data['reason'],
+                            auth()->user(),
+                            $data['note'] ?? null,
+                        );
+                    } catch (ValidationException $e) {
+                        Notification::make()->danger()->title(implode(' ', $e->validator->errors()->all()))->send();
+                        $action->halt();
+                    }
                     Notification::make()->success()->title(__('Punches saved'))->send();
                 }),
         ];

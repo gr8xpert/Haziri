@@ -60,7 +60,7 @@ Use this when the machine was down or the employee forgot to punch.
 
 1. Click **Add one punch** at the top right.
 2. Pick the **Employee** (search by name or code).
-3. Pick the **Date**. Future dates are not allowed unless your company switched on *Allow future manual punch* in Company settings.
+3. Pick the **Date**. Future dates are not allowed unless your company switched on *Allow future manual punch* in Company settings. Dates in a locked month are refused.
 4. Fill **In time**, **Out time**, or both.
 5. Write a **Reason**, for example *Machine down* or *Forgot to punch*. You can add a **Note** too.
 6. Click **Submit**.
@@ -94,7 +94,7 @@ Days that already have punches, days in a locked month and (with the switch on) 
 2. Click **Remove** on its row.
 3. Write **Why?** and confirm.
 
-The punch disappears from the list and the employee's day is worked out again. The reason and who removed it are kept in the record.
+The punch disappears from the list and the employee's day is worked out again. The reason and who removed it are kept in the record. A punch in a locked month cannot be removed; {app} says *"That month is locked."*
 
 > **Tip:** An employee or manager who wants a punch removed can send a **Remove punch** [correction](/help/corrections) instead. Then the request goes through approval.
 
@@ -124,9 +124,9 @@ Set the **Date** filter to the right days and search for their **PIN** instead o
 
 Check the **Status** column. Only *Valid* punches count. A punch waiting for approval must be approved first in [Punch approvals](/help/punch-approvals). Also check that the punch is near the employee's shift; see [How attendance works](/help/how-attendance-works).
 
-### I added a punch in a locked month and nothing changed
+### "That month is locked."
 
-Days in a locked month are frozen. Ask the owner to unlock the month under [Month lock](/help/month-lock), remove and add the punch again, then lock the month again.
+Days in a locked month are frozen, so punches there cannot be added or removed. Ask the owner or an admin to unlock the month under [Month lock](/help/month-lock), add or remove the punch, then lock the month again.
 
 ### "At most 62 days at a time."
 

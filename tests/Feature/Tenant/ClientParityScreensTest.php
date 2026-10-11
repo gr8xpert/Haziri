@@ -13,6 +13,7 @@ use App\Filament\Tenant\Resources\Punches\Pages\ListPunches;
 use App\Filament\Tenant\Resources\Shifts\Pages\CreateShift;
 use App\Filament\Tenant\Resources\Shifts\Pages\ListShifts;
 use App\Models\AttendanceExemption;
+use App\Models\AttendancePeriod;
 use App\Models\Branch;
 use App\Models\Employee;
 use App\Models\Grade;
@@ -128,6 +129,24 @@ it('enters manual attendance over a date range from the punches screen', functio
         ->assertHasNoActionErrors();
 
     expect(Punch::where('employee_id', $e->id)->count())->toBe(6);
+});
+
+it('refuses to add or remove a single punch in a locked month', function () {
+    $this->travelTo(CarbonImmutable::parse('2026-09-20 12:00', 'Asia/Karachi'));
+    $e = Employee::create(['code' => 'UI4', 'first_name' => 'Ui', 'joined_on' => '2025-01-01']);
+    $punch = Punch::create(['employee_id' => $e->id, 'punched_at' => '2026-08-10 04:00:00', 'local_date' => '2026-08-10', 'source' => 'adms',
+        'direction' => 'in', 'status' => 'valid', 'dedupe_hash' => md5('locked-ui4')]);
+    AttendancePeriod::create(['year' => 2026, 'month' => 8, 'status' => 'locked']);
+
+    Livewire::test(ListPunches::class)
+        ->callAction('manual', data: ['employee_id' => $e->id, 'date' => '2026-08-11', 'in_time' => '09:00', 'reason' => 'Machine down'])
+        ->assertNotified('That month is locked.');
+    Livewire::test(ListPunches::class)
+        ->callTableAction('delete', $punch, data: ['reason' => 'Wrong person'])
+        ->assertNotified('That month is locked.');
+
+    expect(Punch::where('employee_id', $e->id)->count())->toBe(1)
+        ->and($punch->fresh()->trashed())->toBeFalse();
 });
 
 it('stores no weekly offs as blank on a shift and a branch so the fallback applies', function () {

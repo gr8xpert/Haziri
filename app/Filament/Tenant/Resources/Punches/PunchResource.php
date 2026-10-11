@@ -8,6 +8,7 @@ use App\Enums\PunchSource;
 use App\Enums\PunchStatus;
 use App\Filament\Concerns\AuthorizesByPermission;
 use App\Filament\Tenant\NavigationGroup;
+use App\Models\AttendancePeriod;
 use App\Models\Punch;
 use Carbon\CarbonImmutable;
 use Filament\Actions\Action;
@@ -79,6 +80,11 @@ class PunchResource extends Resource
                     ->requiresConfirmation()
                     ->schema([TextInput::make('reason')->required()->label('Why?')])
                     ->action(function (Punch $r, array $data) {
+                        if (AttendancePeriod::isLocked($r->local_date->format('Y-m-d'))) {
+                            Notification::make()->danger()->title(__('That month is locked.'))->send();
+
+                            return;
+                        }
                         $r->update(['meta' => array_merge($r->meta ?? [], ['removed_reason' => $data['reason'], 'removed_by' => auth()->id()])]);
                         $r->delete();
                         Notification::make()->success()->title(__('Punch removed'))->send();

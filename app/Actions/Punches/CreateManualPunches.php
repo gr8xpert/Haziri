@@ -7,6 +7,7 @@ namespace App\Actions\Punches;
 use App\Enums\PunchDirection;
 use App\Enums\PunchSource;
 use App\Enums\Role;
+use App\Models\AttendancePeriod;
 use App\Models\Employee;
 use App\Models\User;
 use App\Services\Settings\TenantSettings;
@@ -15,7 +16,7 @@ use Illuminate\Validation\ValidationException;
 
 /**
  * Receptionist / HR manual entry (spec §6.4): an in time and optional out time for one employee-day.
- * Receptionists may only enter today or yesterday; HR/admin/owner any past date. Reason is mandatory.
+ * Receptionists may only enter today or yesterday; HR/admin/owner any past date. Reason is mandatory. Never in a locked month.
  */
 final class CreateManualPunches
 {
@@ -79,6 +80,9 @@ final class CreateManualPunches
         }
         if ($day->greaterThan($today) && ! $this->settings->get('allow_future_manual_punch')) {
             $errors['date'] = __('Manual punches cannot be entered for future dates.');
+        }
+        if (AttendancePeriod::isLocked($day->format('Y-m-d'))) {
+            $errors['date'] = __('That month is locked.');
         }
         if (! $by->can('attendance.manual_edit') && $day->lessThan($today->subDay())) {
             $errors['date'] = __('Receptionists can only enter punches for today or yesterday.');
