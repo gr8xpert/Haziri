@@ -134,7 +134,19 @@
     & .hz-shot { display: block; margin-block: 1.4em; }
     & .hz-shot img { width: 100%; border-radius: 0.75rem; box-shadow: 0 1px 2px rgb(0 0 0 / 0.06), 0 8px 30px rgb(0 0 0 / 0.08); outline: 1px solid rgb(0 0 0 / 0.08); }
     & hr { border-color: var(--color-zinc-200); }
+
+    /* "In short": the topic's summary bullets, boxed so a reader in a hurry stops here. */
+    & > h2#in-short { margin-top: 0; padding: 1.1em 1.25em 0; border-radius: 1rem 1rem 0 0; background: var(--color-brand-soft); font-size: 1rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--color-brand); }
+    & > h2#in-short + ul { margin-top: 0; padding: 0.6em 1.25em 1.1em 2.6em; border-radius: 0 0 1rem 1rem; background: var(--color-brand-soft); color: var(--color-zinc-800); }
+    & > h2#in-short + ul li::marker { color: var(--color-brand); }
+
+    /* "Common problems": each problem reads as a question with its answer under it. */
+    & > h2#common-problems ~ h3 { margin-top: 1.4em; padding: 0.7em 1em; border-radius: 0.75rem; background: var(--color-zinc-100); font-size: 1.05rem; }
+    & > h2#common-problems ~ h3 + * { padding-inline: 1em; }
 }
+
+/* Troubleshooting answers sit under the question text, past the +/- circle. */
+.ps-13 { padding-inline-start: 3.25rem; }
 
 .hz-prose-sm { font-size: 0.875rem; line-height: 1.6; & > * + * { margin-top: 0.6em; } }
 
@@ -151,5 +163,9 @@
         & th { border-color: rgb(255 255 255 / 0.2); }
         & td { border-color: rgb(255 255 255 / 0.1); }
         & .hz-shot img { outline-color: rgb(255 255 255 / 0.1); }
+        & > h2#in-short { background: rgb(52 211 153 / 0.08); color: var(--color-emerald-300); }
+        & > h2#in-short + ul { background: rgb(52 211 153 / 0.08); color: var(--color-zinc-200); }
+        & > h2#in-short + ul li::marker { color: var(--color-emerald-400); }
+        & > h2#common-problems ~ h3 { background: rgb(255 255 255 / 0.06); }
     }
 }

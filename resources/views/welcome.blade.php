@@ -1,4 +1,5 @@
 @php($domain = config('hazri.central_domain'))
+@php($demoUrl = filled(config('hazri.demo.tenant')) ? request()->getScheme() . '://' . config('hazri.demo.tenant') . '.' . $domain . (in_array(request()->getPort(), [80, 443], true) ? '' : ':' . request()->getPort()) . '/admin/login' : null)
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}" class="scroll-smooth">
 <head>
@@ -14,14 +15,18 @@
 </head>
 <body class="bg-white text-zinc-950 antialiased dark:bg-zinc-950 dark:text-zinc-50">
 
+    <a href="#main" class="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:rounded-lg focus:bg-brand focus:px-4 focus:py-2 focus:text-white">Skip to content</a>
+
     <header class="sticky top-0 z-30 border-b border-zinc-950/[0.06] bg-white/80 backdrop-blur-lg dark:border-white/[0.06] dark:bg-zinc-950/80">
-        <nav class="mx-auto flex h-16 max-w-6xl items-center gap-8 px-4 sm:px-6">
+        <nav class="mx-auto flex h-16 max-w-6xl items-center gap-8 px-4 sm:px-6" aria-label="Main">
             <a href="/" class="flex items-center gap-2.5 font-semibold tracking-tight">
                 <img src="/hazri-icon.svg" alt="" class="size-8 rounded-lg"> Haziri
             </a>
             <div class="hidden items-center gap-6 text-sm text-zinc-600 md:flex dark:text-zinc-400">
+                <a href="#how" class="transition hover:text-zinc-950 dark:hover:text-white">How it works</a>
                 <a href="#features" class="transition hover:text-zinc-950 dark:hover:text-white">Features</a>
                 <a href="#devices" class="transition hover:text-zinc-950 dark:hover:text-white">Devices</a>
+                <a href="#faq" class="transition hover:text-zinc-950 dark:hover:text-white">FAQ</a>
                 <a href="/help" class="transition hover:text-zinc-950 dark:hover:text-white">Help</a>
             </div>
             <a href="#signin" class="ms-auto inline-flex items-center gap-1.5 rounded-lg bg-zinc-950 px-3.5 py-2 text-sm font-medium text-white transition hover:bg-zinc-800 active:scale-[0.98] dark:bg-white dark:text-zinc-950 dark:hover:bg-zinc-200">
@@ -30,7 +35,7 @@
         </nav>
     </header>
 
-    <main>
+    <main id="main">
         {{-- Hero --}}
         <section class="relative isolate overflow-hidden">
             <div aria-hidden="true" class="absolute inset-0 -z-10 bg-[radial-gradient(55%_60%_at_80%_20%,rgb(4_120_87/0.10),transparent)] dark:bg-[radial-gradient(55%_60%_at_80%_20%,rgb(52_211_153/0.10),transparent)]"></div>
@@ -47,16 +52,15 @@
                             Sign in to your company
                             @svg('heroicon-m-arrow-right', 'size-4 rtl:rotate-180')
                         </a>
-                        @if (filled(config('hazri.demo.tenant')))
+                        @if ($demoUrl)
                             {{-- The public demo company: a full working company anyone can log in to (reset nightly). --}}
-                            <a href="{{ request()->getScheme() }}://{{ config('hazri.demo.tenant') }}.{{ config('hazri.central_domain') }}{{ in_array(request()->getPort(), [80, 443], true) ? '' : ':' . request()->getPort() }}/admin/login"
-                               class="inline-flex items-center gap-2 rounded-xl px-4 py-3 font-medium text-zinc-700 ring-1 ring-zinc-950/10 transition hover:bg-zinc-50 dark:text-zinc-200 dark:ring-white/15 dark:hover:bg-white/5">
+                            <a href="{{ $demoUrl }}" class="inline-flex items-center gap-2 rounded-xl px-4 py-3 font-medium text-zinc-700 ring-1 ring-zinc-950/10 transition hover:bg-zinc-50 dark:text-zinc-200 dark:ring-white/15 dark:hover:bg-white/5">
                                 @svg('heroicon-m-play-circle', 'size-5 text-brand dark:text-emerald-400')
                                 Try the live demo
                             </a>
                         @else
-                            <a href="#features" class="inline-flex items-center gap-2 rounded-xl px-4 py-3 font-medium text-zinc-700 ring-1 ring-zinc-950/10 transition hover:bg-zinc-50 dark:text-zinc-200 dark:ring-white/15 dark:hover:bg-white/5">
-                                See what it does
+                            <a href="#how" class="inline-flex items-center gap-2 rounded-xl px-4 py-3 font-medium text-zinc-700 ring-1 ring-zinc-950/10 transition hover:bg-zinc-50 dark:text-zinc-200 dark:ring-white/15 dark:hover:bg-white/5">
+                                See how it works
                             </a>
                         @endif
                     </div>
@@ -69,6 +73,31 @@
                         <img src="/images/marketing/hazri-dashboard.jpg" width="1440" height="900" alt="The Haziri dashboard showing who is present, late and absent today" class="block w-full" fetchpriority="high">
                     </div>
                 </figure>
+            </div>
+        </section>
+
+        {{-- How it works: three plain steps --}}
+        <section id="how" class="scroll-mt-20 border-t border-zinc-950/[0.06] py-20 md:py-24 dark:border-white/[0.06]">
+            <div class="mx-auto max-w-6xl px-4 sm:px-6">
+                <h2 class="max-w-2xl text-3xl font-semibold tracking-tight text-balance md:text-4xl">How it works, in three steps.</h2>
+                <p class="mt-4 max-w-[60ch] text-zinc-600 dark:text-zinc-400">You do not type anyone's attendance. Staff punch, Haziri works out each day, and you close the month.</p>
+
+                <ol class="mt-12 grid gap-10 md:grid-cols-3 md:gap-8">
+                    @foreach ([
+                        ['heroicon-o-finger-print', 'Staff punch in and out', 'On the fingerprint machine, on a kiosk tablet at the door, or from their own phone with a selfie and location.'],
+                        ['heroicon-o-calculator', 'Haziri works out the day', 'Present, late, half day or absent, using the shift, grace time, approved leave and holidays. Fix a missed punch and the day is worked out again.'],
+                        ['heroicon-o-lock-closed', 'You close the month', 'Check the sheet, lock the month so nothing changes, then download the reports or run payroll.'],
+                    ] as $i => [$icon, $title, $body])
+                        <li class="relative border-t-2 border-brand/30 pt-6 dark:border-emerald-400/30">
+                            <div class="flex items-center gap-3">
+                                <span class="flex size-11 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-brand dark:bg-emerald-500/10 dark:text-emerald-400">@svg($icon, 'size-6')</span>
+                                <span class="text-sm font-semibold text-brand tabular-nums dark:text-emerald-400">Step {{ $i + 1 }}</span>
+                            </div>
+                            <h3 class="mt-4 text-xl font-semibold">{{ $title }}</h3>
+                            <p class="mt-2 max-w-[40ch] leading-relaxed text-zinc-600 dark:text-zinc-400">{{ $body }}</p>
+                        </li>
+                    @endforeach
+                </ol>
             </div>
         </section>
 
@@ -116,6 +145,45 @@
                         </div>
                     </article>
                 </div>
+
+                {{-- Everything included, three to a row. One line each; the user guide (/help) has the detail. --}}
+                <div id="all-features" class="mt-20 scroll-mt-20 md:mt-24">
+                    <h3 class="text-2xl font-semibold tracking-tight text-balance md:text-3xl">Everything that is included</h3>
+                    <p class="mt-3 max-w-[60ch] text-zinc-600 dark:text-zinc-400">Every part of Haziri in one list. Some parts depend on the plan you choose.</p>
+                    <ul class="mt-10 grid gap-4 sm:grid-cols-2 md:grid-cols-3">
+                        @foreach ([
+                            ['heroicon-o-finger-print', 'Fingerprint and face machines', 'Connect ZKTeco machines over the internet, through a small sync program on an office PC, or by uploading the USB file.', '/help/devices-overview'],
+                            ['heroicon-o-device-tablet', 'Kiosk tablet', 'Any tablet becomes an attendance point. Staff punch with a PIN, their QR badge or their face, with a photo. Works offline.', '/help/kiosk'],
+                            ['heroicon-o-map-pin', 'Phone punching', 'Staff punch from their own phone with location and a selfie. A punch from outside the office waits for approval.', '/help/phone-punching'],
+                            ['heroicon-o-device-phone-mobile', 'Staff app', 'Each employee sees their own days, leave balance, monthly report and payslip. Opens from the browser, no app store.', '/help/staff-app'],
+                            ['heroicon-o-calculator', 'Automatic daily status', 'Present, late, half day, absent and overtime worked out from the shift rules. Nobody types a status by hand.', '/help/how-attendance-works'],
+                            ['heroicon-o-clock', 'Shifts and rosters', 'Fixed shifts or a weekly roster, shift swaps, and timing changes for Ramadan or Friday prayers.', '/help/shifts'],
+                            ['heroicon-o-calendar-days', 'Leave', 'Leave types and yearly quotas, requests from the phone, manager then HR approval, and a calendar of who is off.', '/help/leave-requests'],
+                            ['heroicon-o-pencil-square', 'Corrections', 'Missed punch, work from home or official duty: staff ask, HR approves, and the day is worked out again.', '/help/corrections'],
+                            ['heroicon-o-sun', 'Holidays and exemptions', 'Pakistan\'s public holidays loaded for you, plus your own. Excuse a late day for everyone when rain or a strike hits.', '/help/holidays'],
+                            ['heroicon-o-lock-closed', 'Month lock', 'Review the month, then lock it so the numbers are final. Only an owner or admin can unlock, and must give a reason.', '/help/month-lock'],
+                            ['heroicon-o-document-chart-bar', 'Reports', 'Daily muster roll, monthly sheet, late and absent registers, leave and payroll reports, all in Excel or PDF.', '/help/reports-overview'],
+                            ['heroicon-o-banknotes', 'Payroll', 'Salary structures, advances and bonuses, the salary sheet, a bank transfer file, payslips and final settlements.', '/help/payroll-overview'],
+                            ['heroicon-o-chat-bubble-left-right', 'WhatsApp and SMS alerts', 'Absent and late alerts to managers, forgot-to-punch reminders, leave decisions and payslips on WhatsApp or SMS.', '/help/notifications'],
+                            ['heroicon-o-megaphone', 'Announcements', 'Send a notice to all staff or one branch. Staff tap "I have read this" and you see who has.', '/help/announcements'],
+                            ['heroicon-o-identification', 'Visitors', 'Sign visitors in and out at reception with a photo and a printed badge, and see who is still inside.', '/help/visitors'],
+                            ['heroicon-o-sparkles', 'Analytics and AI assistant', 'Punctuality scores, trends and odd patterns, and answers to questions asked in plain English.', '/help/analytics'],
+                            ['heroicon-o-user-group', 'Users and roles', 'Owner, admin, HR, manager, branch manager and receptionist. Each sees only the part of Haziri they need.', '/help/users-and-roles'],
+                            ['heroicon-o-building-office-2', 'Branches and departments', 'Several branches, departments and designations in one company. A branch manager sees only their branch.', '/help/organisation'],
+                            ['heroicon-o-table-cells', 'Excel import', 'Bring your staff list in from Excel or CSV with a template and a preview before anything is saved.', '/help/employee-import'],
+                            ['heroicon-o-paint-brush', 'Your own branding', 'Your logo, colours and app name for your staff, and Haziri on your own web address.', '/help/branding'],
+                            ['heroicon-o-shield-check', 'Audit log and API', 'Every change is recorded with who made it and when. Connect other systems through the API and webhooks.', '/help/audit-log'],
+                        ] as [$icon, $title, $body, $href])
+                            <li class="rounded-2xl bg-white p-5 ring-1 ring-zinc-950/[0.07] transition hover:ring-brand/40 dark:bg-zinc-900 dark:ring-white/10 dark:hover:ring-emerald-400/40">
+                                <a href="{{ $href }}" class="group block">
+                                    <span class="flex size-10 items-center justify-center rounded-xl bg-emerald-50 text-brand dark:bg-emerald-500/10 dark:text-emerald-400">@svg($icon, 'size-5')</span>
+                                    <span class="mt-4 block font-semibold group-hover:text-brand dark:group-hover:text-emerald-300">{{ $title }}</span>
+                                    <span class="mt-1.5 block text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">{{ $body }}</span>
+                                </a>
+                            </li>
+                        @endforeach
+                    </ul>
+                </div>
             </div>
         </section>
 
@@ -141,6 +209,68 @@
                         </li>
                     @endforeach
                 </ol>
+            </div>
+        </section>
+
+        {{-- FAQ: the questions people ask before and after they start. Answers match the user guide (resources/docs). --}}
+        <section id="faq" class="scroll-mt-20 border-t border-zinc-950/[0.06] bg-zinc-50 py-20 md:py-24 dark:border-white/[0.06] dark:bg-zinc-900/40">
+            <div class="mx-auto max-w-3xl px-4 sm:px-6">
+                <h2 class="text-3xl font-semibold tracking-tight text-balance md:text-4xl">Questions people ask us</h2>
+                <p class="mt-4 text-zinc-600 dark:text-zinc-400">Short answers in plain words. The full guide has the details for every page.</p>
+
+                <div class="mt-10 divide-y divide-zinc-950/[0.07] rounded-2xl bg-white ring-1 ring-zinc-950/[0.07] dark:divide-white/[0.07] dark:bg-zinc-900 dark:ring-white/10">
+                    @foreach ([
+                        ['Do we have to replace our fingerprint machines?', 'No. Haziri reads ZKTeco machines three ways: newer machines send punches over the internet, a small sync program on an office PC collects from older machines, and the attendance file from any machine can be uploaded from a USB stick. A PIN that no employee has yet waits in a queue until you match it, so no punch is lost.', '/help/devices-overview'],
+                        ['Can staff mark attendance from their phones?', 'Yes, if you allow it. The staff app saves the location and a selfie with every punch. A punch made inside the office area counts straight away. One made from outside is kept but waits for approval. Field and remote staff can be freed from the office check.', '/help/phone-punching'],
+                        ['Do employees need to install an app?', 'No. The staff app is a web page at your company address followed by /me. Staff add it to the phone\'s home screen and it opens like an app. They sign in with their mobile number and a 6-digit code, or with email and password.', '/help/staff-app'],
+                        ['What happens when the internet drops?', 'The kiosk tablet keeps the punches and sends them when the internet is back, for up to 24 hours. Fingerprint machines keep their own log and send it later. As a backup you can always upload the machine\'s file from a USB stick.', '/help/kiosk'],
+                        ['How is a day marked Present, Late or Absent?', 'Haziri matches each day\'s punches to the employee\'s shift. Late means the first punch came after the shift start plus the grace time. A day with no punches becomes Absent once the day is over. Approved leave, holidays and weekly offs come first. Nobody types the status by hand.', '/help/how-attendance-works'],
+                        ['How do we get the month ready for salaries?', 'Check the month, fix missing punches with corrections, then lock the month under Attendance. Locked days never change. Download the monthly sheet or the payroll input in Excel or PDF, or run payroll inside Haziri if your plan includes it.', '/help/month-lock'],
+                        ['Can employees see their own attendance and payslip?', 'Yes. In the staff app they see each day of the month, how many leave days they have left, their monthly report as a PDF and, once payroll is final, their payslip.', '/help/staff-app'],
+                        ['How is Haziri priced?', 'Per active employee, per month. An invoice is made on the 1st of each month and can be paid by bank transfer, JazzCash, Easypaisa or cash. New companies start on a free trial.', '/help/billing'],
+                        ['Is our data kept separate from other companies?', 'Yes. Each company has its own address and its own database. Nobody from another company can see your data.', '/help/welcome'],
+                    ] as $i => [$question, $answer, $more])
+                        <details name="faq" class="group" @if ($i === 0) open @endif>
+                            <summary class="flex cursor-pointer list-none items-center gap-4 px-5 py-4 text-start font-medium transition hover:bg-zinc-50 sm:px-6 dark:hover:bg-white/5 [&::-webkit-details-marker]:hidden">
+                                <span class="flex-1 text-base sm:text-lg">{{ $question }}</span>
+                                <span class="flex size-8 shrink-0 items-center justify-center rounded-full bg-zinc-100 text-zinc-600 transition group-open:rotate-45 group-open:bg-brand group-open:text-white dark:bg-white/10 dark:text-zinc-300 dark:group-open:bg-emerald-500 dark:group-open:text-emerald-950" aria-hidden="true">
+                                    @svg('heroicon-m-plus', 'size-4')
+                                </span>
+                            </summary>
+                            <div class="px-5 pb-5 sm:px-6">
+                                <p class="max-w-[62ch] leading-relaxed text-zinc-600 dark:text-zinc-400">{{ $answer }}</p>
+                                <a href="{{ $more }}" class="mt-3 inline-flex items-center gap-1 text-sm font-medium text-brand hover:underline dark:text-emerald-300">Read the full page @svg('heroicon-m-arrow-right', 'size-3.5 rtl:rotate-180')</a>
+                            </div>
+                        </details>
+                    @endforeach
+                </div>
+            </div>
+        </section>
+
+        {{-- Help: one search box into the user guide --}}
+        <section class="py-16 md:py-20">
+            <div class="mx-auto max-w-6xl px-4 sm:px-6">
+                <div class="grid items-center gap-8 rounded-3xl bg-emerald-50 px-5 py-10 ring-1 ring-brand/10 sm:px-10 lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] dark:bg-emerald-500/[0.07] dark:ring-emerald-400/15">
+                    <div>
+                        <h2 class="text-2xl font-semibold tracking-tight text-balance md:text-3xl">Already using Haziri? The guide explains every page.</h2>
+                        <p class="mt-3 max-w-[48ch] text-zinc-600 dark:text-zinc-400">Written in plain words, with pictures. Start from what you want to do, not from the menu.</p>
+                    </div>
+                    <div>
+                        <form action="/help" method="get" role="search" class="flex flex-col gap-3 sm:flex-row">
+                            <label for="help-q" class="sr-only">Search the help guide</label>
+                            <div class="flex min-w-0 flex-1 items-center gap-2 rounded-xl bg-white px-4 ring-1 ring-zinc-950/10 transition focus-within:ring-2 focus-within:ring-brand dark:bg-zinc-900 dark:ring-white/15 dark:focus-within:ring-emerald-400">
+                                @svg('heroicon-m-magnifying-glass', 'size-5 shrink-0 text-zinc-400')
+                                <input id="help-q" name="q" type="search" placeholder="Try: add an employee, apply for leave, machine offline" class="min-w-0 flex-1 bg-transparent py-3 text-base text-zinc-950 placeholder:text-zinc-400 focus:outline-none dark:text-white dark:placeholder:text-zinc-500">
+                            </div>
+                            <button class="inline-flex items-center justify-center gap-2 rounded-xl bg-brand px-5 py-3 font-semibold text-white transition hover:bg-brand-dark active:scale-[0.98] dark:bg-emerald-500 dark:text-emerald-950 dark:hover:bg-emerald-400">Search the guide</button>
+                        </form>
+                        <div class="mt-4 flex flex-wrap gap-2 text-sm">
+                            @foreach ([['/help/staff-app', 'I am an employee'], ['/help/first-setup', 'Setting up a new company'], ['/help/troubleshooting', 'Something is not working']] as [$href, $label])
+                                <a href="{{ $href }}" class="rounded-full bg-white px-3.5 py-1.5 text-zinc-700 ring-1 ring-zinc-950/10 transition hover:text-brand dark:bg-zinc-900 dark:text-zinc-300 dark:ring-white/15 dark:hover:text-emerald-300">{{ $label }}</a>
+                            @endforeach
+                        </div>
+                    </div>
+                </div>
             </div>
         </section>
 
@@ -171,9 +301,34 @@
     </main>
 
     <footer class="border-t border-zinc-950/[0.06] dark:border-white/[0.06]">
-        <div class="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-4 py-8 text-sm text-zinc-500 sm:px-6 dark:text-zinc-400">
-            <span class="flex items-center gap-2"><img src="/hazri-icon.svg" alt="" class="size-5 rounded"> Haziri</span>
-            <span>&copy; {{ date('Y') }} Haziri</span>
+        <div class="mx-auto max-w-6xl px-4 py-10 sm:px-6">
+            <div class="flex flex-wrap items-start justify-between gap-8">
+                <div class="max-w-xs">
+                    <span class="flex items-center gap-2 font-semibold"><img src="/hazri-icon.svg" alt="" class="size-6 rounded"> Haziri</span>
+                    <p class="mt-3 text-sm leading-relaxed text-zinc-500 dark:text-zinc-400">Attendance, leave and payroll for growing teams in Pakistan.</p>
+                </div>
+                <nav class="flex flex-wrap gap-x-10 gap-y-6 text-sm" aria-label="Footer">
+                    <div>
+                        <div class="font-semibold">Product</div>
+                        <ul class="mt-3 space-y-2 text-zinc-600 dark:text-zinc-400">
+                            <li><a href="#how" class="hover:text-zinc-950 dark:hover:text-white">How it works</a></li>
+                            <li><a href="#features" class="hover:text-zinc-950 dark:hover:text-white">Features</a></li>
+                            <li><a href="#devices" class="hover:text-zinc-950 dark:hover:text-white">Devices</a></li>
+                            <li><a href="#faq" class="hover:text-zinc-950 dark:hover:text-white">FAQ</a></li>
+                        </ul>
+                    </div>
+                    <div>
+                        <div class="font-semibold">Help</div>
+                        <ul class="mt-3 space-y-2 text-zinc-600 dark:text-zinc-400">
+                            <li><a href="/help" class="hover:text-zinc-950 dark:hover:text-white">User guide</a></li>
+                            <li><a href="/help/staff-app" class="hover:text-zinc-950 dark:hover:text-white">For employees</a></li>
+                            <li><a href="/help/troubleshooting" class="hover:text-zinc-950 dark:hover:text-white">Troubleshooting</a></li>
+                            <li><a href="#signin" class="hover:text-zinc-950 dark:hover:text-white">Sign in</a></li>
+                        </ul>
+                    </div>
+                </nav>
+            </div>
+            <div class="mt-10 border-t border-zinc-950/[0.06] pt-6 text-sm text-zinc-500 dark:border-white/[0.06] dark:text-zinc-400">&copy; {{ date('Y') }} Haziri</div>
         </div>
     </footer>
 </body>

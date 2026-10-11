@@ -1,4 +1,6 @@
 @php($brand = \App\Support\Brand::name())
+@php($heroSearch = View::getSection('search-placement') === 'hero')
+@php($tabs = ['/help' => __('Guide'), '/help/quick' => __('Quick reference'), '/help/troubleshooting' => __('Troubleshooting')])
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}" class="scroll-smooth">
 <head>
@@ -13,6 +15,8 @@
 </head>
 <body class="bg-white text-zinc-900 antialiased dark:bg-zinc-950 dark:text-zinc-100">
 
+<a href="#content" class="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:rounded-lg focus:bg-brand focus:px-4 focus:py-2 focus:text-white">{{ __('Skip to content') }}</a>
+
 <header class="sticky top-0 z-30 border-b border-zinc-950/[0.07] bg-white/90 backdrop-blur-lg dark:border-white/[0.07] dark:bg-zinc-950/90">
     <div class="mx-auto flex h-16 max-w-7xl items-center gap-4 px-4 sm:px-6">
         <a href="/help" class="flex shrink-0 items-center gap-2.5 font-semibold tracking-tight">
@@ -20,37 +24,53 @@
             <span class="hidden sm:inline">{{ $brand }}</span> <span class="font-normal text-zinc-500">{{ __('Help') }}</span>
         </a>
 
-        {{-- Search: every section of every topic, matched in the browser (index from /help/search.json). --}}
-        <div class="relative ms-auto w-full max-w-md" id="hz-search">
-            <label for="hz-q" class="sr-only">{{ __('Search the help') }}</label>
-            <input id="hz-q" type="search" autocomplete="off" placeholder="{{ __('Search: leave, late, payroll, machine offline…') }}"
-                   class="w-full rounded-xl border-0 bg-zinc-100 px-4 py-2.5 text-sm ring-1 ring-transparent outline-none placeholder:text-zinc-500 focus:bg-white focus:ring-brand dark:bg-white/10 dark:focus:bg-zinc-900">
-            <div id="hz-results" class="absolute inset-x-0 top-full mt-2 hidden max-h-[70vh] overflow-y-auto rounded-xl bg-white p-1.5 shadow-xl ring-1 ring-zinc-950/10 dark:bg-zinc-900 dark:ring-white/10"></div>
-        </div>
+        {{-- Search: every section of every topic, matched in the browser (index from /help/search.json).
+             The guide's front page shows one big box in its hero instead (see index.blade.php). --}}
+        @unless ($heroSearch)
+            <div class="relative ms-auto w-full max-w-md" data-hz-search>
+                <label for="hz-q" class="sr-only">{{ __('Search the help') }}</label>
+                <div class="flex items-center gap-2 rounded-xl bg-zinc-100 px-3 ring-1 ring-transparent transition focus-within:bg-white focus-within:ring-brand dark:bg-white/10 dark:focus-within:bg-zinc-900 dark:focus-within:ring-emerald-400">
+                    @svg('heroicon-m-magnifying-glass', 'size-4 shrink-0 text-zinc-400')
+                    <input id="hz-q" type="search" autocomplete="off" placeholder="{{ __('Search: leave, late, payroll, machine offline…') }}"
+                           class="min-w-0 flex-1 bg-transparent py-2.5 text-sm outline-none placeholder:text-zinc-500">
+                </div>
+                <div data-hz-results class="absolute inset-x-0 top-full mt-2 hidden max-h-[70vh] overflow-y-auto rounded-xl bg-white p-1.5 shadow-xl ring-1 ring-zinc-950/10 dark:bg-zinc-900 dark:ring-white/10"></div>
+            </div>
+        @endunless
 
-        <nav class="hidden shrink-0 items-center gap-1 text-sm lg:flex">
-            @foreach (['/help' => __('Guide'), '/help/quick' => __('Quick reference'), '/help/troubleshooting' => __('Troubleshooting')] as $href => $label)
+        <nav class="hidden shrink-0 items-center gap-1 text-sm lg:flex {{ $heroSearch ? 'ms-auto' : '' }}" aria-label="{{ __('Help sections') }}">
+            @foreach ($tabs as $href => $label)
                 <a href="{{ $href }}" @class(['rounded-lg px-3 py-2 transition', 'bg-brand-soft font-medium text-brand dark:bg-emerald-400/10 dark:text-emerald-300' => request()->is(ltrim($href, '/')), 'text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-white/5' => ! request()->is(ltrim($href, '/'))])>{{ $label }}</a>
             @endforeach
         </nav>
+        <a href="/" class="hidden shrink-0 text-sm text-zinc-500 hover:text-zinc-900 lg:inline dark:hover:text-white">{{ __('Home') }}</a>
     </div>
-    <nav class="flex gap-1 overflow-x-auto px-4 pb-2 text-sm lg:hidden">
-        <a href="/help" class="shrink-0 rounded-lg px-3 py-1.5 text-zinc-600 dark:text-zinc-400">{{ __('Guide') }}</a>
-        <a href="/help/quick" class="shrink-0 rounded-lg px-3 py-1.5 text-zinc-600 dark:text-zinc-400">{{ __('Quick reference') }}</a>
-        <a href="/help/troubleshooting" class="shrink-0 rounded-lg px-3 py-1.5 text-zinc-600 dark:text-zinc-400">{{ __('Troubleshooting') }}</a>
+    <nav class="flex gap-1 overflow-x-auto px-4 pb-2 text-sm lg:hidden" aria-label="{{ __('Help sections') }}">
+        @foreach ($tabs as $href => $label)
+            <a href="{{ $href }}" @class(['shrink-0 rounded-lg px-3 py-1.5', 'bg-brand-soft font-medium text-brand dark:bg-emerald-400/10 dark:text-emerald-300' => request()->is(ltrim($href, '/')), 'text-zinc-600 dark:text-zinc-400' => ! request()->is(ltrim($href, '/'))])>{{ $label }}</a>
+        @endforeach
     </nav>
 </header>
 
-@yield('content')
+<main id="content">
+    @yield('content')
+</main>
 
-<footer class="mt-20 border-t border-zinc-950/[0.07] py-8 text-center text-sm text-zinc-500 dark:border-white/[0.07]">
-    {{ __('Can\'t find it? Ask your :app administrator, or use the search at the top.', ['app' => $brand]) }}
+<footer class="mt-20 border-t border-zinc-950/[0.07] dark:border-white/[0.07]">
+    <div class="mx-auto grid max-w-7xl gap-8 px-4 py-10 sm:px-6 md:grid-cols-[minmax(0,1fr)_auto] md:items-center">
+        <div>
+            <div class="font-semibold">{{ __('Still stuck?') }}</div>
+            <p class="mt-1 max-w-[60ch] text-sm text-zinc-600 dark:text-zinc-400">{{ __('Look for the problem on the Troubleshooting page, or ask your :app administrator. They can see your company\'s settings.', ['app' => $brand]) }}</p>
+        </div>
+        <div class="flex flex-wrap gap-3 text-sm">
+            <a href="/help/troubleshooting" class="rounded-xl bg-brand px-4 py-2.5 font-medium text-white transition hover:bg-brand-dark dark:bg-emerald-500 dark:text-emerald-950 dark:hover:bg-emerald-400">{{ __('Troubleshooting') }}</a>
+            <a href="/help" class="rounded-xl px-4 py-2.5 font-medium ring-1 ring-zinc-950/10 transition hover:bg-zinc-50 dark:ring-white/15 dark:hover:bg-white/5">{{ __('All topics') }}</a>
+        </div>
+    </div>
 </footer>
 
 <script>
 (() => {
-    const input = document.getElementById('hz-q');
-    const box = document.getElementById('hz-results');
     let index = null;
     const esc = (s) => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
     const norm = (s) => s.toLowerCase().normalize('NFKD').replace(/[̀-ͯ]/g, '');
@@ -66,40 +86,57 @@
         return s;
     }
 
-    async function search() {
-        const q = norm(input.value.trim());
-        if (q.length < 2) { box.classList.add('hidden'); return; }
-        const words = q.split(/\s+/).filter((w) => w.length > 1);
-        const hits = (await load()).map((e) => {
-            const title = norm(e.p), head = norm(e.h), text = norm(e.x);
-            let score = 0;
-            for (const w of words) {
-                const s = (title.includes(w) ? 6 : 0) + (head.includes(w) ? 4 : 0) + (text.includes(w) ? 1 : 0);
-                if (!s) return null;
-                score += s;
-            }
-            if ((title + ' ' + head).includes(q)) score += 8;
-            return { e, score };
-        }).filter(Boolean).sort((a, b) => b.score - a.score).slice(0, 12);
+    // One search box per page: in the header, or in the front page's hero.
+    document.querySelectorAll('[data-hz-search]').forEach((wrap) => {
+        const input = wrap.querySelector('input');
+        const box = wrap.querySelector('[data-hz-results]');
 
-        box.innerHTML = hits.length
-            ? hits.map(({ e }) => `<a href="${e.u}" class="block rounded-lg px-3 py-2.5 hover:bg-zinc-100 dark:hover:bg-white/5">
-                <div class="text-sm font-medium">${esc(e.p)}${e.h ? ' <span class="text-zinc-400">›</span> ' + esc(e.h) : ''}</div>
-                <div class="mt-0.5 text-xs text-zinc-500">${esc(e.g)}</div>
-                <div class="mt-1 line-clamp-2 text-xs leading-relaxed text-zinc-600 dark:text-zinc-400">${snippet(e.x, words)}</div></a>`).join('')
-            : `<div class="px-3 py-4 text-sm text-zinc-500">{{ __('Nothing found. Try another word, e.g. "leave" or "machine".') }}</div>`;
-        box.classList.remove('hidden');
-    }
+        async function search() {
+            const q = norm(input.value.trim());
+            if (q.length < 2) { box.classList.add('hidden'); return; }
+            const words = q.split(/\s+/).filter((w) => w.length > 1);
+            const hits = (await load()).map((e) => {
+                const title = norm(e.p), head = norm(e.h), text = norm(e.x);
+                let score = 0;
+                for (const w of words) {
+                    const s = (title.includes(w) ? 6 : 0) + (head.includes(w) ? 4 : 0) + (text.includes(w) ? 1 : 0);
+                    if (!s) return null;
+                    score += s;
+                }
+                if ((title + ' ' + head).includes(q)) score += 8;
+                return { e, score };
+            }).filter(Boolean).sort((a, b) => b.score - a.score).slice(0, 12);
 
-    input.addEventListener('focus', load, { once: true });
-    input.addEventListener('input', search);
-    input.addEventListener('keydown', (ev) => {
-        if (ev.key === 'Enter') { const first = box.querySelector('a'); if (first) location.href = first.href; }
-        if (ev.key === 'Escape') { box.classList.add('hidden'); input.blur(); }
-    });
-    document.addEventListener('click', (ev) => { if (!document.getElementById('hz-search').contains(ev.target)) box.classList.add('hidden'); });
-    document.addEventListener('keydown', (ev) => {
-        if (ev.key === '/' && document.activeElement !== input && !/INPUT|TEXTAREA/.test(document.activeElement.tagName)) { ev.preventDefault(); input.focus(); }
+            box.innerHTML = hits.length
+                ? hits.map(({ e }) => `<a href="${e.u}" class="block rounded-lg px-3 py-2.5 hover:bg-zinc-100 focus:bg-zinc-100 focus:outline-none dark:hover:bg-white/5 dark:focus:bg-white/5">
+                    <div class="text-sm font-medium">${esc(e.p)}${e.h ? ' <span class="text-zinc-400">›</span> ' + esc(e.h) : ''}</div>
+                    <div class="mt-0.5 text-xs text-zinc-500">${esc(e.g)}</div>
+                    <div class="mt-1 line-clamp-2 text-xs leading-relaxed text-zinc-600 dark:text-zinc-400">${snippet(e.x, words)}</div></a>`).join('')
+                : `<div class="px-3 py-4 text-sm text-zinc-500">{{ __('Nothing found. Try another word, e.g. "leave" or "machine".') }}</div>`;
+            box.classList.remove('hidden');
+        }
+
+        input.addEventListener('focus', load, { once: true });
+        input.addEventListener('input', search);
+        input.addEventListener('keydown', (ev) => {
+            if (ev.key === 'Enter') { ev.preventDefault(); const first = box.querySelector('a'); if (first) location.href = first.href; }
+            if (ev.key === 'Escape') { box.classList.add('hidden'); input.blur(); }
+            if (ev.key === 'ArrowDown') { const first = box.querySelector('a'); if (first) { ev.preventDefault(); first.focus(); } }
+        });
+        box.addEventListener('keydown', (ev) => {
+            const links = [...box.querySelectorAll('a')], at = links.indexOf(document.activeElement);
+            if (ev.key === 'ArrowDown' && links[at + 1]) { ev.preventDefault(); links[at + 1].focus(); }
+            if (ev.key === 'ArrowUp') { ev.preventDefault(); (links[at - 1] ?? input).focus(); }
+            if (ev.key === 'Escape') { box.classList.add('hidden'); input.focus(); }
+        });
+        document.addEventListener('click', (ev) => { if (!wrap.contains(ev.target)) box.classList.add('hidden'); });
+        document.addEventListener('keydown', (ev) => {
+            if (ev.key === '/' && document.activeElement !== input && !/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) { ev.preventDefault(); input.focus(); }
+        });
+
+        // Arriving from the home page's search box (/help?q=…): show the results straight away.
+        const q = new URLSearchParams(location.search).get('q');
+        if (q && !input.value) { input.value = q; input.focus(); search(); }
     });
 })();
 </script>
