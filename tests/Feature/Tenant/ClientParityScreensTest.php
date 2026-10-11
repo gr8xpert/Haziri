@@ -25,6 +25,7 @@ use App\Services\Settings\TenantSettings;
 use Carbon\CarbonImmutable;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\Repeater;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Livewire\Livewire;
 
 /* The modal forms behind the new legacy-parity features, driven the way an HR user would. */
@@ -141,4 +142,19 @@ it('stores no weekly offs as blank on a shift and a branch so the fallback appli
     expect($shift->weekly_off_days)->toBeNull()
         ->and(Branch::where('code', 'NTH')->value('weekly_off_days'))->toBeNull()
         ->and($shift->toResolved([5])->weeklyOffDays)->toBe([5]);
+});
+
+it('refuses a second holiday on the same date for the same branches', function () {
+    $khi = Branch::create(['name' => 'Karachi', 'code' => 'KHU']);
+    Holiday::create(['date' => '2027-04-07', 'name' => 'First']);
+
+    Livewire::test(ManageHolidays::class)
+        ->callAction('create', data: ['date' => '2027-04-07', 'name' => 'Again', 'type' => 'company', 'is_paid' => true])
+        ->assertHasActionErrors(['date' => 'unique']);
+    Livewire::test(ManageHolidays::class)
+        ->callAction('create', data: ['date' => '2027-04-07', 'name' => 'Karachi only', 'type' => 'company', 'branch_id' => $khi->id, 'is_paid' => true])
+        ->assertHasNoActionErrors();
+
+    expect(Holiday::whereDate('date', '2027-04-07')->count())->toBe(2)
+        ->and(fn () => Holiday::create(['date' => '2027-04-07', 'name' => 'Sneaky']))->toThrow(UniqueConstraintViolationException::class);
 });

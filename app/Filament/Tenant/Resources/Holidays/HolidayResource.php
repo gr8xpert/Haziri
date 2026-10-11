@@ -20,6 +20,7 @@ use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\IconColumn;
@@ -28,6 +29,7 @@ use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Validation\Rules\Unique;
 
 class HolidayResource extends Resource
 {
@@ -67,7 +69,9 @@ class HolidayResource extends Resource
     public static function form(Schema $schema): Schema
     {
         return $schema->columns(2)->components([
-            DatePicker::make('date')->required(),
+            DatePicker::make('date')->required()
+                ->unique(ignoreRecord: true, modifyRuleUsing: fn (Unique $rule, Get $get) => $rule->where('branch_key', (int) ($get('branch_id') ?? 0)))
+                ->validationMessages(['unique' => __('There is already a holiday on this date for these branches. Edit that one instead.')]),
             TextInput::make('name')->required()->maxLength(255),
             Select::make('type')->options(HolidayType::class)->default(HolidayType::Company)->required()
                 ->helperText('Optional: a day off only for the employees who take it (choose them with "Who takes it", or they opt in from the app).'),

@@ -52,7 +52,7 @@ This adds the fixed national days (Kashmir Day, Pakistan Day, Labour Day, Youm-e
 4. **Branch** — leave on *All branches*, or pick one.
 5. **Paid** — on by default. Off means it is still a day off, but not paid.
 6. **Needs confirmation** — switch on if the date may still move (moon sighting).
-7. Click **Create**.
+7. Click **Create**. A date can hold only one holiday for the same branches (one for all branches, and one per branch).
 
 ## Add several days at once
 
@@ -91,9 +91,9 @@ The holiday is missing, is on the wrong date, or is for another branch. Add or f
 
 All those dates already have an all-branch holiday. Nothing was changed.
 
-### The same holiday shows twice
+### "There is already a holiday on this date for these branches."
 
-**New holiday** does not check for an existing holiday on that date. Delete the extra one.
+Each date can have one holiday for all branches, plus one for each branch. **Edit** the existing holiday instead of adding a second one.
 
 ### An employee says they took an optional holiday but shows absent
 

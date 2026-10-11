@@ -18,6 +18,12 @@ class Holiday extends Model
 
     protected $guarded = ['id'];
 
+    /** branch_key (0 = all branches) backs the one-holiday-per-date-and-branch unique index. */
+    protected static function booted(): void
+    {
+        static::saving(fn (Holiday $holiday) => $holiday->branch_key = $holiday->branch_id ?? 0);
+    }
+
     protected function casts(): array
     {
         return [
@@ -30,7 +36,7 @@ class Holiday extends Model
 
     public function getActivitylogOptions(): LogOptions
     {
-        return LogOptions::defaults()->logAll()->logOnlyDirty();
+        return LogOptions::defaults()->logAll()->logExcept(['branch_key'])->logOnlyDirty();
     }
 
     public function branch(): BelongsTo
