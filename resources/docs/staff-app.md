@@ -122,7 +122,7 @@ Your request shows under **My requests** with the leave type's name and the stat
 
 Use this when your attendance is wrong.
 
-1. Choose the **Date**.
+1. Choose the **Date**. For **I forgot to punch** it must be today or earlier; **Official duty** and **worked from home** can also be asked for ahead, for a future date.
 2. Under **What happened?** choose one:
    - **I forgot to punch**: give the **Time** and whether it was a punch **In** or **Out**.
    - **Official duty outside the office**: you were working outside for the company.

@@ -281,7 +281,7 @@
             </div>
             <div>
                 <label for="fx-date" class="me-label">{{ __('Date') }}</label>
-                <input id="fx-date" type="date" name="date" required class="me-input" x-model="fixDate" :max="todayIso">
+                <input id="fx-date" type="date" name="date" required class="me-input" x-model="fixDate" :max="fixType === 'add_punch' ? todayIso : null">
             </div>
             <fieldset>
                 <legend class="me-label">{{ __('What happened?') }}</legend>
