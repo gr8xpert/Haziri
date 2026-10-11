@@ -59,7 +59,9 @@ You see the **Punch in** / **Punch out** button only if your company allows phon
 
 Your location and a selfie are saved with each punch.
 
-If you see *"Saved at 09:02, but … HR will review it."*, your punch was kept but HR must check it first. This happens when you are far from the office, not on the office internet, or your face could not be confirmed. You do not need to punch again.
+If you see *"Saved at 09:02, but … HR will review it."*, your punch was kept but HR must check it first. The message says why: you are far from the office (it shows how far), your branch has no office location set, you are not on the office internet, or your face could not be confirmed. You do not need to punch again.
+
+If you see *"You had already punched a moment ago, so this one was not counted again."*, you (or a machine) punched less than a minute before. Nothing more to do.
 
 More about the rules: [Phone punching](/help/phone-punching).
 

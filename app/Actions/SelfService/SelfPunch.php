@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Actions\SelfService;
 
+use App\Actions\Punches\IngestOutcome;
 use App\Actions\Punches\IngestPunchAction;
 use App\Actions\Punches\IngestResult;
 use App\Actions\Punches\PunchData;
@@ -88,6 +89,42 @@ final class SelfPunch
         ));
 
         return ['result' => $result, 'direction' => $direction, 'geofence' => $geo, 'face_check' => $faceCheck];
+    }
+
+    /**
+     * What the staff app shows after a punch: the real outcome, and every reason a punch waits for approval.
+     *
+     * @param  array{result: IngestResult, direction: PunchDirection, geofence: array<string, mixed>, face_check: ?array{result: string, similarity: ?float}}  $punched
+     */
+    public static function message(array $punched, string $time): string
+    {
+        $outcome = $punched['result']->outcome;
+        if ($outcome === IngestOutcome::Stored) {
+            return $punched['direction'] === PunchDirection::In
+                ? __('Punched in at :time.', ['time' => $time]) : __('Punched out at :time.', ['time' => $time]);
+        }
+        if ($outcome === IngestOutcome::AlreadyStored || $outcome === IngestOutcome::DoubleTap) {
+            return __('You had already punched a moment ago, so this one was not counted again.');
+        }
+        if ($outcome !== IngestOutcome::PendingApproval) {
+            return __('Saved at :time.', ['time' => $time]);
+        }
+
+        $geo = $punched['geofence'];
+        $reasons = [];
+        if (($punched['face_check']['result'] ?? 'match') !== 'match') {
+            $reasons[] = __('your face could not be confirmed');
+        }
+        if (! $geo['inside']) {
+            $reasons[] = $geo['distance_m'] === null
+                ? __('your branch has no office location set')
+                : __('you are :distance m from the office (allowed :radius m)', ['distance' => $geo['distance_m'], 'radius' => $geo['radius_m']]);
+        }
+        if (($geo['office_network'] ?? null) === false) {
+            $reasons[] = __('not from the office internet');
+        }
+
+        return __('Saved at :time, but :reasons. HR will review it.', ['time' => $time, 'reasons' => implode('; ', $reasons ?: [__('it needs approval')])]);
     }
 
     /** An "in" older than this no longer counts as open, so a forgotten punch-out never makes the next arrival an "out". */

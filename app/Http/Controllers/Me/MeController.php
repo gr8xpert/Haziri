@@ -241,10 +241,13 @@ final class MeController
         $r = $punch($request->user()->employee, (float) $data['lat'], (float) $data['lng'], isset($data['accuracy']) ? (int) $data['accuracy'] : null,
             $data['photo'] ?? null, isset($data['direction']) ? PunchDirection::from($data['direction']) : null, $request->ip(), $data['face'] ?? null);
 
+        $time = now(tenant('timezone'))->format('H:i');
+
         return response()->json([
             'outcome' => $r['result']->outcome->value,
+            'message' => SelfPunch::message($r, $time),
             'direction' => $r['direction']->value,
-            'time' => now(tenant('timezone'))->format('H:i'),
+            'time' => $time,
             'inside_geofence' => $r['geofence']['inside'],
             'office_network' => $r['geofence']['office_network'],
             'distance_m' => $r['geofence']['distance_m'],

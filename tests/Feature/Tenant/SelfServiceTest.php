@@ -94,7 +94,8 @@ it('accepts a mobile punch inside the geofence and queues one outside for HR', f
 
     $this->travel(2)->minutes();
     $outside = $this->postJson("{$this->base}/me/punch", ['lat' => 31.60, 'lng' => 74.40, 'accuracy' => 20]);
-    $outside->assertOk()->assertJson(['outcome' => 'pending_approval', 'direction' => 'out', 'inside_geofence' => false]);
+    $outside->assertOk()->assertJson(['outcome' => 'pending_approval', 'direction' => 'out', 'inside_geofence' => false])
+        ->assertJsonPath('message', fn (string $m) => preg_match('/^Saved at \d\d:\d\d, but you are \d+ m from the office \(allowed 150 m\)\. HR will review it\.$/', $m) === 1);
 
     $pending = Punch::where('status', PunchStatus::Pending)->firstOrFail();
     expect($pending->meta['geofence_fail'])->toBeTrue();
@@ -105,6 +106,20 @@ it('accepts a mobile punch inside the geofence and queues one outside for HR', f
     expect($pending->fresh()->status)->toBe(PunchStatus::Valid)
         ->and(AttendanceDay::where('employee_id', $this->emp->id)->whereDate('date', now('Asia/Karachi')->format('Y-m-d'))->value('flags'))
         ->toContain('geofence_fail');
+});
+
+it('tells staff the real reason a phone punch was not simply stored', function () {
+    $this->actingAs($this->user);
+    $this->office->update(['lat' => null, 'lng' => null]);
+    $this->postJson("{$this->base}/me/punch", ['lat' => 31.5205, 'lng' => 74.3588, 'accuracy' => 12])
+        ->assertOk()->assertJson(['outcome' => 'pending_approval', 'message' => 'Saved at 10:00, but your branch has no office location set. HR will review it.']);
+
+    // A machine punch 30 s before: the phone punch is a double tap, not an office-internet problem.
+    $this->travel(2)->minutes();
+    Punch::create(['employee_id' => $this->emp->id, 'punched_at' => now()->utc()->subSeconds(30), 'local_date' => '2026-09-08',
+        'source' => 'adms', 'direction' => 'unknown', 'status' => 'valid', 'dedupe_hash' => md5('machine-30s')]);
+    $this->postJson("{$this->base}/me/punch", ['lat' => 31.5205, 'lng' => 74.3588, 'accuracy' => 12])
+        ->assertOk()->assertJson(['outcome' => 'double_tap', 'message' => 'You had already punched a moment ago, so this one was not counted again.']);
 });
 
 it('lets field staff punch anywhere', function () {

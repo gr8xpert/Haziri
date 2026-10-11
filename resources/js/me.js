@@ -175,13 +175,7 @@ Alpine.data('meApp', ({ canPunch, faceCheck, leaveTypes, locale }) => ({
                 ...(face ? { face } : {}),
             });
             this.messageOk = r.outcome === 'stored';
-            this.message = r.outcome === 'stored'
-                ? `Punched ${r.direction === 'in' ? 'in' : 'out'} at ${r.time}.`
-                : r.face_check && r.face_check !== 'match'
-                  ? `Saved at ${r.time}, but your face could not be confirmed. HR will review it.`
-                  : !r.inside_geofence
-                  ? `Saved at ${r.time}, but you are ${r.distance_m ?? '?'} m from the office. HR will review it.`
-                  : `Saved at ${r.time}, but not from the office internet. HR will review it.`;
+            this.message = r.message; // the server's own reason: duplicate, distance, office internet, face
             await this.load();
         } catch (e) {
             this.messageOk = false;

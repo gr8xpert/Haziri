@@ -95,7 +95,8 @@ it('sends a phone punch from outside the office internet for approval even insid
     $punch = fn (string $ip) => $this->withServerVariables(['REMOTE_ADDR' => $ip])
         ->postJson("{$this->base}/me/punch", ['lat' => 31.5205, 'lng' => 74.3588, 'accuracy' => 10]);
 
-    $punch('110.93.1.5')->assertOk()->assertJson(['outcome' => 'pending_approval', 'inside_geofence' => true, 'office_network' => false]);
+    $punch('110.93.1.5')->assertOk()->assertJson(['outcome' => 'pending_approval', 'inside_geofence' => true, 'office_network' => false])
+        ->assertJsonPath('message', fn (string $m) => str_ends_with($m, ', but not from the office internet. HR will review it.'));
     $this->travel(2)->minutes();
     $punch('39.45.10.22')->assertOk()->assertJson(['outcome' => 'stored', 'office_network' => true]);
 });

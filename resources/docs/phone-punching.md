@@ -31,9 +31,12 @@ When an employee taps **Punch in** (or **Punch out**), the phone asks for the lo
 | GPS is accurate enough (only if **Reject mobile GPS worse than** is set) | *"The GPS signal is too weak (±250 m). Move near a window or outside and try again."* No punch is saved. |
 | A selfie was taken (only if **Selfie required for mobile punch** is on) | *"A selfie is required to punch."* No punch is saved. |
 | Not punched in the last 60 seconds | *"You just punched. Please wait a minute."* |
-| Inside the branch geofence | Saved, but waits for approval. The employee sees *"Saved at 09:14, but you are 820 m from the office. HR will review it."* |
+| Inside the branch geofence | Saved, but waits for approval. The employee sees *"Saved at 09:14, but you are 820 m from the office (allowed 150 m). HR will review it."* If the branch has no location yet: *"…but your branch has no office location set."* |
 | On the office internet (only if the branch has **Office internet addresses**) | Saved, but waits for approval: *"Saved at 09:14, but not from the office internet. HR will review it."* |
 | The selfie face matches the enrolled face (only if the face check is on) | Saved, but waits for approval: *"…your face could not be confirmed. HR will review it."* |
+| No other punch within the double-tap window (60 seconds by default; from any machine, kiosk or phone) | *"You had already punched a moment ago, so this one was not counted again."* |
+
+If more than one check fails, the message names each reason, separated by **;**.
 
 If everything passes, the employee sees *"Punched in at 09:14."* and the punch counts straight away.
 
