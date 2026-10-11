@@ -105,8 +105,8 @@ final class MeController
             'leave_enabled' => $leaveEnabled,
             'balances' => $leaveBalances,
             'requests' => ! $leaveEnabled ? [] : LeaveRequest::query()->with('leaveType')->where('employee_id', $employee->id)->latest()->limit(10)->get()
-                ->map(fn (LeaveRequest $l) => ['type' => $l->leaveType?->code, 'from' => $l->from_date->format('Y-m-d'),
-                    'to' => $l->to_date->format('Y-m-d'), 'days' => $l->days, 'status' => $l->status->value]),
+                ->map(fn (LeaveRequest $l) => ['type' => $l->leaveType?->name ?? $l->leaveType?->code, 'from' => $l->from_date->format('Y-m-d'),
+                    'to' => $l->to_date->format('Y-m-d'), 'days' => $l->days, 'status' => $l->status->value, 'status_label' => $l->status->getLabel()]),
             'announcements' => Announcement::visibleTo($employee)->limit(5)->get()
                 ->map(fn (Announcement $a) => ['id' => $a->id, 'title' => $a->title, 'body' => $a->body, 'requires_ack' => $a->requires_ack,
                     'acked' => $a->acks->contains('employee_id', $employee->id)]),

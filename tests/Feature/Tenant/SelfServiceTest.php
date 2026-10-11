@@ -19,6 +19,8 @@ use App\Models\Device;
 use App\Models\Employee;
 use App\Models\Holiday;
 use App\Models\Kiosk;
+use App\Models\LeaveRequest;
+use App\Models\LeaveType;
 use App\Models\NotificationLog;
 use App\Models\Punch;
 use App\Models\SalaryStructure;
@@ -331,4 +333,13 @@ it('lets an employee download their own payslip once the payroll is final', func
     $pdf = $this->get("{$this->base}/me/payslip.pdf?month=2026-08")->assertOk();
     expect($pdf->headers->get('content-disposition'))->toContain('payslip-SS1-2026-08.pdf');
     $this->get("{$this->base}/me/payslip.pdf?month=2026-07")->assertNotFound();
+});
+
+it('lists my leave requests by leave type name with a readable status', function () {
+    $type = LeaveType::create(['name' => 'Casual leave', 'code' => 'CLX', 'annual_quota_days' => 10]);
+    LeaveRequest::create(['employee_id' => $this->emp->id, 'leave_type_id' => $type->id, 'from_date' => '2026-09-10', 'to_date' => '2026-09-10',
+        'days' => 1, 'status' => 'pending']);
+
+    $this->actingAs($this->user)->getJson("{$this->base}/me/attendance")
+        ->assertJsonPath('requests.0.type', 'Casual leave')->assertJsonPath('requests.0.status', 'pending')->assertJsonPath('requests.0.status_label', 'Pending');
 });

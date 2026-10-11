@@ -116,7 +116,7 @@ To ask for leave:
 5. Add an **Attachment** if needed, for example a medical certificate for sick leave (photo or PDF, up to 5 MB).
 6. Tap **Send request**.
 
-Your request shows under **My requests** as *pending*. Your manager and/or HR then approve or reject it, and the status changes to *approved* or *rejected*. Weekly offs and holidays inside your dates are normally not counted.
+Your request shows under **My requests** with the leave type's name and the status **Pending**. Your manager and/or HR then approve or reject it, and the status changes to **Approved** or **Rejected**. Weekly offs and holidays inside your dates are normally not counted.
 
 ## Correction
 

@@ -263,7 +263,7 @@
                             <div class="font-medium"><span x-text="r.type"></span> <span class="text-zinc-400" x-text="r.days ? `· ${r.days} {{ __('day(s)') }}` : ''"></span></div>
                             <div class="text-xs text-zinc-500 tabular-nums dark:text-zinc-400" x-text="r.from === r.to ? r.from : `${r.from} {{ __('to') }} ${r.to}`"></div>
                         </div>
-                        <span class="me-chip capitalize" :class="requestTone(r.status)" x-text="r.status"></span>
+                        <span class="me-chip" :class="requestTone(r.status)" x-text="r.status_label ?? r.status"></span>
                     </li>
                 </template>
             </ul>
