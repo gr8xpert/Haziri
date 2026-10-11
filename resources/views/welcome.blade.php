@@ -13,7 +13,7 @@
     @fonts
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-<body class="bg-white text-zinc-950 antialiased dark:bg-zinc-950 dark:text-zinc-50">
+<body class="bg-white text-zinc-950 antialiased dark:bg-zinc-950 dark:text-zinc-50" x-data="{ signin: false }" @keydown.escape.window="signin = false">
 
     <a href="#main" class="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:rounded-lg focus:bg-brand focus:px-4 focus:py-2 focus:text-white">Skip to content</a>
 
@@ -28,8 +28,9 @@
                 <a href="#devices" class="transition hover:text-zinc-950 dark:hover:text-white">Devices</a>
                 <a href="#faq" class="transition hover:text-zinc-950 dark:hover:text-white">FAQ</a>
                 <a href="/help" class="transition hover:text-zinc-950 dark:hover:text-white">Help</a>
+                <a href="#contact" class="transition hover:text-zinc-950 dark:hover:text-white">Contact</a>
             </div>
-            <a href="#signin" class="ms-auto inline-flex items-center gap-1.5 rounded-lg bg-zinc-950 px-3.5 py-2 text-sm font-medium text-white transition hover:bg-zinc-800 active:scale-[0.98] dark:bg-white dark:text-zinc-950 dark:hover:bg-zinc-200">
+            <a href="#signin" @click.prevent="signin = true" class="ms-auto inline-flex items-center gap-1.5 rounded-lg bg-zinc-950 px-3.5 py-2 text-sm font-medium text-white transition hover:bg-zinc-800 active:scale-[0.98] dark:bg-white dark:text-zinc-950 dark:hover:bg-zinc-200">
                 Sign in
             </a>
         </nav>
@@ -48,7 +49,7 @@
                         Connect your ZKTeco machines, let staff punch from their phones, and close every month with clean reports.
                     </p>
                     <div class="mt-8 flex flex-wrap items-center gap-3">
-                        <a href="#signin" class="inline-flex items-center gap-2 rounded-xl bg-brand px-5 py-3 font-semibold text-white shadow-sm transition hover:bg-brand-dark active:scale-[0.98] dark:bg-emerald-500 dark:text-emerald-950 dark:hover:bg-emerald-400">
+                        <a href="#signin" @click.prevent="signin = true" class="inline-flex items-center gap-2 rounded-xl bg-brand px-5 py-3 font-semibold text-white shadow-sm transition hover:bg-brand-dark active:scale-[0.98] dark:bg-emerald-500 dark:text-emerald-950 dark:hover:bg-emerald-400">
                             Sign in to your company
                             @svg('heroicon-m-arrow-right', 'size-4 rtl:rotate-180')
                         </a>
@@ -274,27 +275,73 @@
             </div>
         </section>
 
-        {{-- Sign in --}}
-        <section id="signin" class="scroll-mt-20 px-4 pb-24 sm:px-6">
+        {{-- Contact: the form emails us (ContactController → config hazri.contact_email) --}}
+        <section id="contact" class="scroll-mt-20 px-4 pb-24 sm:px-6">
             <div class="mx-auto max-w-6xl overflow-hidden rounded-3xl bg-brand-deep px-5 py-12 text-white sm:px-12 md:py-16">
-                <div class="grid items-center gap-10 lg:grid-cols-2">
+                <div class="grid gap-10 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-14">
                     <div class="min-w-0">
-                        <h2 class="text-3xl font-semibold tracking-tight text-balance">Sign in to your company</h2>
-                        <p class="mt-3 max-w-[46ch] text-emerald-100/75">Enter the address your company uses on Haziri. Admins land in the dashboard, employees can open the app at the same address followed by /me.</p>
+                        <h2 class="text-3xl font-semibold tracking-tight text-balance">Talk to us</h2>
+                        <p class="mt-3 max-w-[42ch] text-emerald-100/75">Want a demo for your team, a price for your number of staff, or help connecting your machines? Send us a message and we will reply by email, usually within one working day.</p>
                     </div>
-                    <form x-data="{ slug: '' }"
-                          @submit.prevent="if (slug.trim()) window.location.href = `${location.protocol}//${slug.trim().toLowerCase()}.{{ $domain }}${location.port ? ':' + location.port : ''}/admin`"
-                          class="flex min-w-0 flex-col gap-3 sm:flex-row">
-                        <label for="company-slug" class="sr-only">Company address</label>
-                        <div class="flex min-w-0 flex-1 items-center rounded-xl bg-white/10 ring-1 ring-white/20 transition focus-within:ring-2 focus-within:ring-emerald-300">
-                            <input id="company-slug" x-model="slug" required autocomplete="organization" autocapitalize="none" spellcheck="false" pattern="[A-Za-z0-9-]+"
-                                   placeholder="yourcompany" class="min-w-0 flex-1 bg-transparent py-3 ps-4 text-base text-white placeholder:text-white/40 focus:outline-none">
-                            <span class="max-w-[50%] shrink-0 truncate pe-4 text-white/60">.{{ $domain }}</span>
-                        </div>
-                        <button class="inline-flex items-center justify-center gap-2 rounded-xl bg-white px-5 py-3 font-semibold text-brand-deep transition hover:bg-emerald-50 active:scale-[0.98]">
-                            Continue @svg('heroicon-m-arrow-right', 'size-4 rtl:rotate-180')
-                        </button>
-                    </form>
+
+                    <div class="min-w-0">
+                        @if (session('contact_sent'))
+                            <div class="flex h-full flex-col items-start justify-center rounded-2xl bg-white/10 p-8 ring-1 ring-white/15" role="status">
+                                @svg('heroicon-o-check-circle', 'size-10 text-emerald-300')
+                                <h3 class="mt-4 text-xl font-semibold">Thank you, your message is on its way.</h3>
+                                <p class="mt-2 text-emerald-100/75">We will reply to the email address you gave us, usually within one working day.</p>
+                            </div>
+                        @else
+                            <form method="post" action="/contact" class="grid gap-4 sm:grid-cols-2" novalidate>
+                                @csrf
+                                @if (session('contact_error'))
+                                    <p class="rounded-xl bg-red-500/15 px-4 py-3 text-sm text-red-100 ring-1 ring-red-300/30 sm:col-span-2" role="alert">{{ session('contact_error') }}</p>
+                                @endif
+                                {{-- Honeypot: hidden from people, bots fill it in. --}}
+                                <div class="hidden" aria-hidden="true"><label>Website <input type="text" name="website" tabindex="-1" autocomplete="off"></label></div>
+
+                                @foreach ([
+                                    ['name', 'Your name', 'text', 'name', true, ''],
+                                    ['email', 'Email', 'email', 'email', true, ''],
+                                    ['phone', 'Phone (optional)', 'tel', 'tel', false, '03xx xxxxxxx'],
+                                    ['company', 'Company (optional)', 'text', 'organization', false, ''],
+                                ] as [$field, $label, $type, $autocomplete, $required, $placeholder])
+                                    <div>
+                                        <label for="contact-{{ $field }}" class="mb-1.5 block text-sm font-medium text-emerald-50">{{ $label }}</label>
+                                        <input id="contact-{{ $field }}" name="{{ $field }}" type="{{ $type }}" value="{{ old($field) }}" autocomplete="{{ $autocomplete }}" placeholder="{{ $placeholder }}" @required($required)
+                                               @class(['w-full rounded-xl bg-white/10 px-4 py-3 text-base text-white ring-1 transition placeholder:text-white/35 focus:bg-white/15 focus:outline-none focus:ring-2 focus:ring-emerald-300', 'ring-red-300' => $errors->has($field), 'ring-white/20' => ! $errors->has($field)])
+                                               @error($field) aria-invalid="true" aria-describedby="contact-{{ $field }}-error" @enderror>
+                                        @error($field)<p id="contact-{{ $field }}-error" class="mt-1.5 text-sm text-red-200">{{ $message }}</p>@enderror
+                                    </div>
+                                @endforeach
+
+                                <div class="sm:col-span-2">
+                                    <label for="contact-employees" class="mb-1.5 block text-sm font-medium text-emerald-50">How many employees? (optional)</label>
+                                    <select id="contact-employees" name="employees" class="w-full rounded-xl bg-white/10 px-4 py-3 text-base text-white ring-1 ring-white/20 transition focus:bg-white/15 focus:outline-none focus:ring-2 focus:ring-emerald-300 [&>option]:text-zinc-950">
+                                        <option value="">Choose…</option>
+                                        @foreach (['1-50', '51-200', '201-500', '500+'] as $size)
+                                            <option value="{{ $size }}" @selected(old('employees') === $size)>{{ $size }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+
+                                <div class="sm:col-span-2">
+                                    <label for="contact-message" class="mb-1.5 block text-sm font-medium text-emerald-50">Message</label>
+                                    <textarea id="contact-message" name="message" rows="4" required placeholder="Tell us what you need: a demo, a price, help with machines…"
+                                              @class(['w-full rounded-xl bg-white/10 px-4 py-3 text-base text-white ring-1 transition placeholder:text-white/35 focus:bg-white/15 focus:outline-none focus:ring-2 focus:ring-emerald-300', 'ring-red-300' => $errors->has('message'), 'ring-white/20' => ! $errors->has('message')])
+                                              @error('message') aria-invalid="true" aria-describedby="contact-message-error" @enderror>{{ old('message') }}</textarea>
+                                    @error('message')<p id="contact-message-error" class="mt-1.5 text-sm text-red-200">{{ $message }}</p>@enderror
+                                </div>
+
+                                <div class="flex flex-wrap items-center gap-4 sm:col-span-2">
+                                    <button class="inline-flex items-center justify-center gap-2 rounded-xl bg-white px-6 py-3 font-semibold text-brand-deep transition hover:bg-emerald-50 active:scale-[0.98]">
+                                        Send message @svg('heroicon-m-paper-airplane', 'size-4 rtl:rotate-180')
+                                    </button>
+                                    <span class="text-sm text-emerald-100/60">We only use your details to reply to you.</span>
+                                </div>
+                            </form>
+                        @endif
+                    </div>
                 </div>
             </div>
         </section>
@@ -315,6 +362,7 @@
                             <li><a href="#features" class="hover:text-zinc-950 dark:hover:text-white">Features</a></li>
                             <li><a href="#devices" class="hover:text-zinc-950 dark:hover:text-white">Devices</a></li>
                             <li><a href="#faq" class="hover:text-zinc-950 dark:hover:text-white">FAQ</a></li>
+                            <li><a href="#contact" class="hover:text-zinc-950 dark:hover:text-white">Contact us</a></li>
                         </ul>
                     </div>
                     <div>
@@ -323,7 +371,7 @@
                             <li><a href="/help" class="hover:text-zinc-950 dark:hover:text-white">User guide</a></li>
                             <li><a href="/help/staff-app" class="hover:text-zinc-950 dark:hover:text-white">For employees</a></li>
                             <li><a href="/help/troubleshooting" class="hover:text-zinc-950 dark:hover:text-white">Troubleshooting</a></li>
-                            <li><a href="#signin" class="hover:text-zinc-950 dark:hover:text-white">Sign in</a></li>
+                            <li><a href="#signin" @click.prevent="signin = true" class="hover:text-zinc-950 dark:hover:text-white">Sign in</a></li>
                         </ul>
                     </div>
                 </nav>
@@ -331,5 +379,29 @@
             <div class="mt-10 border-t border-zinc-950/[0.06] pt-6 text-sm text-zinc-500 dark:border-white/[0.06] dark:text-zinc-400">&copy; {{ date('Y') }} Haziri</div>
         </div>
     </footer>
+
+    {{-- Sign in: the header, hero and footer "Sign in" links open this; it sends the visitor to their company's address. --}}
+    <div x-cloak x-show="signin" x-transition.opacity class="fixed inset-0 z-50 flex items-start justify-center bg-zinc-950/50 px-4 pt-[15vh] backdrop-blur-sm" @click.self="signin = false" role="dialog" aria-modal="true" aria-labelledby="signin-title">
+        <div class="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl ring-1 ring-zinc-950/10 dark:bg-zinc-900 dark:ring-white/10">
+            <div class="flex items-start justify-between gap-4">
+                <h2 id="signin-title" class="text-xl font-semibold tracking-tight">Sign in to your company</h2>
+                <button type="button" @click="signin = false" class="-m-1 rounded-lg p-1 text-zinc-500 hover:bg-zinc-100 dark:hover:bg-white/10" aria-label="Close">@svg('heroicon-m-x-mark', 'size-5')</button>
+            </div>
+            <p class="mt-2 text-sm text-zinc-600 dark:text-zinc-400">Enter the address your company uses. Admins land in the dashboard; employees can open the same address followed by /me.</p>
+            <form x-data="{ slug: '' }"
+                  @submit.prevent="if (slug.trim()) window.location.href = `${location.protocol}//${slug.trim().toLowerCase()}.{{ $domain }}${location.port ? ':' + location.port : ''}/admin`"
+                  class="mt-5 space-y-3">
+                <label for="company-slug" class="sr-only">Company address</label>
+                <div class="flex min-w-0 items-center rounded-xl bg-zinc-100 ring-1 ring-transparent transition focus-within:bg-white focus-within:ring-2 focus-within:ring-brand dark:bg-white/10 dark:focus-within:bg-zinc-900 dark:focus-within:ring-emerald-400">
+                    <input id="company-slug" x-model="slug" x-effect="if (signin) $nextTick(() => $el.focus())" required autocomplete="organization" autocapitalize="none" spellcheck="false" pattern="[A-Za-z0-9-]+"
+                           placeholder="yourcompany" class="min-w-0 flex-1 bg-transparent py-3 ps-4 text-base focus:outline-none">
+                    <span class="max-w-[55%] shrink-0 truncate pe-4 text-zinc-500">.{{ $domain }}</span>
+                </div>
+                <button class="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-brand px-5 py-3 font-semibold text-white transition hover:bg-brand-dark active:scale-[0.98] dark:bg-emerald-500 dark:text-emerald-950 dark:hover:bg-emerald-400">
+                    Continue @svg('heroicon-m-arrow-right', 'size-4 rtl:rotate-180')
+                </button>
+            </form>
+        </div>
+    </div>
 </body>
 </html>

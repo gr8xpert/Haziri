@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\ContactController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -14,6 +15,7 @@ foreach (config('tenancy.central_domains') as $domain) {
     }
     Route::domain($domain)->group(function () use ($domain) {
         Route::get('/', fn () => view('welcome'))->name('central.home.' . $domain);
+        Route::post('/contact', ContactController::class)->middleware('throttle:5,10');
         require __DIR__ . '/help.php';
     });
 }

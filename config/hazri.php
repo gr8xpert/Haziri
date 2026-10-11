@@ -22,6 +22,9 @@ return [
     'adms_domain' => env('HAZRI_ADMS_DOMAIN', 'adms.' . env('HAZRI_CENTRAL_DOMAIN', 'hazri.localhost')),
     'api_domain' => env('HAZRI_API_DOMAIN', 'api.' . env('HAZRI_CENTRAL_DOMAIN', 'hazri.localhost')),
 
+    // Where the landing page contact form sends enquiries.
+    'contact_email' => env('HAZRI_CONTACT_EMAIL', 'gr8xpert@gmail.com'),
+
     /*
     | The public demo company (hazri:demo:reset rebuilds it every night). Messages from it are logged, never sent,
     | its logins can't be changed, and the login page shows them. Empty = no public demo.
