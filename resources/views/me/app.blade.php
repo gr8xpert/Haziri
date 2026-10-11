@@ -340,6 +340,7 @@
                         <div class="min-w-0">
                             <p class="font-semibold" x-text="`${s.date} · ${s.with}`"></p>
                             <p class="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400" x-text="s.shifts"></p>
+                            <p x-show="s.note" class="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400" x-text="`{{ __('Reason') }}: ${s.note}`"></p>
                         </div>
                         <span class="shrink-0 rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-medium dark:bg-white/10" x-text="s.status"></span>
                     </div>

@@ -95,6 +95,31 @@ it('lets a manager see and decide only the shift swaps of their own team', funct
         ->toThrow(ValidationException::class, 'You cannot approve shift swaps.');
 });
 
+it('asks before approving a shift swap and needs a reason to reject one', function () {
+    Filament::setCurrentPanel(Filament::getPanel('tenant'));
+    $this->actingAs($this->owner);
+    $a = Employee::create(['code' => 'SWR', 'first_name' => 'Ar', 'joined_on' => '2025-01-01']);
+    $b = Employee::create(['code' => 'SWS', 'first_name' => 'Bs', 'joined_on' => '2025-01-01']);
+    ShiftAssignment::create(['employee_id' => $b->id, 'shift_id' => $this->evening->id, 'effective_from' => '2026-01-01']);
+    $swap = ShiftSwapRequest::create(['requester_employee_id' => $a->id, 'partner_employee_id' => $b->id, 'date' => '2026-10-20']);
+
+    $page = Livewire::test(ManageShiftSwaps::class)->mountTableAction('approve', $swap);
+    expect($page->instance()->getMountedAction()->isConfirmationRequired())->toBeTrue()
+        ->and($page->instance()->getMountedAction()->getModalHeading())->toBe('Approve this shift swap?')
+        ->and($swap->fresh()->status)->toBe(ShiftSwapStatus::Pending);
+
+    Livewire::test(ManageShiftSwaps::class)
+        ->callTableAction('reject', $swap, data: ['note' => ''])
+        ->assertHasTableActionErrors(['note' => 'required']);
+    Livewire::test(ManageShiftSwaps::class)
+        ->callTableAction('reject', $swap, data: ['note' => 'Short-staffed that night'])
+        ->assertHasNoTableActionErrors();
+
+    expect($swap->fresh())->status->toBe(ShiftSwapStatus::Rejected)->decision_note->toBe('Short-staffed that night')
+        ->and(fn () => app(ApproveShiftSwap::class)(ShiftSwapRequest::create(['requester_employee_id' => $a->id, 'partner_employee_id' => $b->id, 'date' => '2026-10-22']), $this->owner, false))
+        ->toThrow(ValidationException::class, 'Give a reason for rejecting the swap.');
+});
+
 it('scores punctuality', function () {
     $days = collect([
         new AttendanceDay(['status' => AttendanceStatus::Present, 'flags' => []]),

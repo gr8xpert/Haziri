@@ -151,6 +151,7 @@ final class MeController
                 'with' => ($s->requester_employee_id === $employee->id ? $s->partner : $s->requester)?->fullName(),
                 'shifts' => $describe->describe($s->requester, $s->partner, $s->date->format('Y-m-d')),
                 'can_answer' => $s->partner_employee_id === $employee->id && $s->status === ShiftSwapStatus::Partner,
+                'note' => $s->decision_note,
             ])->all();
         $colleagues = RequestShiftSwap::colleagues($employee)->orderBy('first_name')->limit(500)->get()
             ->map(fn (Employee $e) => ['id' => $e->id, 'name' => "{$e->fullName()} ({$e->code})"])->all();

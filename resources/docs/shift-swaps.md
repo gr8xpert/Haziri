@@ -39,12 +39,13 @@ Each step sends a notice to the next person: the colleague when asked, HR and th
 | **Swaps with** | The colleague. |
 | **Reason** | What the employee wrote. |
 | **Status** | See the table above. |
+| **Rejection reason** | Why the swap was rejected. |
 
 Use the **filters** button to see other statuses, for example everything already approved.
 
 ## Approve or reject
 
-Click **Approve** or **Reject** on a row that is *Waiting for approval*. There is no extra question; the decision is saved straight away.
+Click **Approve** or **Reject** on a row that is *Waiting for approval*. {app} shows both people's shifts for that date and asks you to confirm. To reject, you must write a **Reason**; it shows in the *Rejection reason* column and to the employee in the staff app.
 
 When you approve, {app} checks again that both employees still have a shift that day and that the shifts are different. Each employee then gets the other's shift for that one date, as if you had changed it on the [Roster](/help/roster). Their attendance for that day is worked out again.
 

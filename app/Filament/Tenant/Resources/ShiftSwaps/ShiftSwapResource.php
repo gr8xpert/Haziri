@@ -14,6 +14,7 @@ use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
@@ -115,15 +116,21 @@ class ShiftSwapResource extends Resource
                 TextColumn::make('partner.first_name')->label('Swaps with')->formatStateUsing(fn (ShiftSwapRequest $r) => $r->partner?->fullName()),
                 TextColumn::make('reason')->limit(30),
                 TextColumn::make('status')->badge(),
+                TextColumn::make('decision_note')->label('Rejection reason')->limit(40)->placeholder('—')->toggleable(),
             ])
             ->filters([SelectFilter::make('status')->options(ShiftSwapStatus::class)->default(ShiftSwapStatus::Pending->value)])
             ->recordActions([
                 ...array_map(fn (bool $ok) => Action::make($ok ? 'approve' : 'reject')->color($ok ? 'success' : 'danger')
                     ->icon($ok ? Heroicon::OutlinedShieldCheck : Heroicon::OutlinedExclamationTriangle)
                     ->visible(fn (ShiftSwapRequest $r) => $r->status === ShiftSwapStatus::Pending && ApproveShiftSwap::canDecide(auth()->user(), $r))
-                    ->action(function (ShiftSwapRequest $record, ApproveShiftSwap $approve) use ($ok) {
+                    ->requiresConfirmation()
+                    ->modalHeading($ok ? __('Approve this shift swap?') : __('Reject this shift swap?'))
+                    ->modalDescription(fn (ShiftSwapRequest $r) => app(ApproveShiftSwap::class)->describe($r->requester, $r->partner, $r->date->format('Y-m-d'))
+                        . ($ok ? ' ' . __("Each gets the other's shift for this date.") : ''))
+                    ->schema($ok ? [] : [Textarea::make('note')->label('Reason')->required()->maxLength(500)])
+                    ->action(function (ShiftSwapRequest $record, array $data, ApproveShiftSwap $approve) use ($ok) {
                         try {
-                            $approve($record, auth()->user(), $ok);
+                            $approve($record, auth()->user(), $ok, $data['note'] ?? null);
                             Notification::make()->success()->title($ok ? __('Swap approved') : __('Swap rejected'))->send();
                         } catch (ValidationException $e) {
                             Notification::make()->danger()->title(implode(' ', $e->validator->errors()->all()))->send();

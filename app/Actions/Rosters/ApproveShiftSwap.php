@@ -19,7 +19,7 @@ final class ApproveShiftSwap
 {
     public function __construct(private readonly ShiftResolver $shifts) {}
 
-    public function __invoke(ShiftSwapRequest $swap, User $by, bool $approve): ShiftSwapRequest
+    public function __invoke(ShiftSwapRequest $swap, User $by, bool $approve, ?string $note = null): ShiftSwapRequest
     {
         if ($swap->status !== ShiftSwapStatus::Pending) {
             throw ValidationException::withMessages(['swap' => __('This request is not waiting for approval.')]);
@@ -27,8 +27,12 @@ final class ApproveShiftSwap
         if (! self::canDecide($by, $swap)) {
             throw ValidationException::withMessages(['swap' => __('You cannot approve shift swaps.')]);
         }
+        $note = trim((string) $note) ?: null;
+        if (! $approve && $note === null) {
+            throw ValidationException::withMessages(['note' => __('Give a reason for rejecting the swap.')]);
+        }
 
-        return DB::transaction(function () use ($swap, $by, $approve) {
+        return DB::transaction(function () use ($swap, $by, $approve, $note) {
             if ($approve) {
                 $date = $swap->date->format('Y-m-d');
                 [$a, $b] = $this->shiftIds($swap->requester, $swap->partner, $date);
@@ -37,7 +41,7 @@ final class ApproveShiftSwap
                     ShiftAssignment::create(['employee_id' => $employeeId, 'shift_id' => $shiftId, 'effective_from' => $date, 'effective_to' => $date]);
                 }
             }
-            $swap->update(['status' => $approve ? ShiftSwapStatus::Approved : ShiftSwapStatus::Rejected, 'decided_by' => $by->id, 'decided_at' => now()]);
+            $swap->update(['status' => $approve ? ShiftSwapStatus::Approved : ShiftSwapStatus::Rejected, 'decided_by' => $by->id, 'decided_at' => now(), 'decision_note' => $note]);
 
             return $swap;
         });

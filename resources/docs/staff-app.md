@@ -138,7 +138,7 @@ If your company uses rosters, you can also ask a colleague to swap shifts for on
 
 1. Under **Swap a shift**, choose the **Date** and the colleague in **Swap with**.
 2. Tap **Ask my colleague**.
-3. Your colleague taps **Accept** or **Decline** in their app. After they accept, your manager or HR must approve it.
+3. Your colleague taps **Accept** or **Decline** in their app. After they accept, your manager or HR must approve it. If it is rejected, the reason shows under the request.
 
 ## Common problems
 
