@@ -154,6 +154,29 @@ it('counts a one-off bonus in the yearly income once and taxes it in the bonus m
     expect($september->meta['tax'])->toBe(3946);
 });
 
+it('pays someone who joined or left during the month only for the days employed', function () {
+    payrollFeatures(['payroll_tax' => false, 'payroll_social' => false, 'payroll_pf' => false]);
+    $joiner = Employee::create(['code' => 'FP2', 'first_name' => 'Nadia', 'joined_on' => '2026-08-17']);
+    $leaver = Employee::create(['code' => 'FP3', 'first_name' => 'Omar', 'joined_on' => '2025-01-01']);
+    $leaver->forceFill(['left_on' => '2026-08-10'])->saveQuietly();
+    foreach ([$joiner, $leaver] as $e) {
+        SalaryStructure::create(['employee_id' => $e->id, 'effective_from' => '2025-01-01', 'basic' => 31000]);
+    }
+    fullMonth($this->emp, 2026, 8);
+    fullMonth($leaver, 2026, 8, 10);
+    foreach (range(17, 31) as $d) {
+        AttendanceDay::create(['employee_id' => $joiner->id, 'date' => sprintf('2026-08-%02d', $d), 'flags' => [], 'status' => AttendanceStatus::Present]);
+    }
+
+    $slips = ($this->runFor)(2026, 8)->payslips()->get()->keyBy('employee_id');
+
+    // 31,000 ÷ 31 = 1,000 a day: joined on the 17th → 15 days; left on the 10th → 10 days
+    expect($slips[$joiner->id]->net)->toBe(15000)
+        ->and(collect($slips[$joiner->id]->lines)->firstWhere('code', 'not_employed')['amount'])->toBe(16000)
+        ->and($slips[$leaver->id]->net)->toBe(10000)
+        ->and($slips[$this->emp->id]->net)->toBe(150000);
+});
+
 it('leaves statutory lines off when those features are switched off', function () {
     payrollFeatures(['payroll_tax' => false, 'payroll_social' => false, 'payroll_pf' => false]);
     fullMonth($this->emp, 2026, 8);

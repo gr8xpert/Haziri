@@ -56,6 +56,7 @@ All amounts are whole rupees.
 - Earnings = **Basic** + all **Allowances** + overtime.
 - Per-day rate = (basic + allowances) ÷ the divisor chosen on [Payroll rules](/help/payroll-rules): days in the month, 30, or 26.
 - Attendance deduction = deduction days × per-day rate. Deduction days come from the locked month: absent days, unpaid leave, half days and late roll-ups, as set in [Company settings](/help/company-settings).
+- Someone who joined or left during the month gets per-day rate × the days they were employed (never more than the full salary). The days before joining or after leaving show as a **Not employed** deduction.
 
 Example: basic Rs 60,000 + house rent Rs 20,000 = Rs 80,000. In a 30-day month with the divisor "Days in the pay month", the per-day rate is Rs 2,667. With 2 absent days, the deduction is Rs 5,334.
 

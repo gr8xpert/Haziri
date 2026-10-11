@@ -72,7 +72,7 @@ final class StatutoryPayroll
                 if ($l['type'] === 'earning' && ($l['taxable'] ?? true)) {
                     $taxable += $l['amount'];
                     $oneOff += ($l['code'] ?? '') === 'pay_item' ? $l['amount'] : 0;
-                } elseif ($l['type'] === 'deduction' && ($l['code'] ?? '') === 'attendance') {
+                } elseif ($l['type'] === 'deduction' && in_array($l['code'] ?? '', ['attendance', 'not_employed'], true)) {
                     $taxable -= $l['amount']; // salary not paid is not income
                 }
             }

@@ -60,8 +60,13 @@ final class PayrollActions
                 ->where('overtime_min', '>', 0)->get()->groupBy('employee_id');
 
             $totals = ['employees' => 0, 'gross' => 0, 'deductions' => 0, 'net' => 0, 'skipped_no_structure' => 0];
+            $periodDays = (int) $start->diffInDays($end) + 1;
             foreach ($summaries as $employeeId => $summary) {
                 $employee = Employee::withTrashed()->find($employeeId);
+                $notEmployed = $employee ? self::daysNotEmployed($employee, $start, $end) : 0;
+                if ($notEmployed >= $periodDays) {
+                    continue;
+                }
                 $structure = $employee ? SalaryStructure::effectiveFor($employee->id, $end->format('Y-m-d')) : null;
                 if ($structure === null) {
                     $totals['skipped_no_structure']++;
@@ -75,7 +80,7 @@ final class PayrollActions
 
                 $isDailyWage = $employee->employment_type === EmploymentType::DailyWage;
                 $slip = $this->calculator->calculate($structure, $summary, $isDailyWage,
-                    (int) $start->diffInDays($end) + 1, $divisor, (int) $ot->sum('overtime_min') - $holidayOt, $holidayOt, $advances);
+                    $periodDays, $divisor, (int) $ot->sum('overtime_min') - $holidayOt, $holidayOt, $advances, $notEmployed);
                 $slip = $this->statutory->apply($employee, $structure, $slip, $period->year, $period->month, $end->format('Y-m-d'), $isDailyWage);
 
                 Payslip::create(['payroll_run_id' => $run->id, 'employee_id' => $employee->id, 'lines' => $slip['lines'],
@@ -94,6 +99,17 @@ final class PayrollActions
 
             return $run;
         });
+    }
+
+    /** Days of the pay month before the employee joined or after they left. */
+    private static function daysNotEmployed(Employee $employee, CarbonImmutable $start, CarbonImmutable $end): int
+    {
+        $before = $employee->joined_on === null ? 0
+            : (int) $start->diffInDays(CarbonImmutable::parse($employee->joined_on->format('Y-m-d')), false);
+        $after = $employee->left_on === null ? 0
+            : (int) CarbonImmutable::parse($employee->left_on->format('Y-m-d'))->diffInDays($end, false);
+
+        return max(0, $before) + max(0, $after);
     }
 
     public function finalise(PayrollRun $run, User $by): PayrollRun

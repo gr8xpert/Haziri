@@ -10,7 +10,8 @@ use App\Models\SalaryStructure;
 /**
  * Payroll-lite (spec §9 phase 3): structure + locked period numbers → earnings, deductions, net. Integer rupees.
  *
- * Monthly staff:  gross = basic + allowances; attendance deduction = deduction days × (gross ÷ divisor).
+ * Monthly staff:  gross = basic + allowances; attendance deduction = deduction days × (gross ÷ divisor). Someone who
+ *                 joined or left during the month gets per-day rate × days employed (at most the full salary).
  * Daily wage:     gross = per_day_rate × payable days; no separate attendance deduction (already in payable days).
  * Overtime:       hours × overtime_rate_normal, holiday/weekly-off hours × overtime_rate_holiday (falls back to normal).
  * Divisor:        setting payroll_day_divisor = "calendar" (days in month, default) or a fixed number like 30 / 26.
@@ -20,6 +21,7 @@ final class PayslipCalculator
     /**
      * @param  array<string, mixed>  $summary  PeriodSummary::toArray() for the employee
      * @param  list<Advance>  $advances  active advances
+     * @param  int  $daysNotEmployed  days of the pay month before joining or after leaving
      * @return array{lines: list<array{label: string, type: string, amount: int, code: string, taxable?: bool}>, gross: int, deductions: int, net: int, per_day: int}
      */
     public function calculate(
@@ -31,6 +33,7 @@ final class PayslipCalculator
         int $overtimeNormalMin,
         int $overtimeHolidayMin,
         array $advances,
+        int $daysNotEmployed = 0,
     ): array {
         $lines = [];
         // code: what the line is, for tax / statutory rules and reports. taxable: false for exempt allowances.
@@ -55,6 +58,10 @@ final class PayslipCalculator
             }
             $monthly = (int) $structure->basic + $structure->allowancesTotal();
             $perDay = self::perDayRate($monthly, $daysInMonth, $divisor);
+            if ($daysNotEmployed > 0) {
+                $employedPay = min($monthly, $perDay * max(0, $daysInMonth - $daysNotEmployed));
+                $deduct(sprintf('Not employed (%d days before joining or after leaving)', $daysNotEmployed), $monthly - $employedPay, 'not_employed');
+            }
             $deductionDays = (float) $summary['deductionDays'];
             if ($deductionDays > 0) {
                 $deduct(sprintf('Attendance deduction (%s days × Rs %s)', rtrim(rtrim(number_format($deductionDays, 2), '0'), '.'), number_format($perDay)),

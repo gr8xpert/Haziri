@@ -45,7 +45,7 @@ Before you start, the month must be locked under **Attendance → Months (lock)*
 
 If the month already has a draft run, **Run payroll** recalculates it. Nothing is duplicated.
 
-Who is included: every employee who has attendance in the locked month and has a salary structure in force on the last day of the month. This includes people who joined or left during the month, so check their lines on the salary sheet.
+Who is included: every employee who has attendance in the locked month and has a salary structure in force on the last day of the month. This includes people who joined or left during the month: monthly staff are paid only for the days they were employed (a **Not employed** line takes off the days before joining or after leaving). Check their lines on the salary sheet.
 
 ## Check the draft
 
