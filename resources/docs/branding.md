@@ -40,7 +40,7 @@ screens: branding=/admin/branding
 
 1. Go to **System → Branding & domain**.
 2. Fill in the names you want.
-3. To change the logo or icon, drag the image onto the box, or click it and choose the file. The box stays empty when the page opens, even if a logo is already saved; leave it empty to keep the current one.
+3. To change the logo or icon, drag the image onto the box, or click it and choose the file. The saved logo and icon are shown above the form under **Current logo and icon**; leave the upload box empty to keep them. To go back to no logo or icon, click **Remove** under it and confirm.
 4. Pick a **Theme colour**.
 5. Click **Save branding**. You see *Branding saved*.
 

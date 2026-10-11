@@ -49,6 +49,18 @@ final class SaveBranding
         $this->settings->flush();
     }
 
+    /** Removes the uploaded logo or icon, so the default look (or, for the icon, the logo) is used again. */
+    public function removeImage(string $which): void
+    {
+        $key = match ($which) {
+            'logo' => 'brand_logo',
+            'icon' => 'brand_icon',
+            default => throw new \InvalidArgumentException("Unknown branding image {$which}"),
+        };
+        Setting::query()->where('key', $key)->delete();
+        $this->settings->flush();
+    }
+
     private static function dataUrl(string $bytes, string $field): string
     {
         $mime = (new \finfo(FILEINFO_MIME_TYPE))->buffer($bytes);

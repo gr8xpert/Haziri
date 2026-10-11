@@ -4,6 +4,25 @@
             :description="__('Contact them to change your logo, colours or names.')" />
     @endif
     <form wire:submit="save" class="flex flex-col gap-4">
+        @if ($this->currentImage('logo') || $this->currentImage('icon'))
+            <x-filament::section :heading="__('Current logo and icon')" :description="__('Upload a new file below to replace one.')">
+                <div class="flex flex-wrap gap-6">
+                    @foreach (['logo' => __('Logo'), 'icon' => __('App icon')] as $which => $label)
+                        @if ($src = $this->currentImage($which))
+                            <figure class="flex items-center gap-3">
+                                <img src="{{ $src }}" alt="{{ $label }}" class="h-12 max-w-40 rounded-lg bg-white object-contain p-1 ring-1 ring-gray-950/10 dark:ring-white/10" />
+                                <figcaption class="flex flex-col gap-1 text-sm">
+                                    <span class="font-medium text-gray-950 dark:text-white">{{ $label }}</span>
+                                    @unless ($this->isLocked())
+                                        <x-filament::link tag="button" type="button" color="danger" size="sm" wire:click="removeImage('{{ $which }}')" wire:confirm="{{ __('Remove the :what?', ['what' => mb_strtolower($label)]) }}">{{ __('Remove') }}</x-filament::link>
+                                    @endunless
+                                </figcaption>
+                            </figure>
+                        @endif
+                    @endforeach
+                </div>
+            </x-filament::section>
+        @endif
         {{ $this->form }}
         @unless ($this->isLocked())
             <div>

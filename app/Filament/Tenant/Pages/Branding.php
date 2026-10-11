@@ -64,7 +64,7 @@ class Branding extends Page
 
         return $schema->statePath('data')->disabled(fn () => $this->isLocked())->components([
             Section::make(__('Name'))->columns(3)->schema([
-                TextInput::make('app_name')->label(__('App name'))->maxLength(60)->placeholder(tenant('company_name') . ' Attendance')
+                TextInput::make('app_name')->label(__('App name'))->maxLength(60)->placeholder(tenant('company_name') ?: __('Attendance'))
                     ->helperText(__('Shown in titles, the employee app, the kiosk, PDFs and messages.')),
                 TextInput::make('assistant_name')->label(__('AI assistant name'))->maxLength(60)->placeholder(__('Ask AI')),
                 TextInput::make('email_from_name')->label(__('Email sender name'))->maxLength(60)->placeholder(tenant('company_name')),
@@ -98,6 +98,23 @@ class Branding extends Page
             throw ValidationException::withMessages(collect($e->errors())->mapWithKeys(fn ($m, $k) => ["data.{$k}" => $m])->all());
         }
         Notification::make()->success()->title(__('Branding saved'))->send();
+    }
+
+    /** The saved logo or icon as a data: URL, shown above the upload boxes. */
+    public function currentImage(string $which): ?string
+    {
+        $value = app(TenantSettings::class)->get($which === 'icon' ? 'brand_icon' : 'brand_logo');
+
+        return is_string($value) && str_starts_with($value, 'data:image/') ? $value : null;
+    }
+
+    public function removeImage(string $which, SaveBranding $save): void
+    {
+        if ($this->isLocked() || ! in_array($which, ['logo', 'icon'], true)) {
+            return;
+        }
+        $save->removeImage($which);
+        Notification::make()->success()->title($which === 'icon' ? __('App icon removed') : __('Logo removed'))->send();
     }
 
     /** Where the client points their CNAME: a neutral platform host when configured. */

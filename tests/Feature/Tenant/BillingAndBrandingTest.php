@@ -151,3 +151,17 @@ it('shows what is missing when I have paid is clicked with empty fields, then re
 
     expect($invoice->payments()->value('reference'))->toBe('JC777');
 });
+
+it('shows the saved logo on Branding and removes it on request', function () {
+    Setting::updateOrCreate(['key' => 'feature.white_label'], ['value' => true]);
+    $png = 'data:image/png;base64,' . base64_encode((string) base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=='));
+    Setting::updateOrCreate(['key' => 'brand_logo'], ['value' => $png]);
+    app(TenantSettings::class)->flush();
+    $this->actingAs(User::where('email', 'owner@pest.test')->first());
+
+    Livewire::test(Branding::class)->assertSee('Current logo and icon')->assertSee($png, false)
+        ->assertSee('placeholder="Pest Test Co"', false)
+        ->call('removeImage', 'logo')->assertDontSee('Current logo and icon');
+
+    expect(app(TenantSettings::class)->get('brand_logo'))->toBeNull();
+});
