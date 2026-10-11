@@ -33,6 +33,7 @@
             <x-filament::badge color="warning" size="sm">{{ __('Leave') }}</x-filament::badge>
             <x-filament::badge color="info" size="sm">{{ __('Official duty / work from home') }}</x-filament::badge>
             <x-filament::badge color="success" size="sm">{{ __('Holiday') }}</x-filament::badge>
+            <x-filament::badge color="gray" size="sm">{{ __('Off day') }}</x-filament::badge>
         </div>
     </div>
 

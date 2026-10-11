@@ -11,7 +11,8 @@ screens: whos-off-week=/admin/leave-calendar
 ## In short
 
 - **Who's off** shows one week, Monday to Sunday, one card per day.
-- Each card lists who is away that day: approved leave, official duty or work from home, and holidays.
+- Each card lists who is away that day: approved leave, official duty or work from home, holidays and weekly off days.
+- People who have left are not shown after their leaving date.
 - Only **approved** leave shows. Pending requests are not on it.
 - Filter by **Branch** and **Department**. Use the arrows to move week by week.
 - HR and the Owner see the whole company. A manager sees only their team and themselves.
@@ -36,6 +37,7 @@ Each day card shows today with a coloured border. Each line is a name and a colo
 | Blue | *Official duty* or *Work from home* | The employee is working, but not at the office. |
 | Green | *Holiday*, or *Holiday, Lahore only* | A holiday. The line shows the holiday's name. A branch holiday names the branch. |
 | Green | *Optional holiday: Eid Milad* | The employee is taking this optional holiday. |
+| Grey | *Off day* | The employee's weekly off, from their shift (or their branch). When everyone shown has the day off, one line says **Everyone**. |
 
 A day with nobody away shows **Everyone in**.
 
@@ -53,9 +55,9 @@ The page only shows information. To change leave, go to [Leave requests](/help/l
 
 Their request is still pending, or was rejected or cancelled. Only approved leave shows. Check [Leave requests](/help/leave-requests).
 
-### A day shows "Everyone in" but it is a Sunday
+### Someone shows "Off day" on the wrong day
 
-Weekly off days are not listed on this page; only leave, official duty, work from home and holidays are. "Everyone in" means nobody is on leave or away that day.
+The off day comes from the employee's shift on that date, or from their branch when the shift has no weekly offs. Check the shift under [Shifts](/help/shifts) and the branch's weekly offs.
 
 ### As a manager I see only a few people
 

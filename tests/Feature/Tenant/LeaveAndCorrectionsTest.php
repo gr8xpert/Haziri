@@ -11,6 +11,7 @@ use App\Actions\Periods\PeriodActions;
 use App\Actions\Punches\CreateManualPunches;
 use App\Enums\AttendanceStatus;
 use App\Enums\CorrectionType;
+use App\Enums\EmployeeStatus;
 use App\Enums\LeaveDayPart;
 use App\Enums\PeriodStatus;
 use App\Enums\RequestStatus;
@@ -30,6 +31,7 @@ use App\Models\LeaveEntitlement;
 use App\Models\LeaveRequest;
 use App\Models\LeaveType;
 use App\Models\Shift;
+use App\Models\ShiftAssignment;
 use App\Models\User;
 use App\Services\Attendance\MissingPunchSuggester;
 use App\Services\Leave\LeaveBalanceService;
@@ -303,6 +305,24 @@ it("shows who's off with leave names, branch-only holidays, filters, and only th
     $this->actingAs($this->manager);
     $mgr = Livewire::test(LeaveCalendar::class);
     expect(collect($mgr->instance()->getDays()['2026-09-10'])->pluck('name')->all())->toBe(['EMP']);
+});
+
+it("shows weekly offs on who's off and leaves out people who have left", function () {
+    Filament::setCurrentPanel(Filament::getPanel('tenant'));
+    $this->travelTo(CarbonImmutable::parse('2026-09-09 10:00', 'Asia/Karachi'));
+    $fridayOff = Shift::create(['name' => 'Friday off', 'code' => 'FRO', 'start_time' => '09:00', 'end_time' => '18:00', 'weekly_off_days' => [5]]);
+    $friday = person('FRI');
+    ShiftAssignment::create(['employee_id' => $friday->id, 'shift_id' => $fridayOff->id, 'effective_from' => '2026-01-01']);
+    $gone = person('GONE', ['status' => EmployeeStatus::Left, 'left_on' => '2026-08-31']);
+    LeaveRequest::create(['employee_id' => $gone->id, 'leave_type_id' => $this->cl->id, 'from_date' => '2026-09-10', 'to_date' => '2026-09-10',
+        'days' => 1, 'status' => RequestStatus::Approved, 'day_part' => LeaveDayPart::Full]);
+
+    $this->actingAs($this->hr);
+    $days = Livewire::test(LeaveCalendar::class)->instance()->getDays();
+
+    expect(collect($days['2026-09-11'])->where('what', 'Off day')->pluck('name')->all())->toBe(['FRI'])
+        ->and(collect($days['2026-09-13'])->where('what', 'Off day')->pluck('name')->all())->toContain('BOSS')->not->toContain('FRI')
+        ->and(collect($days['2026-09-10'])->pluck('name')->all())->not->toContain('GONE');
 });
 
 it('gives one employee a special leave rule that beats the grade row and the leave type', function () {
