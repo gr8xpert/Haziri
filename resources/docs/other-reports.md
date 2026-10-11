@@ -76,7 +76,7 @@ This report appears only if your plan includes the visitor log, and only for use
 |---|---|
 | **Device** / **Serial** | The machine's name and serial number. |
 | **Type** | How it connects, for example cloud (ADMS) or sync agent. |
-| **Status** | The machine's current status. |
+| **Status** | **Online** (it is in contact), **Offline** (no contact for more than 15 minutes) or **Not connected yet** (it has never been in contact, for example a machine you only import by USB). |
 | **Last sync** | When it last sent punches, for example *2 hours ago*, or *never*. |
 | **Punches** | Total punches it sent in the date range. |
 | **Avg / day** | Punches per day on average. |

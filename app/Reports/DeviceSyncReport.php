@@ -40,7 +40,9 @@ final class DeviceSyncReport extends DateRangeReport
             $total = $byDay->sum();
 
             return [
-                'device' => $d->name, 'serial' => $d->serial_number, 'type' => $d->type->getLabel(), 'status' => $d->status,
+                'device' => $d->name, 'serial' => $d->serial_number, 'type' => $d->type->getLabel(), 'status' => match ($d->status) {
+                    'online' => __('Online'), 'offline' => __('Offline'), default => __('Not connected yet'),
+                },
                 'last_sync' => $d->last_sync_at?->diffForHumans() ?? 'never', 'punches' => $total,
                 'per_day' => $dates->count() ? round($total / $dates->count(), 1) : 0,
                 'gaps' => $dates->reject(fn ($date) => isset($byDay[$date]))->count(),
