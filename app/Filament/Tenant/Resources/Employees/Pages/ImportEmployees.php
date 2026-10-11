@@ -40,7 +40,7 @@ class ImportEmployees extends Page
     /** @var list<string> field per column of the file, by position ('' = skip); headings can hold dots, so no keys */
     public array $mapping = [];
 
-    /** Departments named in the file but not in Haziri are created instead of being errors. */
+    /** Departments named in the file but not set up yet are created instead of being errors. */
     public bool $createMissing = false;
 
     /** @var array<string, mixed>|null result of EmployeeImporter::preview(); locked, its rows are what gets imported */

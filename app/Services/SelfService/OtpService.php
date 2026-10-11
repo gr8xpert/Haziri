@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Services\Notifications\ChannelRegistry;
 use App\Services\Notifications\Recipient;
 use App\Services\Notifications\RenderedMessage;
+use App\Support\Brand;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
@@ -50,7 +51,7 @@ final class OtpService
 
         $channel = $this->channels->resolve('whatsapp') ?? $this->channels->resolve('sms');
         $to = new Recipient($user->name, null, $phone, $user->locale ?? 'en', $user->id);
-        $channel?->send($to, new RenderedMessage('otp', null, __('Your Haziri login code is :code. It expires in 5 minutes.', ['code' => $code]), ['code' => $code]));
+        $channel?->send($to, new RenderedMessage('otp', null, __('Your :app login code is :code. It expires in 5 minutes.', ['app' => Brand::name(), 'code' => $code]), ['code' => $code]));
     }
 
     public function verify(string $phone, string $code): ?User

@@ -6,6 +6,7 @@ namespace App\Services\Ai;
 
 use App\Enums\AttendanceStatus;
 use App\Models\AiQuery;
+use App\Support\Brand;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 
@@ -29,7 +30,7 @@ final class AskHazri
     {
         // Spec §12.1c: generated SQL only ever runs as the read-only user (SELECT on the four views, nothing else).
         if (! config('hazri.ai.readonly_db_username')) {
-            return ['ok' => false, 'error' => __('Ask Haziri needs the read-only database user (AI_DB_READONLY_USERNAME). Please contact support.')];
+            return ['ok' => false, 'error' => __(':assistant needs the read-only database user (AI_DB_READONLY_USERNAME). Please contact support.', ['assistant' => Brand::assistantName()])];
         }
         $statuses = implode(', ', array_map(fn (AttendanceStatus $s) => $s->value, AttendanceStatus::cases()));
         $system = "You translate HR questions about attendance into one MariaDB SELECT statement.\n"

@@ -72,7 +72,7 @@ class AskHazriPage extends Page
         $path = tempnam(sys_get_temp_dir(), 'ask') . '.xlsx';
         Spreadsheet::write($path, $this->answer['columns'], array_map('array_values', $this->answer['rows']));
 
-        return response()->download($path, 'hazri-answer.xlsx')->deleteFileAfterSend();
+        return response()->download($path, 'answer.xlsx')->deleteFileAfterSend();
     }
 
     public function tokensLeft(): int

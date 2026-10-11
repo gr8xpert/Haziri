@@ -35,7 +35,7 @@ screens: employee-import=/admin/employees/import
 1. Click **Import from Excel** on the Employees page.
 2. In **Excel (.xlsx) or CSV file: our template, or your own list**, choose your file.
 3. Click **Check file**. {app} reads the file. Nothing is saved yet.
-4. Look at **Match your columns**. For each of **Your column** you see the value from the **First row** and the **{app} field** it will go into. Change any wrong choice, or pick **— Skip this column —** for columns you do not need.
+4. Look at **Match your columns**. For each of **Your column** you see the value from the **First row** and the **Field** it will go into. Change any wrong choice, or pick **— Skip this column —** for columns you do not need.
 5. If a yellow box says **Still needed: …**, match a column to each field it names. Required fields have a **\*** in the list.
 6. Tick **Create missing departments** if your file has department names that are not in {app} yet.
 7. Look at the **Preview**: **New**, **Updates** and **Errors** (and **Restored** when rows match deleted employees). The table shows the first 50 rows that will be imported, each with a **New**, **Update** or **Restore** badge. A red box warns you if the new rows would go over your plan's employee limit.
@@ -49,7 +49,7 @@ You go back to the Employees list with the message "120 employees imported".
 
 {app} recognises the common names used in Pakistani staff lists, for example *Emp No*, *Token No*, *P.No* for the code; *Name* or *Employee Name* for the full name; *DOJ* or *Date of Joining* for the joining date; *AC-No*, *User ID* or *Enroll ID* for the machine PIN; *Dept* or *Section* for the department.
 
-| {app} field | What to put in it |
+| Field | What to put in it |
 |---|---|
 | **Employee code** \* | Your unique employee number. |
 | **First name** \* / **Last name** | Or one **Full name** column: "Muhammad Ali Khan" becomes first name *Muhammad Ali*, last name *Khan*. |
@@ -105,7 +105,7 @@ The same employee code is on two rows. Remove the duplicate row or give it the r
 
 ### "Still needed: Employee code, Joining date."
 
-No column is matched to these fields. Pick the right column in the **{app} field** list, or add the column to your file.
+No column is matched to these fields. Pick the right column in the **Field** list, or add the column to your file.
 
 ### "Could not read the file", or the file is refused
 

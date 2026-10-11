@@ -62,6 +62,7 @@ it('shows no platform name or icon anywhere a white-label client can look', func
         'profile' => fn () => $this->actingAs($this->owner)->get("{$this->base}/admin/profile"),
         'forgot password' => fn () => $this->get("{$this->base}/admin/password-reset/request"),
         'devices' => fn () => $this->actingAs($this->owner)->get("{$this->base}/admin/devices/create"),
+        'employee import' => fn () => $this->actingAs($this->owner)->get("{$this->base}/admin/employees/import"),
         'employee app login' => fn () => $this->get("{$this->base}/me/login"),
         'employee app' => fn () => $this->actingAs($staff)->get("{$this->base}/me"),
         'app manifest' => fn () => $this->get("{$this->base}/manifest.webmanifest"),

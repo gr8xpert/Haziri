@@ -516,7 +516,7 @@ final class EmployeeImporter
     private function instructionRows(array $allowed): array
     {
         $help = [
-            'code' => 'Unique employee number. A code already in Haziri updates that employee.',
+            'code' => 'Unique employee number. A code already on file updates that employee; empty cells keep what is saved.',
             'first_name' => 'First name. Or give one "Name" column in your own sheet: it is split into first and last name.',
             'joined_on' => 'Joining date, day first: 15/01/2024 (15-01-2024 and 2024-01-15 also work).',
             'device_pin' => 'The user ID enrolled on the fingerprint / face machine.',

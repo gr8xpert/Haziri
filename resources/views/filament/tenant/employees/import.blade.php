@@ -20,7 +20,7 @@
             <div class="hz-table-wrap shadow-none!">
                 <table class="hz-table">
                     <thead>
-                        <tr><th>{{ __('Your column') }}</th><th>{{ __('First row') }}</th><th>{{ __('Haziri field') }}</th></tr>
+                        <tr><th>{{ __('Your column') }}</th><th>{{ __('First row') }}</th><th>{{ __('Field') }}</th></tr>
                     </thead>
                     <tbody>
                         @foreach ($preview['headers'] as $i => $header)
