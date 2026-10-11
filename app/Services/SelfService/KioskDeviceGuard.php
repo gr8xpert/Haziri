@@ -42,7 +42,7 @@ final class KioskDeviceGuard
         return match ($device->status) {
             KioskDevice::APPROVED => ['ok' => true, 'status' => 'approved', 'message' => null, 'code' => $device->pairing_code],
             KioskDevice::BLOCKED => $this->deny('blocked', __('This tablet has been blocked for this kiosk.'), $device->pairing_code),
-            default => $this->deny('pending', __('This tablet is waiting for approval. Ask HR to approve code :code.', ['code' => $device->pairing_code]),
+            default => $this->deny('pending', __('This tablet is waiting for approval. Ask your administrator to approve code :code.', ['code' => $device->pairing_code]),
                 $device->pairing_code),
         };
     }

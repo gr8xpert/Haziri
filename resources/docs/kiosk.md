@@ -56,7 +56,7 @@ Each kiosk also shows in **Devices → Devices** with type *Kiosk*, so its punch
 2. On the tablet, open the address in **Chrome**.
 3. In Chrome's menu choose **Add to home screen**, so it opens like an app.
 4. Allow the camera when the tablet asks.
-5. If the kiosk is locked to approved tablets, the tablet now shows *"This tablet is waiting for approval. Ask HR to approve code AB12."* Write down the code.
+5. If the kiosk is locked to approved tablets, the tablet now shows *"This tablet is waiting for approval. Ask your administrator to approve code AB12."* Write down the code.
 6. In {app}, go to **Devices → Kiosk tablets**. Find the row with the **same code** and click **Approve**.
 7. The tablet is ready. Mount it near the entrance and keep it on the charger.
 
@@ -92,7 +92,7 @@ Click **New link** on the kiosk's row and confirm. The old link stops working im
 
 ## Common problems
 
-### "This tablet is waiting for approval. Ask HR to approve code …"
+### "This tablet is waiting for approval. Ask your administrator to approve code …"
 
 The kiosk is locked to approved tablets and this tablet is new. Approve the row with that code under **Devices → Kiosk tablets**. This needs a user who can manage kiosks (owner, admin or reception).
 
