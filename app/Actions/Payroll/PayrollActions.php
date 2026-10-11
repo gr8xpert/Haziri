@@ -11,6 +11,7 @@ use App\Models\Advance;
 use App\Models\AttendanceDay;
 use App\Models\AttendancePeriod;
 use App\Models\Employee;
+use App\Models\FinalSettlement;
 use App\Models\PayrollRun;
 use App\Models\Payslip;
 use App\Models\PfLedgerEntry;
@@ -59,12 +60,18 @@ final class PayrollActions
             $overtime = AttendanceDay::query()->whereBetween('date', [$start->format('Y-m-d'), $end->format('Y-m-d')])
                 ->where('overtime_min', '>', 0)->get()->groupBy('employee_id');
 
-            $totals = ['employees' => 0, 'gross' => 0, 'deductions' => 0, 'net' => 0, 'skipped_no_structure' => 0];
+            $totals = ['employees' => 0, 'gross' => 0, 'deductions' => 0, 'net' => 0, 'skipped_no_structure' => 0, 'paid_in_settlement' => 0];
             $periodDays = (int) $start->diffInDays($end) + 1;
+            $settledThisMonth = self::paidInSettlement($start, $end);
             foreach ($summaries as $employeeId => $summary) {
                 $employee = Employee::withTrashed()->find($employeeId);
                 $notEmployed = $employee ? self::daysNotEmployed($employee, $start, $end) : 0;
                 if ($notEmployed >= $periodDays) {
+                    continue;
+                }
+                if (in_array((int) $employeeId, $settledThisMonth, true)) {
+                    $totals['paid_in_settlement']++;
+
                     continue;
                 }
                 $structure = $employee ? SalaryStructure::effectiveFor($employee->id, $end->format('Y-m-d')) : null;
@@ -99,6 +106,19 @@ final class PayrollActions
 
             return $run;
         });
+    }
+
+    /**
+     * Leavers whose final settlement (draft or final) already pays this month's salary: payroll leaves them out so
+     * the days are not paid twice. A settlement made after the payslip leaves its salary line out instead.
+     *
+     * @return list<int>
+     */
+    private static function paidInSettlement(CarbonImmutable $start, CarbonImmutable $end): array
+    {
+        return FinalSettlement::query()->whereBetween('last_working_day', [$start->format('Y-m-d'), $end->format('Y-m-d')])->get()
+            ->filter(fn (FinalSettlement $s) => collect($s->lines)->contains('code', 'salary'))
+            ->map(fn (FinalSettlement $s) => (int) $s->employee_id)->values()->all();
     }
 
     /** Days of the pay month before the employee joined or after they left. */

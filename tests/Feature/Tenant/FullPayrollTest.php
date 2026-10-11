@@ -232,6 +232,29 @@ it('values settlement salary and leave encashment with the per-day rule from Pay
         ->and($by['leave_encashment']['amount'])->toBe(10 * 5000);
 });
 
+it('does not pay a leaver twice when the settlement is made before the payroll run', function () {
+    fullMonth($this->emp, 2026, 10, 15);
+    $this->emp->forceFill(['left_on' => '2026-10-15'])->saveQuietly();
+    $settlement = app(FinalSettlementActions::class)->calculate($this->emp, '2026-10-15', $this->owner);
+
+    $run = ($this->runFor)(2026, 10);
+
+    expect(collect($settlement->lines)->pluck('code'))->toContain('salary')
+        ->and($run->payslips()->where('employee_id', $this->emp->id)->exists())->toBeFalse()
+        ->and($run->totals['paid_in_settlement'])->toBe(1);
+});
+
+it('does not pay a leaver twice when the payroll run is made before the settlement', function () {
+    fullMonth($this->emp, 2026, 10, 15);
+    $this->emp->forceFill(['left_on' => '2026-10-15'])->saveQuietly();
+
+    $run = ($this->runFor)(2026, 10);
+    $settlement = app(FinalSettlementActions::class)->calculate($this->emp, '2026-10-15', $this->owner);
+
+    expect($run->payslips()->where('employee_id', $this->emp->id)->exists())->toBeTrue()
+        ->and(collect($settlement->lines)->pluck('code'))->not->toContain('salary');
+});
+
 it('records a bonus for the chosen pay month from the screen', function () {
     Filament::setCurrentPanel(Filament::getPanel('tenant'));
     $this->actingAs($this->owner);

@@ -31,6 +31,7 @@ This page appears only if your plan includes Payroll. Owner, Admin and HR can us
 | **Deductions** | Total deductions (attendance, advances, tax, EOBI, provident fund and others). |
 | **Net** | Total to pay: gross − deductions. |
 | **No salary set** | Employees in the month who have no salary structure. They get no payslip. |
+| **Paid in settlement** | Leavers whose [final settlement](/help/final-settlements) already pays this month's salary. They get no payslip, so the days are not paid twice. |
 | **Tax rates** | A red warning such as *"No 2026-27 rates: add them, then recalculate"* when that tax year has no tax slabs yet. |
 
 ## Run payroll for a month
@@ -102,7 +103,7 @@ The tax year of this month has no income tax slabs, so {app} used the latest ear
 
 ### Some employees have no payslip
 
-They are counted under **No salary set**: they have no salary structure in force on the last day of the month. Add one and recalculate. Employees with no attendance at all in the month are not included either.
+They are counted under **No salary set**: they have no salary structure in force on the last day of the month. Add one and recalculate. Leavers counted under **Paid in settlement** get their last salary in the final settlement instead. Employees with no attendance at all in the month are not included either.
 
 ### An employee's overtime is missing
 

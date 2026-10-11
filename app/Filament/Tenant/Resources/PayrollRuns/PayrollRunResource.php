@@ -54,6 +54,8 @@ class PayrollRunResource extends Resource
                 TextColumn::make('totals.deductions')->label('Deductions')->prefix('Rs ')->numeric(),
                 TextColumn::make('totals.net')->label('Net')->prefix('Rs ')->numeric(),
                 TextColumn::make('totals.skipped_no_structure')->label('No salary set')->color('warning'),
+                TextColumn::make('totals.paid_in_settlement')->label('Paid in settlement')->placeholder('—')
+                    ->tooltip(__("Leavers whose final settlement already pays this month's salary, so they have no payslip here.")),
                 TextColumn::make('totals.tax_rates_missing')->label('Tax rates')->badge()->color('danger')->placeholder('—')
                     ->formatStateUsing(fn ($state) => __('No :year rates: add them, then recalculate', ['year' => TaxSlabResource::yearLabel((int) $state)])),
             ])
