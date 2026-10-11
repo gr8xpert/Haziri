@@ -43,6 +43,9 @@ final class DemoDay
     {
         $tz = tenant('timezone') ?? config('hazri.default_timezone');
         $machine = Device::where('serial_number', self::serial('ADMS-01'))->first();
+        // Karachi staff punch on the Karachi machine: one machine for both cities looks like impossible travel.
+        $branchMachines = Device::query()->whereIn('serial_number', [self::serial('ADMS-01'), self::serial('AGENT-01')])
+            ->whereNotNull('branch_id')->get()->keyBy('branch_id');
         $tablet = Device::where('serial_number', self::serial('KIOSK'))->first();
         if ($machine === null) {
             return [];
@@ -54,7 +57,7 @@ final class DemoDay
                     continue;
                 }
                 $made = match ($selfService && $tablet !== null ? $how : 'machine') {
-                    'machine' => $this->punches->machine($e, $machine, $at),
+                    'machine' => $this->punches->machine($e, $branchMachines->get($e->branch_id) ?? $machine, $at),
                     'kiosk', 'kiosk_mismatch', 'kiosk_no_face' => $this->punches->self($e, $tablet, $at, PunchSource::Kiosk,
                         $how === 'kiosk' ? PunchStatus::Valid : PunchStatus::Pending, ['mode' => 'pin', 'face_check' => match ($how) {
                             'kiosk' => ['result' => 'match', 'similarity' => 0.84 + (crc32($e->code) % 12) / 100],
