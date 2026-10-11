@@ -66,12 +66,16 @@ class TenantPanelProvider extends PanelProvider
                     ->icon(Heroicon::OutlinedBuildingOffice2)
                     ->url(fn () => SwitchCompany::getUrl())
                     ->visible(fn () => SwitchCompany::canAccess()),
+                Action::make('help')->label(__('Help & user guide'))
+                    ->icon(Heroicon::OutlinedLifebuoy)
+                    ->url('/help', shouldOpenInNewTab: true),
             ])
             ->favicon('/hazri-icon.svg')
             ->font('Instrument Sans')
             ->viteTheme('resources/css/filament/app/theme.css')
             ->defaultAvatarProvider(InitialsAvatarProvider::class)
             ->renderHook(PanelsRenderHook::BODY_END, fn (): View => view('filament.hooks.sidebar-accordion'))
+            ->renderHook(PanelsRenderHook::USER_MENU_BEFORE, fn (): View => view('filament.hooks.help-button'))
             ->renderHook(PanelsRenderHook::AUTH_LOGIN_FORM_BEFORE, fn (): string => DemoMode::active() ? view('filament.hooks.demo-logins')->render() : '')
             ->sidebarCollapsibleOnDesktop()
             ->sidebarWidth('18rem')

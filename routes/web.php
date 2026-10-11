@@ -14,5 +14,6 @@ foreach (config('tenancy.central_domains') as $domain) {
     }
     Route::domain($domain)->group(function () use ($domain) {
         Route::get('/', fn () => view('welcome'))->name('central.home.' . $domain);
+        require __DIR__ . '/help.php';
     });
 }

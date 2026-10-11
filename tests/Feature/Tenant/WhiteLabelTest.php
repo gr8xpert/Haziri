@@ -66,6 +66,11 @@ it('shows no platform name or icon anywhere a white-label client can look', func
         'employee app' => fn () => $this->actingAs($staff)->get("{$this->base}/me"),
         'app manifest' => fn () => $this->get("{$this->base}/manifest.webmanifest"),
         'kiosk' => fn () => $this->get("{$this->base}/kiosk/{$kiosk->token}"),
+        'help' => fn () => $this->get("{$this->base}/help"),
+        'help topic' => fn () => $this->get("{$this->base}/help/sync-agent"),
+        'help quick reference' => fn () => $this->get("{$this->base}/help/quick"),
+        'help troubleshooting' => fn () => $this->get("{$this->base}/help/troubleshooting"),
+        'help search' => fn () => $this->get("{$this->base}/help/search.json"),
     ];
     foreach ($pages as $name => $request) {
         $html = $request()->assertOk()->getContent();

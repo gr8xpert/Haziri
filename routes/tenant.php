@@ -32,6 +32,9 @@ Route::middleware([
 ])->group(function () {
     Route::get('/', fn () => redirect('/admin'));
 
+    // The user guide, with this company's product name (white-label aware).
+    require __DIR__ . '/help.php';
+
     // White-label app icon (tab, phone home screen): the client's uploaded icon/logo.
     Route::get('/app-icon', function () {
         [$meta, $data] = array_pad(explode(',', Brand::uploadedIcon() ?? '', 2), 2, '');

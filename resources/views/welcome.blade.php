@@ -22,6 +22,7 @@
             <div class="hidden items-center gap-6 text-sm text-zinc-600 md:flex dark:text-zinc-400">
                 <a href="#features" class="transition hover:text-zinc-950 dark:hover:text-white">Features</a>
                 <a href="#devices" class="transition hover:text-zinc-950 dark:hover:text-white">Devices</a>
+                <a href="/help" class="transition hover:text-zinc-950 dark:hover:text-white">Help</a>
             </div>
             <a href="#signin" class="ms-auto inline-flex items-center gap-1.5 rounded-lg bg-zinc-950 px-3.5 py-2 text-sm font-medium text-white transition hover:bg-zinc-800 active:scale-[0.98] dark:bg-white dark:text-zinc-950 dark:hover:bg-zinc-200">
                 Sign in
