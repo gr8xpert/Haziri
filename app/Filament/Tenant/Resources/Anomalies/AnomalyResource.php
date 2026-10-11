@@ -6,6 +6,7 @@ namespace App\Filament\Tenant\Resources\Anomalies;
 
 use App\Enums\PunchStatus;
 use App\Filament\Concerns\AuthorizesByPermission;
+use App\Filament\Concerns\RequiresFeature;
 use App\Filament\Tenant\NavigationGroup;
 use App\Models\Anomaly;
 use App\Models\Punch;
@@ -17,12 +18,14 @@ use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 
-/** Anomaly flags with dismiss / investigate (spec §12.3). */
+/** Anomaly flags with dismiss / investigate / reopen (spec §12.3). Part of the `ai_reports` feature. */
 class AnomalyResource extends Resource
 {
-    use AuthorizesByPermission;
+    use AuthorizesByPermission, RequiresFeature;
 
     protected static ?string $model = Anomaly::class;
+
+    protected static string $feature = 'ai_reports';
 
     protected static string | \BackedEnum | null $navigationIcon = Heroicon::OutlinedExclamationTriangle;
 
@@ -67,20 +70,31 @@ class AnomalyResource extends Resource
             ->filters([SelectFilter::make('status')->options(self::STATUSES)->default('open')])
             ->recordActions([
                 Action::make('investigate')->icon(Heroicon::OutlinedIdentification)->color('info')
-                    ->visible(fn (Anomaly $r) => $r->status === 'open')
+                    ->visible(fn (Anomaly $r) => $r->status === 'open' && self::canManage())
                     ->modalHeading(fn (Anomaly $r) => self::TYPES[$r->type] ?? $r->type)
                     ->modalContent(fn (Anomaly $r) => view('filament.tenant.anomaly-evidence', self::evidence($r)))
                     ->modalSubmitActionLabel(__('Mark as investigating'))
                     ->action(fn (Anomaly $r) => $r->update(['status' => 'investigating', 'reviewed_by' => auth()->id()])),
                 Action::make('evidence')->icon(Heroicon::OutlinedDocumentMagnifyingGlass)->color('gray')
-                    ->visible(fn (Anomaly $r) => $r->status !== 'open')
+                    ->visible(fn (Anomaly $r) => $r->status !== 'open' || ! self::canManage())
                     ->modalHeading(fn (Anomaly $r) => self::TYPES[$r->type] ?? $r->type)
                     ->modalContent(fn (Anomaly $r) => view('filament.tenant.anomaly-evidence', self::evidence($r)))
                     ->modalSubmitAction(false)->modalCancelActionLabel(__('Close')),
                 Action::make('dismiss')->icon(Heroicon::OutlinedShieldCheck)->color('gray')
-                    ->visible(fn (Anomaly $r) => $r->status !== 'dismissed')
+                    ->visible(fn (Anomaly $r) => $r->status !== 'dismissed' && self::canManage())
+                    ->requiresConfirmation()->modalHeading(__('Dismiss this finding?'))
+                    ->modalDescription(__('It leaves the Open list. You can reopen it later from the Dismissed list.'))
                     ->action(fn (Anomaly $r) => $r->update(['status' => 'dismissed', 'reviewed_by' => auth()->id()])),
+                Action::make('reopen')->icon(Heroicon::OutlinedArrowUturnLeft)->color('warning')
+                    ->visible(fn (Anomaly $r) => $r->status === 'dismissed' && self::canManage())
+                    ->action(fn (Anomaly $r) => $r->update(['status' => 'open', 'reviewed_by' => auth()->id()])),
             ]);
+    }
+
+    /** Investigate, Dismiss, Reopen and Scan now change findings, so they need the manage permission. */
+    public static function canManage(): bool
+    {
+        return (bool) auth()->user()?->can(static::$managePermission);
     }
 
     /**

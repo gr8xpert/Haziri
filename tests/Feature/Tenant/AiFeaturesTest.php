@@ -6,6 +6,7 @@ use App\Contracts\AiModel;
 use App\Enums\DevicePunchSourceType;
 use App\Enums\PunchSource;
 use App\Enums\PunchStatus;
+use App\Enums\Role;
 use App\Filament\Tenant\Pages\AskHazriPage;
 use App\Filament\Tenant\Resources\Anomalies\AnomalyResource;
 use App\Filament\Tenant\Resources\Anomalies\Pages\ListAnomalies;
@@ -186,6 +187,46 @@ it('flags buddy punching and ghost employees with explanations', function () {
         ->mountAction(TestAction::make('investigate')->table(Anomaly::where('type', 'buddy_punching')->first()))
         ->assertActionMounted(TestAction::make('investigate')->table(Anomaly::where('type', 'buddy_punching')->first()));
     expect(view('filament.tenant.anomaly-evidence', $evidence)->render())->toContain('Gate')->toContain('Bashir');
+});
+
+it('lets only users with manage permission change findings, with a confirm to dismiss and a reopen', function () {
+    Filament::setCurrentPanel(Filament::getPanel('tenant'));
+    $e = Employee::create(['code' => 'AQ', 'first_name' => 'Aqib', 'joined_on' => '2025-01-01']);
+    $finding = Anomaly::create(['type' => 'ghost_employee', 'employee_id' => $e->id, 'detected_on' => '2026-09-20', 'explanation' => 'No punches', 'evidence' => ['since' => '2026-08-01'], 'dedupe_key' => 'ghost:test']);
+    $receptionist = User::create(['name' => 'Desk', 'email' => 'desk@pest.test', 'password' => 'x']);
+    $receptionist->assignRole(Role::Receptionist->value);
+
+    $this->actingAs($receptionist);
+    Livewire::test(ListAnomalies::class)
+        ->assertCanSeeTableRecords([$finding])
+        ->assertActionHidden(TestAction::make('investigate')->table($finding))
+        ->assertActionHidden(TestAction::make('dismiss')->table($finding))
+        ->assertActionVisible(TestAction::make('evidence')->table($finding))
+        ->assertActionHidden('scan');
+
+    $this->actingAs($this->owner);
+    Livewire::test(ListAnomalies::class)
+        ->mountAction(TestAction::make('dismiss')->table($finding))
+        ->assertActionMounted(TestAction::make('dismiss')->table($finding));
+    expect($finding->fresh()->status)->toBe('open');
+
+    Livewire::test(ListAnomalies::class)->callAction(TestAction::make('dismiss')->table($finding));
+    expect($finding->fresh()->status)->toBe('dismissed');
+
+    Livewire::test(ListAnomalies::class)->filterTable('status', 'dismissed')->callAction(TestAction::make('reopen')->table($finding));
+    expect($finding->fresh()->status)->toBe('open');
+});
+
+it('hides anomalies and skips the nightly scan when the AI feature is off', function () {
+    Setting::where('key', 'feature.ai_reports')->update(['value' => json_encode(false)]);
+    app(TenantSettings::class)->flush();
+    $this->actingAs($this->owner);
+    $ghost = Employee::create(['code' => 'GO', 'first_name' => 'Gone', 'joined_on' => '2025-01-01']);
+    SalaryStructure::create(['employee_id' => $ghost->id, 'effective_from' => '2025-01-01', 'basic' => 40000]);
+
+    $this->artisan('hazri:anomalies:detect')->assertSuccessful();
+
+    expect(AnomalyResource::canAccess())->toBeFalse()->and(Anomaly::count())->toBe(0);
 });
 
 it('reads a medical certificate into a suggestion without changing the request', function () {

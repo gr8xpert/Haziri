@@ -19,6 +19,7 @@ class ListAnomalies extends ListRecords
     {
         return [
             Action::make('scan')->label(__('Scan now'))->icon(Heroicon::OutlinedArrowPath)->color('gray')
+                ->visible(fn () => AnomalyResource::canManage())
                 ->action(function (AnomalyDetector $detector) {
                     $n = $detector->run(now(tenant('timezone'))->toImmutable());
                     Notification::make()->success()->title(__(':n new finding(s)', ['n' => $n]))->send();

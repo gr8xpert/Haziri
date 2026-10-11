@@ -13,7 +13,8 @@ screens: anomalies=/admin/anomalies
 - {app} checks all punches every morning at 6:00 and lists anything unusual here. You can also click **Scan now**.
 - There are five kinds: **Buddy punching**, **Ghost employee**, **Arrival time changed**, **Two branches too close in time** and **Impossible travel**.
 - A finding is not proof. There may be an innocent reason. Look at the evidence before you act.
-- **Investigate** shows the evidence and marks the finding *Investigating*. **Dismiss** closes it.
+- **Investigate** shows the evidence and marks the finding *Investigating*. **Dismiss** closes it, and **Reopen** puts a dismissed finding back on the open list.
+- Anomalies are part of the **AI assistant & anomaly detection** feature. When your plan does not include it, the page is hidden and no checks run.
 - The number next to *Anomalies* in the menu is how many findings are still open.
 
 ## What you see on this page
@@ -42,7 +43,7 @@ The list opens on **Open** findings, newest first. Use the **Status** filter to 
 
 Each finding is reported once: buddy punching and ghost employee once a month for the same people, arrival time changes once a week.
 
-> **AI wording:** If your plan includes the AI assistant, {app} rewrites each new explanation as one neutral sentence with a suggested next step. Without AI, you see the plain rule text. The checks themselves are the same with or without AI.
+> **AI wording:** {app} rewrites each new explanation as one neutral sentence with a suggested next step. When this month's AI budget is used up, you see the plain rule text instead. The checks themselves are the same either way.
 
 ## How to look into a finding
 
@@ -51,7 +52,7 @@ Each finding is reported once: buddy punching and ghost employee once a month fo
 3. If you want to follow it up, click **Mark as investigating**. The status changes to *Investigating* and your name is saved as the reviewer.
 4. When you are done, click **Dismiss**. For an *Investigating* finding, click **Evidence** first if you want to see the punches again.
 
-Dismiss works straight away, with no confirmation, and the finding leaves the **Open** list. Dismissed findings stay in the list under the **Dismissed** status.
+**Dismiss** asks you to confirm, then the finding leaves the **Open** list. Dismissed findings stay in the list under the **Dismissed** status. If you dismissed one by mistake, choose **Dismissed** in the **Status** filter and click **Reopen**: the finding is *Open* again.
 
 > **Tip:** For buddy punching, compare the [punch photos](/help/punch-photos) if your machines or kiosks take them, and look at the [Punch log](/help/punch-log) for those days.
 
@@ -61,7 +62,9 @@ Click **Scan now** at the top right to check straight away instead of waiting fo
 
 ## Who can use it
 
-Users who can see everyone's attendance: Owner, Admin, HR, Branch manager (their branches only) and Receptionist. Managers do not see this page.
+Users who can see everyone's attendance can see the page and each finding's **Evidence**: Owner, Admin, HR, Branch manager (their branches only) and Receptionist. Managers do not see this page.
+
+Only users who may edit attendance (Owner, Admin, HR, Branch manager) see **Investigate**, **Dismiss**, **Reopen** and **Scan now**. A Receptionist can look but not change a finding.
 
 ## Common problems
 
@@ -83,8 +86,8 @@ The phone may have had a bad GPS reading, or a fake-location app. Check the two 
 
 ### The explanation is short and plain
 
-Your plan does not include the AI assistant, or this month's AI budget is used up. The finding is still correct; only the wording is simpler.
+This month's AI budget is used up. The finding is still correct; only the wording is simpler.
 
 ### I can't see Anomalies in the menu
 
-Your role cannot see everyone's attendance. Managers do not have this page.
+Your plan does not include the **AI assistant & anomaly detection** feature, or your role cannot see everyone's attendance. Managers do not have this page.
