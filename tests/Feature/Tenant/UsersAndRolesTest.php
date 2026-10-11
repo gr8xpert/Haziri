@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Enums\Role;
 use App\Filament\Tenant\Resources\AuditLogs\Pages\ListAuditLogs;
 use App\Filament\Tenant\Resources\Users\Pages\ManageUsers;
+use App\Filament\Tenant\Resources\Users\UserResource;
 use App\Models\User;
 use Filament\Actions\Testing\TestAction;
 use Filament\Facades\Filament;
@@ -64,4 +65,14 @@ it('offers every event in the audit log in the Event filter', function () {
             && $filter->getOptions()['face_enrolled'] === 'Face enrolled')
         ->filterTable('event', 'face_enrolled')
         ->assertCanSeeTableRecords(Activity::where('event', 'face_enrolled')->get());
+});
+
+it('does not make anyone owner when an admin submits the Owner role id', function () {
+    $hr = User::create(['name' => 'HR', 'email' => 'hr-roles@pest.test', 'password' => 'secret123']);
+    $hr->assignRole(Role::Hr->value);
+    $this->actingAs($this->admin);
+
+    UserResource::syncRoles($hr, [SpatieRole::findByName(Role::Owner->value)->id, SpatieRole::findByName(Role::Hr->value)->id]);
+
+    expect($hr->fresh()->getRoleNames()->all())->toBe([Role::Hr->value]);
 });

@@ -95,8 +95,12 @@ class UserResource extends Resource
         $names = fn (): array => $user->roles()->pluck('name')->sort()->values()->all();
         $before = $names();
         $ids = array_map('intval', $roleIds);
-        if (in_array(Role::Owner->value, $before, true) && ! auth()->user()?->hasRole(Role::Owner->value)) {
-            $ids[] = (int) SpatieRole::findByName(Role::Owner->value)->getKey();
+        if (! auth()->user()?->hasRole(Role::Owner->value)) {
+            $ownerId = (int) SpatieRole::findByName(Role::Owner->value)->getKey();
+            $ids = array_values(array_diff($ids, [$ownerId])); // a crafted request must not grant Owner
+            if (in_array(Role::Owner->value, $before, true)) {
+                $ids[] = $ownerId;
+            }
         }
         $user->syncRoles(array_values(array_unique($ids)));
         $after = $names();
