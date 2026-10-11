@@ -6,10 +6,13 @@ use App\Enums\ExemptionType;
 use App\Filament\Tenant\Pages\CompanySettings;
 use App\Filament\Tenant\Pages\Roster;
 use App\Filament\Tenant\Resources\AttendanceExemptions\Pages\ManageAttendanceExemptions;
+use App\Filament\Tenant\Resources\Branches\Pages\ManageBranches;
 use App\Filament\Tenant\Resources\Holidays\Pages\ManageHolidays;
 use App\Filament\Tenant\Resources\LeaveTypes\Pages\ManageLeaveTypes;
 use App\Filament\Tenant\Resources\Punches\Pages\ListPunches;
+use App\Filament\Tenant\Resources\Shifts\Pages\CreateShift;
 use App\Models\AttendanceExemption;
+use App\Models\Branch;
 use App\Models\Employee;
 use App\Models\Grade;
 use App\Models\Holiday;
@@ -123,4 +126,19 @@ it('enters manual attendance over a date range from the punches screen', functio
         ->assertHasNoActionErrors();
 
     expect(Punch::where('employee_id', $e->id)->count())->toBe(6);
+});
+
+it('stores no weekly offs as blank on a shift and a branch so the fallback applies', function () {
+    Livewire::test(CreateShift::class)
+        ->fillForm(['name' => 'Late', 'code' => 'LTE', 'start_time' => '11:00', 'end_time' => '20:00', 'weekly_off_days' => []])
+        ->call('create')
+        ->assertHasNoFormErrors();
+    Livewire::test(ManageBranches::class)
+        ->callAction('create', data: ['name' => 'North', 'code' => 'NTH', 'weekly_off_days' => []])
+        ->assertHasNoActionErrors();
+
+    $shift = Shift::where('code', 'LTE')->firstOrFail();
+    expect($shift->weekly_off_days)->toBeNull()
+        ->and(Branch::where('code', 'NTH')->value('weekly_off_days'))->toBeNull()
+        ->and($shift->toResolved([5])->weeklyOffDays)->toBe([5]);
 });

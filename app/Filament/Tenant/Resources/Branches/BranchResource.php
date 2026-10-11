@@ -54,6 +54,7 @@ class BranchResource extends Resource
             Select::make('timezone')->options(fn () => array_combine(timezone_identifiers_list(), timezone_identifiers_list()))
                 ->searchable()->placeholder('Company timezone'),
             CheckboxList::make('weekly_off_days')->options(self::WEEKDAYS)->columns(4)->columnSpanFull()
+                ->dehydrateStateUsing(fn (?array $state): ?array => filled($state) ? array_map('intval', array_values($state)) : null)
                 ->helperText('Used when the shift has no weekly offs of its own. Default: Sunday.'),
         ]);
     }

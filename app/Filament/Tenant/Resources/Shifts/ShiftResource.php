@@ -72,6 +72,7 @@ class ShiftResource extends Resource
                 $minutes('overtime_after_min', 'Extra time beyond this counts as overtime'),
                 $minutes('max_overtime_min'),
                 CheckboxList::make('weekly_off_days')->options(BranchResource::WEEKDAYS)->columns(4)->columnSpanFull()
+                    ->dehydrateStateUsing(fn (?array $state): ?array => filled($state) ? array_map('intval', array_values($state)) : null)
                     ->helperText('Leave empty to use the branch weekly offs.'),
             ]),
         ]);
