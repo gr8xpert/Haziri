@@ -270,6 +270,21 @@ it('lists a correction once, in plain words', function () {
         ->assertDontSee('time: 18:10')->assertDontSee('add_punch');
 });
 
+it('says a correction approved by the manager waits for HR, and is applied after HR', function () {
+    Filament::setCurrentPanel(Filament::getPanel('tenant'));
+    $add = app(SubmitCorrection::class)($this->emp, '2026-09-08', CorrectionType::AddPunch, ['time' => '18:10', 'direction' => 'out'], 'forgot', $this->self);
+
+    $this->actingAs($this->manager);
+    Livewire::test(ListCorrections::class)->callTableAction('approve', $add, data: ['note' => 'ok'])
+        ->assertNotified('Approved — waiting for HR');
+    expect($add->fresh()->status)->toBe(RequestStatus::Pending);
+
+    $this->actingAs($this->hr);
+    Livewire::test(ListCorrections::class)->callTableAction('approve', $add, data: ['note' => 'ok'])
+        ->assertNotified('Approved and applied');
+    expect($add->fresh()->status)->toBe(RequestStatus::Approved);
+});
+
 it('stops managers from requesting for people outside their team', function () {
     $other = person('OTHER');
 

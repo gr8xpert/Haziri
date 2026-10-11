@@ -75,7 +75,7 @@ The request then waits for approval.
 2. Write a **Note**. It is optional when you approve and required when you reject.
 3. Click **Submit**.
 
-If there is another step (for example HR after the manager), the request moves to that person and *Approval* changes. After the last step, {app} makes the change and works the day out again within a minute. A rejection at any step ends the request.
+If there is another step (for example HR after the manager), {app} says *Approved — waiting for HR*: nothing changes yet, the request moves to that person and *Approval* changes. When the last step approves, the message is *Approved and applied*. After the last step, {app} makes the change and works the day out again within a minute. A rejection at any step ends the request.
 
 ## Who decides
 

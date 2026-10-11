@@ -83,8 +83,13 @@ class CorrectionResource extends Resource
             ->schema([Textarea::make('note')->required(! $approve)])
             ->action(function (AttendanceCorrection $record, array $data, DecideCorrection $decide) use ($approve) {
                 try {
-                    $decide($record, auth()->user(), $approve, $data['note'] ?? null);
-                    Notification::make()->success()->title($approve ? __('Approved and applied') : __('Rejected'))->send();
+                    $decided = $decide($record, auth()->user(), $approve, $data['note'] ?? null);
+                    $title = match (true) {
+                        ! $approve => __('Rejected'),
+                        $decided->status === RequestStatus::Approved => __('Approved and applied'),
+                        default => __('Approved — waiting for HR'),
+                    };
+                    Notification::make()->success()->title($title)->send();
                 } catch (ValidationException $e) {
                     Notification::make()->danger()->title(implode(' ', $e->validator->errors()->all()))->send();
                 }
