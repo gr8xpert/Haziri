@@ -5,14 +5,17 @@ declare(strict_types=1);
 use App\Actions\Punches\CreateManualPunches;
 use App\Actions\Punches\IngestOutcome;
 use App\Actions\Punches\IngestPunchAction;
+use App\Actions\Punches\IngestResult;
 use App\Actions\Punches\MapUnmappedPinAction;
 use App\Actions\Punches\PunchData;
 use App\Enums\AttendanceStatus;
+use App\Enums\PeriodStatus;
 use App\Enums\PunchDirection;
 use App\Enums\PunchSource;
 use App\Enums\PunchStatus;
 use App\Enums\Role;
 use App\Models\AttendanceDay;
+use App\Models\AttendancePeriod;
 use App\Models\Employee;
 use App\Models\Punch;
 use App\Models\UnmappedPin;
@@ -31,7 +34,7 @@ function machinePunch(string $pin, string $local, array $extra = []): PunchData
     ], $extra));
 }
 
-function ingest(PunchData $d): App\Actions\Punches\IngestResult
+function ingest(PunchData $d): IngestResult
 {
     return app(IngestPunchAction::class)($d);
 }
@@ -85,14 +88,26 @@ it('re-attaches punches when an unmapped PIN is mapped', function () {
     ingest(machinePunch('99', '2026-09-01 18:00'));
     $e = Employee::create(['code' => 'NEW', 'first_name' => 'New', 'joined_on' => '2025-01-01']);
 
-    $count = app(MapUnmappedPinAction::class)(UnmappedPin::where('device_pin', '99')->firstOrFail(), $e);
+    $result = app(MapUnmappedPinAction::class)(UnmappedPin::where('device_pin', '99')->firstOrFail(), $e);
 
-    expect($count)->toBe(2)
+    expect($result)->toBe(['attached' => 2, 'locked_dates' => []])
         ->and($e->fresh()->device_pin)->toBe('99')
         ->and(Punch::where('employee_id', $e->id)->where('status', PunchStatus::Valid)->count())->toBe(2)
         ->and(UnmappedPin::where('device_pin', '99')->value('resolved_employee_id'))->toBe($e->id)
         ->and(AttendanceDay::where('employee_id', $e->id)->whereDate('date', '2026-09-01')->value('status'))
         ->toBe(AttendanceStatus::Present);
+});
+
+it('says which mapped days were left alone because their month is locked', function () {
+    ingest(machinePunch('99', '2026-09-01 09:00'));
+    ingest(machinePunch('99', '2026-10-02 09:00'));
+    AttendancePeriod::create(['year' => 2026, 'month' => 9, 'status' => PeriodStatus::Locked]);
+    $e = Employee::create(['code' => 'NEW', 'first_name' => 'New', 'joined_on' => '2025-01-01']);
+
+    $result = app(MapUnmappedPinAction::class)(UnmappedPin::where('device_pin', '99')->firstOrFail(), $e);
+
+    expect($result)->toBe(['attached' => 2, 'locked_dates' => ['2026-09-01']])
+        ->and(Punch::where('employee_id', $e->id)->count())->toBe(2);
 });
 
 it('refuses to map a PIN onto an employee who already has another PIN', function () {

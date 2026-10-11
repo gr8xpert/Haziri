@@ -78,7 +78,9 @@ Only employees without a Machine PIN are listed. If the employee already has a P
 
 ### The days still look wrong after mapping
 
-The days are worked out again in the background, usually within a minute. Refresh the page. If the month is locked under **Attendance → Months (lock)**, the punches are attached but those days are not changed. Unlock the month and work the days out again; see [Month lock](/help/month-lock).
+The days are worked out again in the background, usually within a minute. Refresh the page.
+
+If some punches fall in a month that is locked under **Attendance → Months (lock)**, the message after mapping is yellow and lists those dates: *"The punches are attached, but these days are in a locked month, so they were not recalculated: …"*. The locked month keeps its attendance as it was. See [Month lock](/help/month-lock).
 
 ### The same PIN shows twice
 

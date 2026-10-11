@@ -9,6 +9,7 @@ use App\Filament\Concerns\AuthorizesByPermission;
 use App\Filament\Tenant\NavigationGroup;
 use App\Models\Employee;
 use App\Models\UnmappedPin;
+use Carbon\CarbonImmutable;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Select;
 use Filament\Notifications\Notification;
@@ -81,13 +82,31 @@ class UnmappedPinResource extends Resource
                     ])
                     ->action(function (UnmappedPin $record, array $data, MapUnmappedPinAction $map) {
                         try {
-                            $n = $map($record, Employee::findOrFail($data['employee_id']));
-                            Notification::make()->success()->title(__(':n punches re-attached', ['n' => $n]))->send();
+                            self::notifyAttached($map($record, Employee::findOrFail($data['employee_id'])));
                         } catch (ValidationException $e) {
                             Notification::make()->danger()->title(implode(' ', $e->validator->errors()->all()))->send();
                         }
                     }),
             ]);
+    }
+
+    /**
+     * "12 punches re-attached", plus a warning when some of their days are in a locked month and were left as they were.
+     *
+     * @param  array{attached: int, locked_dates: list<string>}  $result
+     */
+    public static function notifyAttached(array $result): void
+    {
+        $notification = Notification::make()->title(__(':n punches re-attached', ['n' => $result['attached']]));
+        if ($result['locked_dates'] === []) {
+            $notification->success()->send();
+
+            return;
+        }
+        $dates = implode(', ', array_map(fn (string $d) => CarbonImmutable::parse($d)->format('j M Y'), $result['locked_dates']));
+        $notification->warning()->persistent()
+            ->body(__('The punches are attached, but these days are in a locked month, so they were not recalculated: :dates. The locked month keeps its attendance as it was.', ['dates' => $dates]))
+            ->send();
     }
 
     public static function getPages(): array
