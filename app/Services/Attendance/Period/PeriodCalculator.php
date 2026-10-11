@@ -63,7 +63,9 @@ final class PeriodCalculator
         $calendarDays = array_sum($count) - $c(AttendanceStatus::NotJoined) - $c(AttendanceStatus::Left);
 
         if ($rules->isDailyWage) {
+            // Approved paid leave is paid at the day rate; unpaid leave is not.
             $payable = $c(AttendanceStatus::Present) + $c(AttendanceStatus::OfficialDuty) + $c(AttendanceStatus::Wfh) + $c(AttendanceStatus::Exempted)
+                + $c(AttendanceStatus::LeavePaid)
                 + $c(AttendanceStatus::HalfDay) * (1 - $rules->halfDayCountsAs)
                 + ($c(AttendanceStatus::HalfDayLeave) - $halfLeaveUnworked) * 0.5
                 + ($rules->dailyWagePaidHolidays ? $c(AttendanceStatus::Holiday) - $unpaidHolidays : 0);

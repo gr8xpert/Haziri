@@ -61,8 +61,8 @@ Example: basic Rs 60,000 + house rent Rs 20,000 = Rs 80,000. In a 30-day month w
 
 **Daily-wage staff** (employment type *Daily wage* on the employee's profile):
 
-- Wages = **Per-day rate** × payable days. Payable days are days present, on official duty, working from home or exempted, plus part of half days. Holidays are paid only if **Pay daily-wage staff for holidays** is on in Company settings.
-- Absent days are not paid, so there is no separate attendance deduction.
+- Wages = **Per-day rate** × payable days. Payable days are days present, on official duty, working from home or exempted, days of approved paid leave, plus part of half days. Holidays are paid only if **Pay daily-wage staff for holidays** is on in Company settings.
+- Absent days and unpaid leave are not paid, so there is no separate attendance deduction.
 - Basic and allowances are not used for daily-wage staff.
 
 **Overtime**: hours of overtime on normal days × **OT rate / hour**, and hours on holidays and weekly offs × **Holiday OT rate / hour**. Overtime is counted only if overtime is switched on in Company settings and the employee is marked as overtime eligible.
