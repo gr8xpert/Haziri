@@ -14,7 +14,7 @@ screens: shift-swaps-list=/admin/shift-swaps | shift-swaps-new=/admin/shift-swap
 - Staff ask from the staff app (**/me**). The colleague accepts or declines first; only then does the request come to you.
 - The list opens on requests **Waiting for approval**. The number next to *Shift swaps* in the menu is how many are waiting.
 - **Approve** changes both employees' shift for that day only and recalculates their attendance. **Reject** changes nothing.
-- This page appears only if your plan includes *Rosters & shift swaps*. Only the Owner, Admin and HR can open it.
+- This page appears only if your plan includes *Rosters & shift swaps*. The Owner, Admin and HR see every swap. A **Manager** sees only the swaps asked by their own team (people whose manager they are) and can approve or reject those. Only the Owner, Admin and HR can enter a swap themselves.
 
 ## How a swap request moves
 
@@ -92,6 +92,10 @@ An employee can have only 3 open requests. A colleague must answer, or you must 
 ### "Choose a colleague to swap with."
 
 In the staff app, staff can only ask someone in the same branch and department who has not left. HR can enter a swap between any two employees with **New swap request**.
+
+### A manager got a notice but sees no swap
+
+A Manager sees a swap only when the employee who asked has them set as **Manager** on their profile. Check the employee's profile, or let HR decide it.
 
 ### The swap is in the list but I can't see Approve
 

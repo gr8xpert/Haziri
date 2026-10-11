@@ -24,7 +24,7 @@ final class ApproveShiftSwap
         if ($swap->status !== ShiftSwapStatus::Pending) {
             throw ValidationException::withMessages(['swap' => __('This request is not waiting for approval.')]);
         }
-        if (! $by->can('shifts.manage') && ! $by->can('leave.approve_first')) {
+        if (! self::canDecide($by, $swap)) {
             throw ValidationException::withMessages(['swap' => __('You cannot approve shift swaps.')]);
         }
 
@@ -41,6 +41,17 @@ final class ApproveShiftSwap
 
             return $swap;
         });
+    }
+
+    /** HR (shifts.manage) decides any swap; a manager (leave.approve_first) only swaps asked by their direct reports. */
+    public static function canDecide(User $user, ShiftSwapRequest $swap): bool
+    {
+        if ($user->can('shifts.manage')) {
+            return true;
+        }
+
+        return $user->can('leave.approve_first') && $user->employee_id !== null
+            && $swap->requester?->manager_employee_id === $user->employee_id;
     }
 
     /**

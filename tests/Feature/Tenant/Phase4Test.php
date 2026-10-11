@@ -5,7 +5,9 @@ declare(strict_types=1);
 use App\Actions\Punches\CreateManualPunches;
 use App\Actions\Rosters\ApproveShiftSwap;
 use App\Enums\AttendanceStatus;
+use App\Enums\Role;
 use App\Enums\ShiftSwapStatus;
+use App\Filament\Tenant\Resources\ShiftSwaps\Pages\ManageShiftSwaps;
 use App\Models\AttendanceDay;
 use App\Models\Central\TenantUserLink;
 use App\Models\Employee;
@@ -19,7 +21,10 @@ use App\Services\Analytics\PunctualityScore;
 use App\Services\Attendance\ShiftResolver;
 use App\Services\Settings\TenantSettings;
 use App\Support\Security\PublicUrl;
+use Filament\Actions\CreateAction;
+use Filament\Facades\Filament;
 use Illuminate\Validation\ValidationException;
+use Livewire\Livewire;
 
 beforeEach(function () {
     $this->owner = User::where('email', 'owner@pest.test')->first();
@@ -64,6 +69,30 @@ it('refuses a swap between two people on the same shift and describes both shift
     expect(app(ApproveShiftSwap::class)->describe($a, $b, '2026-10-20'))->toContain('Cee')->toContain($this->evening->displayName())
         ->and($swap->fresh()->status)->toBe(ShiftSwapStatus::Pending)
         ->and(ShiftSwapStatus::Pending->getLabel())->toBe('Waiting for approval');
+});
+
+it('lets a manager see and decide only the shift swaps of their own team', function () {
+    Filament::setCurrentPanel(Filament::getPanel('tenant'));
+    $boss = Employee::create(['code' => 'SWM', 'first_name' => 'Boss', 'joined_on' => '2025-01-01']);
+    $mine = Employee::create(['code' => 'SWE', 'first_name' => 'Mine', 'joined_on' => '2025-01-01', 'manager_employee_id' => $boss->id]);
+    $other = Employee::create(['code' => 'SWF', 'first_name' => 'Other', 'joined_on' => '2025-01-01']);
+    $pal = Employee::create(['code' => 'SWG', 'first_name' => 'Pal', 'joined_on' => '2025-01-01']);
+    ShiftAssignment::create(['employee_id' => $pal->id, 'shift_id' => $this->evening->id, 'effective_from' => '2026-01-01']);
+    $teamSwap = ShiftSwapRequest::create(['requester_employee_id' => $mine->id, 'partner_employee_id' => $pal->id, 'date' => '2026-10-20']);
+    $otherSwap = ShiftSwapRequest::create(['requester_employee_id' => $other->id, 'partner_employee_id' => $pal->id, 'date' => '2026-10-21']);
+    $manager = User::create(['name' => 'Boss', 'email' => 'swapboss@pest.test', 'password' => 'x', 'employee_id' => $boss->id]);
+    $manager->assignRole(Role::Manager->value);
+    $this->actingAs($manager);
+
+    Livewire::test(ManageShiftSwaps::class)
+        ->assertCanSeeTableRecords([$teamSwap])
+        ->assertCanNotSeeTableRecords([$otherSwap])
+        ->assertActionHidden(CreateAction::class)
+        ->callTableAction('approve', $teamSwap);
+
+    expect($teamSwap->fresh()->status)->toBe(ShiftSwapStatus::Approved)
+        ->and(fn () => app(ApproveShiftSwap::class)($otherSwap, $manager, true))
+        ->toThrow(ValidationException::class, 'You cannot approve shift swaps.');
 });
 
 it('scores punctuality', function () {
