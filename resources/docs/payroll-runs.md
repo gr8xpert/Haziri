@@ -14,7 +14,7 @@ screens: payroll-runs-list=/admin/payroll-runs | payroll-runs-new=/admin/payroll
 - Click **Run payroll** and pick a **Locked month**. The run starts as a **draft**.
 - A draft can be checked and **Recalculate**d as often as needed, for example after a salary or bonus change.
 - **Finalise & send payslips** makes the run final: advances are recovered, payslip PDFs are saved and staff are told their net pay. It cannot be undone.
-- From the row menu (⋮) you can download the **Salary sheet**, a **Bank transfer CSV** and a **Bank letter (PDF)**.
+- From the row menu (⋮) you can download the **Salary sheet**, a **Bank transfer CSV** and a **Bank letter (PDF)**, and on a final run the **Payslip PDFs**.
 
 This page appears only if your plan includes Payroll. Owner, Admin and HR can use it.
 
@@ -73,6 +73,10 @@ What happens:
 - Provident fund contributions are added to each member's provident fund balance (Payroll Full).
 - Each employee gets a *"Payslip for …"* message with their net pay, by email or WhatsApp where set up (see [Notifications](/help/notifications)).
 - The status changes to *final*. **Recalculate** and **Finalise** disappear from the menu.
+
+## Download payslips
+
+On a final run, open the row menu (⋮) → **Payslip PDFs**. Pick one **Employee** to get their payslip, or **Everyone (ZIP)** to get all payslips of the month in one ZIP file.
 
 ## Pay the bank
 

@@ -6,6 +6,7 @@ use App\Actions\Payroll\PayrollActions;
 use App\Actions\Periods\PeriodActions;
 use App\Enums\AttendanceStatus;
 use App\Filament\Tenant\Resources\Advances\Pages\ManageAdvances;
+use App\Filament\Tenant\Resources\PayrollRuns\Pages\ListPayrollRuns;
 use App\Models\Advance;
 use App\Models\Announcement;
 use App\Models\AttendanceDay;
@@ -106,6 +107,28 @@ it('takes the bank details for the bank file from the salary structure of the ru
         'bank_name' => 'MCB', 'bank_account' => 'PK00MUCB0000009999999999']);
 
     expect($payroll->bankCsv($run->fresh()))->toContain('PK36HABB0000001234567890')->not->toContain('PK00MUCB');
+});
+
+it('downloads the payslip PDFs of a final run, one or all in a ZIP', function () {
+    Storage::fake('local');
+    $periods = app(PeriodActions::class);
+    $period = $periods->period(2026, 8);
+    $periods->lock($period, $this->owner);
+    $payroll = app(PayrollActions::class);
+    $run = $payroll->finalise($payroll->generate($period->fresh(), $this->owner)->fresh(), $this->owner);
+    $slip = $run->payslips()->firstOrFail();
+    Storage::disk('local')->delete($slip->pdf_path); // a lost file is made again
+
+    expect(substr($payroll->payslipPdf($slip), 0, 4))->toBe('%PDF');
+    $zip = new ZipArchive;
+    $zip->open($payroll->payslipsZip($run));
+    expect($zip->numFiles)->toBe(1)->and($zip->getNameIndex(0))->toBe('PAY1 - Bilal - Payslip August 2026.pdf');
+
+    Filament::setCurrentPanel(Filament::getPanel('tenant'));
+    $this->actingAs($this->owner);
+    Livewire::test(ListPayrollRuns::class)
+        ->callTableAction('payslips', $run, data: ['payslip' => (string) $slip->id])
+        ->assertFileDownloaded('PAY1 - Bilal - Payslip August 2026.pdf');
 });
 
 it('lets HR change the amount of an advance or delete it until something is recovered', function () {

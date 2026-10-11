@@ -22,6 +22,7 @@ use App\Services\Notifications\Recipient;
 use App\Services\Payroll\IncomeTax;
 use App\Services\Payroll\PayslipCalculator;
 use App\Services\Payroll\StatutoryPayroll;
+use App\Services\Reports\MonthlyAttendanceExport;
 use App\Services\Settings\TenantSettings;
 use App\Services\Webhooks\Webhooks;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -29,6 +30,8 @@ use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
+use RuntimeException;
+use ZipArchive;
 
 /** Payroll run lifecycle (spec §9 phase 3): generate (draft, re-runnable) → finalise (advances recovered, PDFs, notify). */
 final class PayrollActions
@@ -172,6 +175,38 @@ final class PayrollActions
             . '/' . $slip->employee->code . '.pdf';
         $pdf = Pdf::loadView('pdf.payslip', ['slip' => $slip, 'company' => tenant('company_name'), 'month' => $slip->run->label()]);
         Storage::disk('local')->put($path, $pdf->output());
+
+        return $path;
+    }
+
+    /** PDF bytes of a payslip of a final run: the file saved at finalising, made again if it has gone missing. */
+    public function payslipPdf(Payslip $slip): string
+    {
+        $path = (string) $slip->pdf_path;
+        if ($path === '' || ! Storage::disk('local')->exists($path)) {
+            $path = $this->pdf($slip);
+            $slip->update(['pdf_path' => $path]);
+        }
+
+        return (string) Storage::disk('local')->get($path);
+    }
+
+    /**
+     * Every payslip PDF of a final run in one ZIP.
+     *
+     * @return string absolute path of a temporary file
+     */
+    public function payslipsZip(PayrollRun $run): string
+    {
+        $path = tempnam(sys_get_temp_dir(), 'pay') . '.zip';
+        $zip = new ZipArchive;
+        if ($zip->open($path, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) {
+            throw new RuntimeException('Could not create the ZIP file.');
+        }
+        foreach ($run->payslips()->with('employee')->get() as $slip) {
+            $zip->addFromString(MonthlyAttendanceExport::fileName($slip->employee, __('Payslip') . ' ' . $run->label()), $this->payslipPdf($slip));
+        }
+        $zip->close();
 
         return $path;
     }

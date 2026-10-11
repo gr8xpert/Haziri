@@ -10,10 +10,13 @@ use App\Filament\Concerns\RequiresFeature;
 use App\Filament\Tenant\NavigationGroup;
 use App\Filament\Tenant\Resources\TaxSlabs\TaxSlabResource;
 use App\Models\PayrollRun;
+use App\Models\Payslip;
 use App\Reports\ReportExporter;
 use App\Reports\SalarySheetReport;
+use App\Services\Reports\MonthlyAttendanceExport;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
@@ -21,6 +24,8 @@ use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class PayrollRunResource extends Resource
 {
@@ -73,6 +78,12 @@ class PayrollRunResource extends Resource
                         ->action(fn (PayrollRun $r, PayrollActions $a, array $data) => response()->streamDownload(
                             fn () => print ($a->bankLetter($r, $data['bank'] ?? null)), 'bank-letter-' . str_replace(' ', '-', $r->label()) . '.pdf',
                             ['Content-Type' => 'application/pdf'])),
+                    Action::make('payslips')->label('Payslip PDFs')->icon(Heroicon::OutlinedDocumentArrowDown)
+                        ->visible(fn (PayrollRun $r) => $r->status === 'final')
+                        ->schema(fn (PayrollRun $r) => [Select::make('payslip')->label('Employee')->required()->searchable()->default('all')
+                            ->options(['all' => __('Everyone (ZIP)')] + $r->payslips()->with('employee')->get()->sortBy('employee.code')
+                                ->mapWithKeys(fn (Payslip $s) => [$s->id => "{$s->employee->code} — {$s->employee->fullName()}"])->all())])
+                        ->action(fn (PayrollRun $r, PayrollActions $a, array $data) => self::downloadPayslips($r, $a, (string) $data['payslip'])),
                     Action::make('regenerate')->label('Recalculate')->icon(Heroicon::OutlinedArrowPath)
                         ->visible(fn (PayrollRun $r) => $r->status === 'draft')
                         ->action(fn (PayrollRun $r, PayrollActions $a) => self::run(fn () => $a->generate($r->period, auth()->user()), 'Recalculated')),
@@ -82,6 +93,19 @@ class PayrollRunResource extends Resource
                         ->action(fn (PayrollRun $r, PayrollActions $a) => self::run(fn () => $a->finalise($r, auth()->user()), 'Payroll finalised')),
                 ]),
             ]);
+    }
+
+    /** One employee's payslip PDF, or every payslip of the run in a ZIP ("all"). */
+    private static function downloadPayslips(PayrollRun $run, PayrollActions $actions, string $choice): BinaryFileResponse | StreamedResponse
+    {
+        $month = str_replace(' ', '-', $run->label());
+        if ($choice === 'all') {
+            return response()->download($actions->payslipsZip($run), "payslips-{$month}.zip")->deleteFileAfterSend();
+        }
+        $slip = $run->payslips()->with('employee')->findOrFail((int) $choice);
+
+        return response()->streamDownload(fn () => print ($actions->payslipPdf($slip)),
+            MonthlyAttendanceExport::fileName($slip->employee, __('Payslip') . ' ' . $run->label()), ['Content-Type' => 'application/pdf']);
     }
 
     public static function run(callable $fn, string $ok): void
