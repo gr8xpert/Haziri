@@ -10,6 +10,7 @@ use App\Filament\Concerns\RequiresFeature;
 use App\Filament\Tenant\NavigationGroup;
 use App\Models\Anomaly;
 use App\Models\Punch;
+use App\Support\Duration;
 use Filament\Actions\Action;
 use Filament\Resources\Resource;
 use Filament\Support\Icons\Heroicon;
@@ -111,9 +112,9 @@ class AnomalyResource extends Resource
             'buddy_punching' => [__('Employees') => (string) ($e['names'] ?? ''), __('Days') => count($e['days'] ?? []) . ' — ' . implode(', ', $e['days'] ?? [])],
             'ghost_employee' => [__('No punch since') => (string) ($e['since'] ?? '')],
             'pattern_shift' => [__('Average arrival before') => $hm((int) ($e['before_avg'] ?? 0)), __('Average arrival this week') => $hm((int) ($e['recent_avg'] ?? 0)),
-                __('Change') => abs((int) ($e['change_min'] ?? 0)) . ' ' . __('min')],
+                __('Change') => Duration::human((int) ($e['change_min'] ?? 0))],
             'impossible_sequence' => [__('Machines') => implode(' → ', $e['devices'] ?? [])],
-            'impossible_travel' => [__('Distance') => ($e['km'] ?? '?') . ' km', __('Time between punches') => ($e['minutes'] ?? '?') . ' ' . __('min')],
+            'impossible_travel' => [__('Distance') => ($e['km'] ?? '?') . ' km', __('Time between punches') => isset($e['minutes']) ? Duration::human((int) $e['minutes']) : '?'],
             default => [],
         };
 

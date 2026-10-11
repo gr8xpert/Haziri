@@ -37,7 +37,7 @@ The list opens on **Open** findings, newest first. Use the **Status** filter to 
 |---|---|---|
 | **Buddy punching** | Two people punched within 5 seconds of each other on the same machine, on 3 or more days in the last 30 days. | One person may be punching for the other. Or they simply arrive together, for example by the same van. |
 | **Ghost employee** | An active employee with a salary structure, who joined more than 30 days ago, has no punches at all in the last 30 days. | Someone may be on the payroll who does not work here. Or they are on long leave, work off-site, or should be marked as left. |
-| **Arrival time changed** | The person's average arrival this week is more than 45 minutes earlier or later than in the four weeks before. | A shift change that was not entered in the roster, or a new habit worth a talk. |
+| **Arrival time changed** | The person's average arrival this week is more than 45 minutes earlier or later than in the four weeks before, on the same shift. A move to another shift (for example an evening week in the roster) is not counted. | A shift change that was not entered in the roster, or a new habit worth a talk. |
 | **Two branches too close in time** | The person punched on machines in two different branches within 20 minutes. | A shared PIN or card, or a machine set to the wrong branch. |
 | **Impossible travel** | Two punches at least 5 km apart, closer in time than a car could travel (faster than 120 km/h). Uses the phone's location, or the branch location for machines. | Fake GPS on the phone, or a shared PIN. |
 
