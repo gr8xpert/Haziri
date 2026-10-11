@@ -50,7 +50,7 @@ A department is a part of the company, like *Accounts* or *Production*.
 
 1. **Organisation → Departments** → **New department**.
 2. Type the **Name**; the **Code** fills in.
-3. Optional: **Parent department** (for example *Packing* under *Production*) and **Head** (the department head, an employee).
+3. Optional: **Parent department** (for example *Packing* under *Production*) and **Head** (the department head, an employee: pick by code or full name).
 4. Click **Create**.
 
 The list shows **Code**, **Name**, **Parent**, **Head** and **Employees**. Departments are used to filter reports and lists.
@@ -60,7 +60,7 @@ The list shows **Code**, **Name**, **Parent**, **Head** and **Employees**. Depar
 A designation is a job title, like *Accountant* or *Machine Operator*.
 
 1. **Organisation → Designations** → **New designation**.
-2. Type the **Name**. **Grade** here is a free text note (up to 20 characters), for example *G-5*; it is not linked to the **Grades** list.
+2. Type the **Name**. A person's grade is set on their employee profile from the **Grades** list, not on the designation.
 3. Click **Create**.
 
 ## Grades

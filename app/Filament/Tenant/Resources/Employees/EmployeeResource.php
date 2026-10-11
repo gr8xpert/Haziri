@@ -113,7 +113,8 @@ class EmployeeResource extends Resource
                     ]),
                     Section::make(__('Employment'))->columns(3)->schema([
                         Select::make('grade_id')->relationship('grade', 'name')->searchable()->preload(),
-                        Select::make('manager_employee_id')->relationship('manager', 'first_name')->searchable()->label('Manager'),
+                        Select::make('manager_employee_id')->relationship('manager', 'first_name')->searchable(['first_name', 'last_name', 'code'])->label('Manager')
+                            ->getOptionLabelFromRecordUsing(fn (Employee $record) => $record->pickerLabel()),
                         Select::make('contractor_id')->relationship('contractor', 'name')->searchable()->preload()
                             ->helperText('For contract staff supplied by a contractor')
                             ->visible(fn (?Employee $record) => $record?->contractor_id !== null || Contractor::query()->exists()),

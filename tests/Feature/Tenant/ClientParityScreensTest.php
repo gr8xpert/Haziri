@@ -8,6 +8,7 @@ use App\Filament\Tenant\Pages\DailySheet;
 use App\Filament\Tenant\Pages\Roster;
 use App\Filament\Tenant\Resources\AttendanceExemptions\Pages\ManageAttendanceExemptions;
 use App\Filament\Tenant\Resources\Branches\Pages\ManageBranches;
+use App\Filament\Tenant\Resources\Departments\Pages\ManageDepartments;
 use App\Filament\Tenant\Resources\Grades\GradeResource;
 use App\Filament\Tenant\Resources\Holidays\Pages\ManageHolidays;
 use App\Filament\Tenant\Resources\LeaveTypes\Pages\ManageLeaveTypes;
@@ -31,6 +32,7 @@ use App\Services\Settings\TenantSettings;
 use Carbon\CarbonImmutable;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\Repeater;
+use Filament\Forms\Components\Select;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Livewire\Livewire;
 
@@ -268,4 +270,11 @@ it('warns how many leave entitlements and employees a grade takes with it before
 
     expect(GradeResource::deleteWarning($grade))->toContain('Its 2 leave entitlements on your leave types are deleted too.')
         ->toContain('1 employee loses this grade.');
+});
+
+it('shows code and full name in the department Head picker', function () {
+    Employee::create(['code' => 'HD7', 'first_name' => 'Sana', 'last_name' => 'Qureshi', 'joined_on' => '2025-01-01']);
+
+    Livewire::test(ManageDepartments::class)->mountAction('create')
+        ->assertFormFieldExists('head_employee_id', 'mountedActionSchema0', fn (Select $field) => in_array('HD7 — Sana Qureshi', $field->getOptions(), true));
 });

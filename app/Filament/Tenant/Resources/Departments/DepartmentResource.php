@@ -7,6 +7,7 @@ namespace App\Filament\Tenant\Resources\Departments;
 use App\Filament\Concerns\AuthorizesByPermission;
 use App\Filament\Tenant\NavigationGroup;
 use App\Models\Department;
+use App\Models\Employee;
 use App\Support\CodeFromName;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
@@ -40,7 +41,8 @@ class DepartmentResource extends Resource
             CodeFromName::nameInput(Department::class, 20)->required()->maxLength(255),
             TextInput::make('code')->required()->maxLength(20)->unique(ignoreRecord: true)->helperText('Filled in from the name; you can change it.'),
             Select::make('parent_id')->relationship('parent', 'name')->searchable()->preload()->label('Parent department'),
-            Select::make('head_employee_id')->relationship('head', 'first_name')->searchable()->preload()->label('Head'),
+            Select::make('head_employee_id')->relationship('head', 'first_name')->searchable(['first_name', 'last_name', 'code'])->preload()->label('Head')
+                ->getOptionLabelFromRecordUsing(fn (Employee $record) => $record->pickerLabel()),
         ]);
     }
 
@@ -51,7 +53,7 @@ class DepartmentResource extends Resource
                 TextColumn::make('code')->searchable()->sortable(),
                 TextColumn::make('name')->searchable()->sortable(),
                 TextColumn::make('parent.name')->label('Parent'),
-                TextColumn::make('head.first_name')->label('Head'),
+                TextColumn::make('head.first_name')->label('Head')->formatStateUsing(fn (Department $record) => $record->head?->fullName()),
                 TextColumn::make('employees_count')->counts('employees')->label('Employees'),
             ])
             ->recordActions([EditAction::make(), DeleteAction::make()]);

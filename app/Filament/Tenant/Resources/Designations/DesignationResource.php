@@ -36,7 +36,6 @@ class DesignationResource extends Resource
     {
         return $schema->components([
             TextInput::make('name')->required()->maxLength(255),
-            TextInput::make('grade')->maxLength(20),
         ]);
     }
 
@@ -45,7 +44,6 @@ class DesignationResource extends Resource
         return $table
             ->columns([
                 TextColumn::make('name')->searchable()->sortable(),
-                TextColumn::make('grade')->sortable(),
             ])
             ->recordActions([EditAction::make(), DeleteAction::make()]);
     }

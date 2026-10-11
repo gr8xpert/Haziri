@@ -73,6 +73,12 @@ class Employee extends Model
         return trim($this->first_name . ' ' . $this->last_name);
     }
 
+    /** How an employee appears in pickers: code and full name, so two people with the same first name can be told apart. */
+    public function pickerLabel(): string
+    {
+        return "{$this->code} — {$this->fullName()}";
+    }
+
     public function branch(): BelongsTo
     {
         return $this->belongsTo(Branch::class);
