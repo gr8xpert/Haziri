@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Actions\Tenants\SetTenantFeatureFlags;
 use App\Enums\TenantStatus;
+use App\Filament\Tenant\Pages\Billing;
 use App\Filament\Tenant\Pages\Branding;
 use App\Models\Central\DeviceRegistry;
 use App\Models\Central\Invoice;
@@ -135,4 +136,18 @@ it('invoices and auto-suspends a white-label client like any other', function ()
     } finally {
         $flags($this->tenant, $original);
     }
+});
+
+it('shows what is missing when I have paid is clicked with empty fields, then records the payment', function () {
+    app(BillingService::class)->invoiceMonth(CarbonImmutable::parse('2026-10-01'));
+    $invoice = Invoice::where('tenant_id', $this->tenant->id)->sole();
+    $this->actingAs(User::where('email', 'owner@pest.test')->first());
+
+    Livewire::test(Billing::class)->call('submit', $invoice->id)
+        ->assertHasErrors(["pay.{$invoice->id}.method", "pay.{$invoice->id}.reference"])
+        ->assertSee('The payment method field is required')
+        ->set("pay.{$invoice->id}", ['method' => 'jazzcash', 'reference' => 'JC777'])->call('submit', $invoice->id)
+        ->assertHasNoErrors();
+
+    expect($invoice->payments()->value('reference'))->toBe('JC777');
 });

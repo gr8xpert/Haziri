@@ -74,9 +74,9 @@ Only the owner sees it. Admins and HR do not. In a company running on its own pr
 
 Your first invoice appears at the start of next month. During a free trial no invoices are made.
 
-### I clicked I have paid but nothing happened
+### "The payment method field is required" under the invoice
 
-The **Method** or **Transaction ID** is empty. Choose a method, type the transaction ID, and click **I have paid** again.
+The **Method** or **Transaction ID** is empty. The message under the invoice says which. Choose a method, type the transaction ID, and click **I have paid** again.
 
 ### The invoice still says Awaiting confirmation
 

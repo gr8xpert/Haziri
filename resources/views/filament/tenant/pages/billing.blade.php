@@ -44,6 +44,11 @@
                                     </x-filament::input.wrapper>
                                     <x-filament::button size="sm" wire:click="submit({{ $inv->id }})">{{ __('I have paid') }}</x-filament::button>
                                 </div>
+                                @foreach (['method', 'reference'] as $field)
+                                    @error("pay.{$inv->id}.{$field}")
+                                        <p class="mt-1 text-sm text-danger-600 dark:text-danger-400">{{ $message }}</p>
+                                    @enderror
+                                @endforeach
                             @endif
                         </td>
                     </tr>

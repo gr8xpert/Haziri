@@ -46,10 +46,13 @@ class Billing extends Page
     public function submit(int $invoiceId): void
     {
         $invoice = Invoice::query()->where('tenant_id', tenant('id'))->where('status', 'open')->findOrFail($invoiceId);
-        $data = validator($this->pay[$invoiceId] ?? [], [
-            'method' => ['required', 'in:' . implode(',', array_keys(Payment::METHODS))],
-            'reference' => ['required', 'string', 'max:100'],
-        ])->validate();
+        $data = $this->validate([
+            "pay.{$invoiceId}.method" => ['required', 'in:' . implode(',', array_keys(Payment::METHODS))],
+            "pay.{$invoiceId}.reference" => ['required', 'string', 'max:100'],
+        ], [], [
+            "pay.{$invoiceId}.method" => __('payment method'),
+            "pay.{$invoiceId}.reference" => __('transaction ID'),
+        ])['pay'][$invoiceId];
         $invoice->payments()->create($data + ['amount' => $invoice->amount, 'submitted_by' => auth()->user()->email]);
         unset($this->pay[$invoiceId]);
         Notification::make()->success()->title(__('Thank you — we will confirm the payment shortly.'))->send();
