@@ -8,6 +8,7 @@ use App\Filament\Tenant\Pages\DailySheet;
 use App\Filament\Tenant\Pages\Roster;
 use App\Filament\Tenant\Resources\AttendanceExemptions\Pages\ManageAttendanceExemptions;
 use App\Filament\Tenant\Resources\Branches\Pages\ManageBranches;
+use App\Filament\Tenant\Resources\Grades\GradeResource;
 use App\Filament\Tenant\Resources\Holidays\Pages\ManageHolidays;
 use App\Filament\Tenant\Resources\LeaveTypes\Pages\ManageLeaveTypes;
 use App\Filament\Tenant\Resources\Punches\Pages\ListPunches;
@@ -256,4 +257,15 @@ it('warns how many employees use a shift before deleting it and frees its code',
 
     expect(Shift::where('code', 'OLD')->value('name'))->toBe('Old again')
         ->and(Shift::onlyTrashed()->find($old->id)->code)->toBe("OLD~{$old->id}");
+});
+
+it('warns how many leave entitlements and employees a grade takes with it before deleting it', function () {
+    $grade = Grade::create(['code' => 'WRK', 'name' => 'Worker']);
+    foreach (LeaveType::query()->whereIn('code', ['CL', 'SL'])->get() as $type) {
+        $type->entitlements()->create(['grade_id' => $grade->id, 'days_per_year' => 5]);
+    }
+    Employee::create(['code' => 'GR1', 'first_name' => 'Graded', 'joined_on' => '2025-01-01', 'grade_id' => $grade->id]);
+
+    expect(GradeResource::deleteWarning($grade))->toContain('Its 2 leave entitlements on your leave types are deleted too.')
+        ->toContain('1 employee loses this grade.');
 });

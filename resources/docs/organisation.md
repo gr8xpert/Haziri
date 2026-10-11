@@ -71,7 +71,7 @@ A grade is a pay or staff level, like *Officer* or *Worker*. Grades matter for l
 2. Type the **Name**; the **Code** fills in.
 3. Click **Create**, then set each employee's grade on their profile.
 
-> **Warning:** Deleting a grade also deletes the leave rules set for that grade on your leave types. Employees in that grade then get the leave type's normal quota.
+> **Warning:** Deleting a grade also deletes the leave rules set for that grade on your leave types. Employees in that grade then get the leave type's normal quota. Before you confirm, the delete window says how many leave entitlements and how many employees are affected.
 
 ## Contractors
 
