@@ -91,7 +91,7 @@ The date falls in a locked month. Ask the owner or admin to unlock it, make the 
 
 Payroll needs final numbers. Lock the month on this page first.
 
-### "Only the owner can unlock a month."
+### "Only the owner or an admin can unlock a month."
 
 Your role cannot unlock. Ask the owner or an admin.
 

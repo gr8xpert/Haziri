@@ -92,7 +92,7 @@ The employee is told about the decision in the staff app.
 
 ### "That month is locked."
 
-The date is in a locked month, so it cannot change. The owner can unlock it under [Month lock](/help/month-lock); then send or approve the correction and lock the month again.
+The date is in a locked month, so it cannot change. The owner or an admin can unlock it under [Month lock](/help/month-lock); then send or approve the correction and lock the month again.
 
 ### "Only OD / WFH can be requested for future dates."
 

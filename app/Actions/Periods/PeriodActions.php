@@ -74,7 +74,7 @@ final class PeriodActions
 
     public function unlock(AttendancePeriod $period, User $by, string $reason): AttendancePeriod
     {
-        $this->assert($by->can('periods.unlock'), __('Only the owner can unlock a month.'));
+        $this->assert($by->can('periods.unlock'), __('Only the owner or an admin can unlock a month.'));
         $this->assert($period->status === PeriodStatus::Locked, __('This month is not locked.'));
         $this->assert(trim($reason) !== '', __('A reason is required to unlock.'));
 

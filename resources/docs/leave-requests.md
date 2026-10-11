@@ -83,7 +83,7 @@ All the chosen dates are weekly offs or holidays for that employee, so there is 
 
 ### "That month is locked"
 
-The month was closed under **Attendance → Months (lock)**. Ask the owner to unlock the month (HR can lock a month but not unlock it), make the change, then lock it again.
+The month was closed under **Attendance → Months (lock)**. Ask the owner or an admin to unlock the month (HR can lock a month but not unlock it), make the change, then lock it again.
 
 ### "There is already a leave request for these dates"
 
