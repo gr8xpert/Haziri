@@ -12,6 +12,7 @@ use App\Models\Employee;
 use App\Models\Punch;
 use App\Models\SalaryStructure;
 use App\Services\SelfService\GeoFence;
+use App\Support\Duration;
 use Carbon\CarbonImmutable;
 
 /**
@@ -93,14 +94,23 @@ final class AnomalyDetector
         ])->values()->all();
     }
 
-    /** Average arrival moved by more than 45 minutes vs the previous 4 weeks. */
+    /**
+     * Average arrival moved by more than 45 minutes vs the previous 4 weeks, on the same shift: a move to another
+     * shift (roster, evening or night week) changes arrival times on purpose, so days are only compared within a shift.
+     */
     private function patternShifts(CarbonImmutable $today): array
     {
         $tz = tenant('timezone') ?? config('hazri.default_timezone');
-        $days = AttendanceDay::query()->whereNotNull('first_in')->where('date', '>=', $today->subDays(35)->format('Y-m-d'))->get()->groupBy('employee_id');
+        $days = AttendanceDay::query()->whereNotNull('first_in')->where('date', '>=', $today->subDays(35)->format('Y-m-d'))->get()
+            ->groupBy(fn (AttendanceDay $d): string => $d->employee_id . ':' . ($d->shift_id ?? 0));
         $cut = $today->subDays(7)->format('Y-m-d');
         $out = [];
-        foreach ($days as $employeeId => $list) {
+        $flagged = [];
+        foreach ($days as $group => $list) {
+            $employeeId = (int) explode(':', (string) $group)[0];
+            if (isset($flagged[$employeeId])) {
+                continue;
+            }
             $minutes = fn ($c) => $c->map(fn ($d) => $d->first_in->setTimezone($tz)->hour * 60 + $d->first_in->setTimezone($tz)->minute);
             $recent = $minutes($list->filter(fn ($d) => $d->date->format('Y-m-d') >= $cut));
             $before = $minutes($list->filter(fn ($d) => $d->date->format('Y-m-d') < $cut));
@@ -109,10 +119,11 @@ final class AnomalyDetector
             }
             $shift = (int) round($recent->avg() - $before->avg());
             if (abs($shift) > 45) {
+                $flagged[$employeeId] = true;
                 $name = Employee::find($employeeId)?->fullName();
                 $out[] = ['type' => 'pattern_shift', 'employee_id' => $employeeId, 'key' => "shift:{$employeeId}:" . $today->format('o-W'),
                     'evidence' => ['change_min' => $shift, 'recent_avg' => (int) $recent->avg(), 'before_avg' => (int) $before->avg()],
-                    'template' => "{$name}'s average arrival moved " . abs($shift) . ' minutes ' . ($shift > 0 ? 'later' : 'earlier') . ' this week compared with the previous four weeks.'];
+                    'template' => "{$name}'s average arrival moved " . Duration::human($shift) . ' ' . ($shift > 0 ? 'later' : 'earlier') . ' this week compared with the previous four weeks.'];
             }
         }
 
@@ -165,7 +176,7 @@ final class AnomalyDetector
                     $minutes = (int) round($hours * 60);
                     $out[] = ['type' => 'impossible_travel', 'employee_id' => $p->employee_id, 'key' => "travel:{$prev->id}:{$p->id}",
                         'evidence' => ['punches' => [$prev->id, $p->id], 'km' => round($km, 1), 'minutes' => $minutes],
-                        'template' => sprintf('%s punched %.0f km apart within %d minutes — faster than possible; check for fake GPS or a shared PIN.', $name, $km, $minutes)];
+                        'template' => sprintf('%s punched %.0f km apart within %s — faster than possible; check for fake GPS or a shared PIN.', $name, $km, Duration::human($minutes))];
                 }
             }
             $prev = $p;
@@ -183,7 +194,7 @@ final class AnomalyDetector
         $items = array_map(fn (Anomaly $a) => ['id' => $a->id, 'type' => $a->type, 'facts' => $a->explanation], $anomalies);
         $result = $this->ai->ask('anomaly', 'explain ' . count($items) . ' anomalies',
             'For each attendance anomaly, write one neutral sentence for HR explaining what was seen and a sensible next step. '
-            . 'Do not accuse anyone; there may be an innocent reason.',
+            . 'Do not accuse anyone; there may be an innocent reason. Keep times as written in the facts (hours and minutes, never a large number of minutes).',
             [['type' => 'text', 'text' => json_encode($items, JSON_UNESCAPED_UNICODE)]],
             ['type' => 'object', 'additionalProperties' => false, 'required' => ['items'], 'properties' => ['items' => ['type' => 'array', 'items' => [
                 'type' => 'object', 'additionalProperties' => false, 'required' => ['id', 'explanation'],
