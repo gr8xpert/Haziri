@@ -14,4 +14,20 @@
             </a>
         @endforeach
     </div>
+
+    <x-filament::section :heading="__('Add another company')" :description="__('You need a login with the same email in that company. Type its address and the password of that login.')">
+        <form wire:submit="link" class="grid max-w-xl gap-3">
+            <label for="hz-link-address" class="hz-label">{{ __('Company address') }}</label>
+            <x-filament::input.wrapper :valid="! $errors->has('address')">
+                <x-filament::input id="hz-link-address" wire:model="address" :placeholder="__('for example acme or attendance.acme.pk')" />
+            </x-filament::input.wrapper>
+            @error('address')<p class="text-sm text-danger-600 dark:text-danger-400">{{ $message }}</p>@enderror
+            <label for="hz-link-password" class="hz-label">{{ __('Your password in that company') }}</label>
+            <x-filament::input.wrapper :valid="! $errors->has('password')">
+                <x-filament::input id="hz-link-password" type="password" wire:model="password" autocomplete="off" />
+            </x-filament::input.wrapper>
+            @error('password')<p class="text-sm text-danger-600 dark:text-danger-400">{{ $message }}</p>@enderror
+            <div><x-filament::button type="submit" icon="heroicon-m-link">{{ __('Add company') }}</x-filament::button></div>
+        </form>
+    </x-filament::section>
 </x-filament-panels::page>

@@ -93,7 +93,16 @@ Click your name or initials at the top right, then **Profile**. Here you can cha
 
 ## Switching company
 
-If your email has a login in more than one company (for example a group with two firms), your user menu shows **Switch company**. It lists the other companies. Click one to open it; you are signed in there straight away, with the role you have in that company.
+If you have a login in more than one company (for example a group with two firms), you can switch between them from the user menu: **Switch company**. It lists the companies linked to the one you are in. Click one to open it; you are signed in there straight away, with the role you have in that company.
+
+To link another company yourself:
+
+1. Make sure you have an active login there with the **same email** (ask that company's owner or admin to add one).
+2. Open **Switch company** (owners and admins always see it in the user menu).
+3. Under **Add another company**, type the company's address (for example `acme`, or its full web address) and **your password in that company**.
+4. Click **Add company**. Both companies now list each other.
+
+Only the two companies you linked are joined. If company B is also linked to company C, that does not let you go from A to C; link A and C as well.
 
 ## Common problems
 
@@ -119,4 +128,8 @@ Usually an invoice was not paid in time. Contact support. Once the payment is co
 
 ### I don't see Switch company
 
-Switch company appears only when your email is linked to another company and you have an active login there with the same email. Ask support to link the companies, and the other company's admin to add a login with your email.
+For roles other than owner and admin, Switch company appears only once a company is linked. Ask your owner or admin to add a login for you there, or link it yourself as described under *Switching company* (you need the password of your login in the other company).
+
+### "There is no active login with your email and this password in that company"
+
+Your login there has a different email, is switched off, or the password is wrong. Sign in to that company directly to check, or ask its admin. After five wrong tries, wait a minute.

@@ -6,21 +6,22 @@ namespace App\Http\Controllers;
 
 use App\Enums\TenantStatus;
 use App\Models\Central\Tenant;
-use App\Models\Central\TenantUserLink;
+use App\Models\Central\TenantSwitchLink;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 
 /**
- * Multi-company switch (spec §9 phase 4): the signed-in user's email must be linked to the target company
- * and exist there as an active user; a single-use 60 s login token hands the session over.
+ * Multi-company switch (spec §9 phase 4): there must be a switch pair for the signed-in email from this company to the
+ * target, and an active user with that email there; a single-use 60 s login token hands the session over.
+ * Pairs are made at provisioning (owner) or by the person proving the target login's password (LinkCompanyLogin).
  */
 final class SwitchCompanyController
 {
     public function __invoke(Request $request, string $tenantId): RedirectResponse
     {
         $email = strtolower((string) $request->user()->email);
-        abort_unless(TenantUserLink::query()->where(['email' => $email, 'tenant_id' => $tenantId])->exists(), 403);
+        abort_unless(TenantSwitchLink::allows($email, (string) tenant('id'), $tenantId), 403);
 
         $target = Tenant::query()->findOrFail($tenantId);
         abort_if($target->status === TenantStatus::Suspended, 403, __('That company is suspended.'));
@@ -36,15 +37,16 @@ final class SwitchCompanyController
         return redirect()->away($request->getScheme() . "://{$host}{$port}/impersonate/{$token->token}");
     }
 
-    /** @return array<string, string> tenant id => company name, excluding the current one */
-    public static function optionsFor(?string $email): array
+    /** @return array<string, string> tenant id => company name: only companies paired with $fromTenantId (default: this one) */
+    public static function optionsFor(?string $email, ?string $fromTenantId = null): array
     {
-        if ($email === null) {
+        $fromTenantId ??= (string) tenant('id');
+        if ($email === null || $fromTenantId === '') {
             return [];
         }
 
-        return TenantUserLink::query()->with('tenant')->where('email', strtolower($email))->where('tenant_id', '!=', tenant('id'))->get()
-            ->filter(fn (TenantUserLink $l) => $l->tenant !== null)
-            ->mapWithKeys(fn (TenantUserLink $l) => [$l->tenant_id => $l->tenant->company_name])->all();
+        return TenantSwitchLink::query()->with('target')->where(['email' => strtolower($email), 'tenant_id' => $fromTenantId])->get()
+            ->filter(fn (TenantSwitchLink $l) => $l->target !== null)
+            ->mapWithKeys(fn (TenantSwitchLink $l) => [$l->target_tenant_id => $l->target->company_name])->all();
     }
 }

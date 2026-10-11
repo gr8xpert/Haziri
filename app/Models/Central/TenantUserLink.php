@@ -8,7 +8,10 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Stancl\Tenancy\Database\Concerns\CentralConnection;
 
-/** One login email linked to several companies — lets an owner switch between them (spec §9 phase 4). */
+/**
+ * The owner email a company was provisioned for (spec §9 phase 4). Only provisioning writes these; switching itself
+ * reads the pairs in TenantSwitchLink.
+ */
 class TenantUserLink extends Model
 {
     use CentralConnection;

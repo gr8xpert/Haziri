@@ -65,7 +65,7 @@ class TenantPanelProvider extends PanelProvider
                 Action::make('switchCompany')->label(__('Switch company'))
                     ->icon(Heroicon::OutlinedBuildingOffice2)
                     ->url(fn () => SwitchCompany::getUrl())
-                    ->visible(fn () => SwitchCompany::canAccess()),
+                    ->visible(fn () => SwitchCompany::showInUserMenu()),
                 Action::make('help')->label(__('Help & user guide'))
                     ->icon(Heroicon::OutlinedLifebuoy)
                     ->url('/help', shouldOpenInNewTab: true),

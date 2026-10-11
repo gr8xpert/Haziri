@@ -10,6 +10,7 @@ use App\Events\TenantProvisioned;
 use App\Models\Central\Plan;
 use App\Models\Central\Tenant;
 use App\Models\Central\TenantSetting;
+use App\Models\Central\TenantSwitchLink;
 use App\Models\Central\TenantUserLink;
 use App\Models\User;
 use App\Services\Features\FeatureCatalog;
@@ -79,7 +80,12 @@ final class ProvisionTenant
             return $owner;
         });
 
+        // Companies the platform provisioned for the same owner email switch to each other (pairs, both ways).
+        $provisionedBefore = TenantUserLink::query()->where('email', strtolower($adminEmail))->pluck('tenant_id');
         TenantUserLink::link($adminEmail, $tenant->id);
+        foreach ($provisionedBefore as $otherTenantId) {
+            TenantSwitchLink::pair($adminEmail, $tenant->id, (string) $otherTenantId);
+        }
         app(GrantAiReadonly::class)($tenant);
         event(new TenantProvisioned($tenant));
 

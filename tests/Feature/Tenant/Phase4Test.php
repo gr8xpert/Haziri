@@ -7,8 +7,12 @@ use App\Actions\Rosters\ApproveShiftSwap;
 use App\Enums\AttendanceStatus;
 use App\Enums\Role;
 use App\Enums\ShiftSwapStatus;
+use App\Filament\Tenant\Pages\SwitchCompany;
 use App\Filament\Tenant\Resources\ShiftSwaps\Pages\ManageShiftSwaps;
+use App\Http\Controllers\SwitchCompanyController;
 use App\Models\AttendanceDay;
+use App\Models\Central\Tenant;
+use App\Models\Central\TenantSwitchLink;
 use App\Models\Central\TenantUserLink;
 use App\Models\Employee;
 use App\Models\Setting;
@@ -23,6 +27,7 @@ use App\Services\Settings\TenantSettings;
 use App\Support\Security\PublicUrl;
 use Filament\Actions\CreateAction;
 use Filament\Facades\Filament;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Livewire\Livewire;
 
@@ -169,4 +174,55 @@ it('renders the roster, analytics and scorecard pages', function () {
     foreach (['/admin/roster', '/admin/analytics', '/admin/reports/punctuality'] as $path) {
         $this->get($this->base . $path)->assertOk();
     }
+});
+
+/** A company row without a database: enough for switch-pair checks that never open the target. */
+function companyWithoutDatabase(string $slug): Tenant
+{
+    return Tenant::withoutEvents(fn () => Tenant::create(['id' => (string) Str::uuid(), 'slug' => $slug, 'company_name' => ucfirst($slug)]));
+}
+
+it('refuses the takeover: an admin-made login with the victim email reaches only companies paired with this one', function () {
+    $victimCompany = companyWithoutDatabase('pest-victim');
+    $attackerCompany = companyWithoutDatabase('pest-attacker');
+    try {
+        TenantUserLink::link('victim@pest.test', $victimCompany->id); // provisioned owner of the victim company
+        TenantSwitchLink::pair('victim@pest.test', $this->tenant->id, $attackerCompany->id); // attacker linked their own two companies
+        $login = User::create(['name' => 'Fake', 'email' => 'victim@pest.test', 'password' => 'secret123']);
+        $login->assignRole(Role::Owner->value);
+
+        $this->actingAs($login)->get("{$this->base}/switch/{$victimCompany->id}")->assertForbidden();
+        expect(SwitchCompanyController::optionsFor('victim@pest.test'))->toBe([$attackerCompany->id => 'Pest-attacker']);
+    } finally {
+        Tenant::withoutEvents(fn () => [$victimCompany->delete(), $attackerCompany->delete()]);
+    }
+});
+
+it('switches both ways between two paired companies, and not on to a third paired only with the second', function () {
+    $b = companyWithoutDatabase('pest-bee');
+    $c = companyWithoutDatabase('pest-sea');
+    try {
+        TenantSwitchLink::pair('owner@pest.test', $this->tenant->id, $b->id);
+        TenantSwitchLink::pair('owner@pest.test', $b->id, $c->id);
+
+        expect(array_keys(SwitchCompanyController::optionsFor('owner@pest.test')))->toBe([$b->id])
+            ->and(array_keys(SwitchCompanyController::optionsFor('owner@pest.test', $b->id)))->toEqualCanonicalizing([$this->tenant->id, $c->id])
+            ->and(TenantSwitchLink::allows('owner@pest.test', $this->tenant->id, $c->id))->toBeFalse();
+        $this->actingAs($this->owner)->get("{$this->base}/switch/{$c->id}")->assertForbidden();
+    } finally {
+        Tenant::withoutEvents(fn () => [$b->delete(), $c->delete()]);
+    }
+});
+
+it('adds another company only with the password of the login there', function () {
+    $this->actingAs($this->owner);
+    Filament::setCurrentPanel(Filament::getPanel('tenant'));
+    $links = TenantUserLink::count();
+
+    Livewire::test(SwitchCompany::class)->set('address', 'pest')->set('password', 'x')->call('link')
+        ->assertHasErrors('address')->assertSee('No other company found at that address.');
+    Livewire::test(SwitchCompany::class)->set('address', 'nobody-here')->set('password', 'x')->call('link')
+        ->assertHasErrors('address');
+
+    expect(TenantUserLink::count())->toBe($links);
 });
