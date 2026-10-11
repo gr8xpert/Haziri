@@ -61,7 +61,7 @@ Photos are private. The links on this page work only for a short time (30 minute
 
 ## Turning photos on or off
 
-The setting **Store punch photos** under **System → Company settings** decides whether {app} keeps punch photos. Turn on **Selfie required for mobile punch** if every phone punch must have a photo.
+The setting **Store punch photos** under **System → Company settings** decides whether {app} keeps punch photos. **Keep photos** (days) says how long: every night, photos older than that are deleted and their cards leave this page (the punch itself stays). Default 90 days; 0 or empty keeps photos forever. Turn on **Selfie required for mobile punch** if every phone punch must have a photo.
 
 ## Common problems
 
@@ -76,6 +76,10 @@ That PIN is not linked to any employee yet. Link it under [Unknown PINs](/help/u
 ### The photo does not load
 
 The photo link has expired (links last 30 minutes) or the photo file is gone. Reload the page. If one photo still does not load, it was not saved with the punch.
+
+### Older photos are gone
+
+Photos older than **Keep photos** (days) in **Company settings** are deleted every night. Raise the number to keep them longer, or set 0 to keep them forever.
 
 ### I searched for a name but nothing shows
 

@@ -38,6 +38,7 @@ use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
+use TanemRahman\ZktecoAdms\Models\ZktecoAttphoto;
 
 beforeEach(function () {
     // Office hours, so punches fall inside the day shift's punch window whatever time CI runs.
@@ -342,4 +343,36 @@ it('lists my leave requests by leave type name with a readable status', function
 
     $this->actingAs($this->user)->getJson("{$this->base}/me/attendance")
         ->assertJsonPath('requests.0.type', 'Casual leave')->assertJsonPath('requests.0.status', 'pending')->assertJsonPath('requests.0.status_label', 'Pending');
+});
+
+it('deletes punch photos older than the Keep photos days and keeps them forever at 0', function () {
+    Storage::fake('local');
+    $make = function (string $at, string $path) {
+        Storage::disk('local')->put($path, 'jpg');
+
+        return Punch::create(['employee_id' => $this->emp->id, 'punched_at' => $at, 'local_date' => substr($at, 0, 10), 'source' => 'kiosk',
+            'direction' => 'in', 'status' => 'valid', 'photo_path' => $path, 'dedupe_hash' => md5($path)]);
+    };
+    $old = $make('2026-05-01 05:00:00', 'photos/2026/05/01/old.jpg');
+    $recent = $make('2026-09-01 05:00:00', 'photos/2026/09/01/new.jpg');
+    $machine = ZktecoAttphoto::create(['serial' => 'X1', 'pin' => '501', 'captured_at' => '2026-05-01 05:00:00', 'disk' => 'local',
+        'path' => 'zkteco/attphotos/old.jpg']);
+    Storage::disk('local')->put('zkteco/attphotos/old.jpg', 'jpg');
+
+    Setting::updateOrCreate(['key' => 'photo_retention_days'], ['value' => 0]);
+    app(TenantSettings::class)->flush();
+    $this->artisan('hazri:photos:prune')->assertSuccessful();
+    expect($old->fresh()->photo_path)->not->toBeNull();
+    Storage::disk('local')->assertExists('photos/2026/05/01/old.jpg');
+
+    Setting::updateOrCreate(['key' => 'photo_retention_days'], ['value' => 30]);
+    app(TenantSettings::class)->flush();
+    $this->artisan('hazri:photos:prune')->assertSuccessful();
+
+    expect($old->fresh()->photo_path)->toBeNull()
+        ->and($recent->fresh()->photo_path)->toBe('photos/2026/09/01/new.jpg')
+        ->and(ZktecoAttphoto::find($machine->id))->toBeNull();
+    Storage::disk('local')->assertMissing('photos/2026/05/01/old.jpg');
+    Storage::disk('local')->assertMissing('zkteco/attphotos/old.jpg');
+    Storage::disk('local')->assertExists('photos/2026/09/01/new.jpg');
 });

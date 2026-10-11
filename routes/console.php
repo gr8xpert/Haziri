@@ -30,6 +30,9 @@ Schedule::command('tenants:run hazri:anomalies:detect')->dailyAt('06:00');
 Schedule::command('hazri:billing --invoice')->monthlyOn(1, '07:00');
 Schedule::command('hazri:billing --enforce')->dailyAt('07:30');
 
+// "Keep photos" (photo_retention_days): punch photos older than that are deleted; 0 keeps them forever.
+Schedule::command('tenants:run hazri:photos:prune')->dailyAt('04:30')->withoutOverlapping();
+
 // Unknown ADMS machines not seen for 30 days (blocked ones are kept).
 Schedule::command('model:prune', ['--model' => [UnknownDevice::class]])->dailyAt('04:00');
 

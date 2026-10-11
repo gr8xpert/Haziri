@@ -40,7 +40,7 @@ The page has four sections. Change what you need, then click **Save settings** (
 | **Punches count from … before shift** (min) | How early a punch can be and still belong to that day's shift. Default 240 (4 hours). |
 | **… until after shift end** (min) | How late after the shift end a punch still belongs to that day. Default 360 (6 hours). Important for night shifts. |
 | **Store punch photos** | Keep the photos that machines, kiosks and phones take at a punch. |
-| **Keep photos** (days) | Photos older than this are deleted. Default 90. |
+| **Keep photos** (days) | Punch photos older than this are deleted every night (the punch itself stays). Default 90. 0 or empty keeps photos forever. |
 | **Default geofence** (m) | For phone punching: how far from the branch location a punch is still accepted, when the branch has no distance of its own. Default 150 m. |
 | **Reject mobile GPS worse than (0 = off)** (m) | A phone punch with a poor location fix is refused. 0 = no check. |
 | **Selfie required for mobile punch** | Staff must take a photo when punching from the phone. |
