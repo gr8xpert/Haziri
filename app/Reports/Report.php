@@ -17,6 +17,7 @@ use App\Services\Attendance\Period\PayCycle;
 use App\Services\Attendance\ShiftResolver;
 use App\Support\BranchAccess;
 use Carbon\CarbonImmutable;
+use Filament\Forms\Components\Field;
 use Filament\Forms\Components\Select;
 use Filament\Schemas\Components\Component;
 use Illuminate\Database\Eloquent\Builder;
@@ -63,9 +64,15 @@ abstract class Report
         return $this->subtitle($filters);
     }
 
-    /** Are the filters complete enough to run? (e.g. an employee has been picked) */
+    /** Are the filters complete enough to run? By default: every filter marked required() has a value. */
     public function ready(array $filters): bool
     {
+        foreach ($this->filterSchema() as $component) {
+            if ($component instanceof Field && $component->isRequired() && blank($filters[$component->getName()] ?? null)) {
+                return false;
+            }
+        }
+
         return true;
     }
 

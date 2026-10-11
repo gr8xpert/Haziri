@@ -94,7 +94,7 @@ When a month is locked under **Attendance → Months (lock)**, its numbers stop 
 
 ### "Choose the filters above"
 
-A filter that the report needs is empty, for example the month, the leave type or the payroll run. Fill it in and the table appears straight away.
+A filter that the report needs is empty, for example the date, the month, the leave type or the payroll run. Fill it in and the table appears straight away. **Excel** and **PDF** say *Choose the filters above before downloading* for the same reason.
 
 ### "No data for these filters"
 

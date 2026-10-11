@@ -9,6 +9,7 @@ use App\Reports\Report;
 use App\Reports\ReportCatalog;
 use App\Reports\ReportExporter;
 use Filament\Actions\Action;
+use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
@@ -105,9 +106,20 @@ abstract class ReportPage extends Page
 
         return [
             Action::make('xlsx')->label('Excel')->icon(Heroicon::OutlinedTableCells)->color('gray')->visible($canExport)
-                ->action(fn (ReportExporter $x) => $x->xlsx(static::report(), $this->filters ?? [])),
+                ->action(fn (ReportExporter $x) => $this->filtersReady() ? $x->xlsx(static::report(), $this->filters ?? []) : null),
             Action::make('pdf')->label('PDF')->icon(Heroicon::OutlinedDocumentChartBar)->color('gray')->visible($canExport)
-                ->action(fn (ReportExporter $x) => $x->pdf(static::report(), $this->filters ?? [])),
+                ->action(fn (ReportExporter $x) => $this->filtersReady() ? $x->pdf(static::report(), $this->filters ?? []) : null),
         ];
+    }
+
+    /** A download needs the same filters as the table; otherwise say so instead of making a broken or empty file. */
+    private function filtersReady(): bool
+    {
+        if (static::report()->ready($this->filters ?? [])) {
+            return true;
+        }
+        Notification::make()->warning()->title(__('Choose the filters above before downloading.'))->send();
+
+        return false;
     }
 }

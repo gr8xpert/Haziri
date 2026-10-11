@@ -9,6 +9,7 @@ use App\Enums\EmploymentType;
 use App\Enums\PunchSource;
 use App\Filament\Tenant\Pages\Reports\LateRegister;
 use App\Filament\Tenant\Pages\Reports\MonthlyAttendance;
+use App\Filament\Tenant\Pages\Reports\MonthlySheet;
 use App\Filament\Tenant\Pages\Reports\ReportsHub;
 use App\Filament\Tenant\Widgets\Analytics\HeadlineStats;
 use App\Models\AttendanceDay;
@@ -160,6 +161,18 @@ it('downloads a report PDF and Excel from the report page buttons', function () 
     Livewire::test(LateRegister::class)->set('filters.from', '2026-08-01')->set('filters.to', '2026-08-31')
         ->callAction('pdf')->assertFileDownloaded()
         ->callAction('xlsx')->assertFileDownloaded();
+});
+
+it('asks for the required filters instead of downloading a broken file', function () {
+    Filament::setCurrentPanel(Filament::getPanel('tenant'));
+
+    expect((new MonthlySheetReport)->ready(['month' => '']))->toBeFalse()
+        ->and((new MonthlySheetReport)->ready(['month' => '2026-08']))->toBeTrue();
+
+    Livewire::test(MonthlySheet::class)->set('filters.month', null)
+        ->assertSee('Choose the filters above.')
+        ->callAction('xlsx')->assertNoFileDownloaded()->assertNotified('Choose the filters above before downloading.')
+        ->callAction('pdf')->assertNoFileDownloaded();
 });
 
 it('lists the reports in five groups', function () {
