@@ -10,6 +10,8 @@ use App\Filament\Tenant\NavigationGroup;
 use App\Models\Employee;
 use App\Models\Visitor;
 use Filament\Actions\Action;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\EditAction;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -19,9 +21,12 @@ use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Table;
+use Illuminate\Auth\Access\Response;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Storage;
 
-/** Visitors log with photo, badge and today's list (spec §9 phase 3). */
+/** Visitors log with photo, badge and today's list (spec §9 phase 3). Reception edits entries; only HR and up delete them. */
 class VisitorResource extends Resource
 {
     use AuthorizesByPermission, RequiresFeature;
@@ -39,6 +44,17 @@ class VisitorResource extends Resource
     protected static string $viewPermission = 'visitors.manage';
 
     protected static string $managePermission = 'visitors.manage';
+
+    public static function getAuthorizationResponse(string | \UnitEnum $action, ?Model $record = null): Response
+    {
+        $name = $action instanceof \BackedEnum ? (string) $action->value : ($action instanceof \UnitEnum ? $action->name : $action);
+        if (in_array($name, ['delete', 'deleteAny', 'forceDelete', 'forceDeleteAny'], true)) {
+            return auth()->user()?->can('visitors.delete') ? Response::allow() : Response::deny();
+        }
+
+        return auth()->user()?->can(in_array($name, ['viewAny', 'view'], true) ? static::$viewPermission : static::$managePermission)
+            ? Response::allow() : Response::deny();
+    }
 
     public static function form(Schema $schema): Schema
     {
@@ -80,6 +96,8 @@ class VisitorResource extends Resource
                     ->action(fn (Visitor $r) => $r->update(['checked_out_at' => now()])),
                 Action::make('badge')->label('Print badge')->icon(Heroicon::OutlinedIdentification)
                     ->url(fn (Visitor $r) => route('tenant.visitor-badge', $r), shouldOpenInNewTab: true),
+                EditAction::make(),
+                DeleteAction::make()->after(fn (Visitor $r) => $r->photo_path ? Storage::disk('local')->delete($r->photo_path) : null),
             ]);
     }
 

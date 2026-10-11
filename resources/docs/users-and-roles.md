@@ -35,7 +35,7 @@ Search by name or email at the top of the list. Click **Edit** on a row to chang
 |---|---|---|
 | **Owner** | Admin panel | Everything, including **Billing** and deleting data. |
 | **Admin** | Admin panel | Everything except billing and deleting data. Manages users and company settings. |
-| **HR** | Admin panel | Employees, attendance, manual entries, shifts, holidays, leave types and balances, final approval of leave and corrections, month lock, reports and exports, payroll, announcements, audit log. |
+| **HR** | Admin panel | Employees, attendance, manual entries, shifts, holidays, leave types and balances, final approval of leave and corrections, month lock, reports and exports, payroll, visitors, announcements, audit log. |
 | **Manager** | Admin panel | Their own team only: sees team attendance and reports, applies for leave for them, gives the first approval of leave and corrections. |
 | **Branch manager** | Admin panel | Like HR, but for their branches only (set **Limit to branches**): attendance, manual entries, final approval of leave and corrections, reports, USB import. No payroll, no settings. |
 | **Receptionist** | Admin panel | Sees attendance and employees, makes manual entries (today and yesterday only), USB import, visitors and kiosks. |

@@ -13,6 +13,7 @@ screens: visitors=/admin/visitors | visitors-check-in=/admin/visitors >> Check i
 - This page appears only if your plan includes the **Visitor log**.
 - Reception clicks **Check in visitor**, types the name and whom they are visiting, and can take a photo. {app} gives each visitor a badge number: V001, V002 and so on, starting again every day.
 - **Print badge** prints a small visitor card. **Check out** records when the visitor leaves.
+- **Edit** fixes a visitor's details. HR, the owner and admins can also **Delete** an entry made by mistake.
 - The list opens on **today's** visitors. **Still inside** shows who has not checked out.
 - Visitors are not employees: they do not affect attendance or payroll.
 
@@ -37,7 +38,7 @@ Filters:
 
 ## Who can use it
 
-Reception (the Receptionist role), the owner and admins.
+Reception (the Receptionist role), HR, the owner and admins. Only HR, the owner and admins can delete an entry.
 
 ## Check in a visitor
 
@@ -69,6 +70,11 @@ When the visitor leaves, click **Check out** on their row. The **Out** column sh
 
 > **Tip:** Before closing reception, tick **Still inside** to see anyone who left without checking out.
 
+## Fix or delete an entry
+
+- **Edit** on a visitor's row opens the check-in details. Correct them and click **Save changes**. The badge number and the check-in time stay the same.
+- **Delete** (HR, owner and admins) removes an entry made by mistake, with its photo. This cannot be undone. The other visitors keep their badge numbers.
+
 ## Visitor report
 
 For a list over a longer time, use the **Visitor log** report (see [Other reports](/help/other-reports)). You can export it to Excel or PDF.
@@ -77,7 +83,7 @@ For a list over a longer time, use the **Visitor log** report (see [Other report
 
 ### I can't see Visitors in the menu
 
-Your plan does not include the Visitor log, or your role cannot use it. Only reception, the owner and admins see this page. HR does not, unless also given one of these roles. To add the Visitor log to your plan, see [Billing](/help/billing).
+Your plan does not include the Visitor log, or your role cannot use it. Reception, HR, the owner and admins see this page. To add the Visitor log to your plan, see [Billing](/help/billing).
 
 ### "The CNIC field format is invalid."
 
@@ -85,7 +91,7 @@ Type the CNIC as 13 digits with no dashes or spaces, for example 3520212345671. 
 
 ### I made a mistake in a visitor's details
 
-Visitor entries cannot be changed after check-in. If it matters, check the visitor in again with the right details and note the mistake in **Purpose**.
+Click **Edit** on the visitor's row and correct it. If the whole entry was a mistake, ask HR or an admin to **Delete** it.
 
 ### The badge has no photo
 

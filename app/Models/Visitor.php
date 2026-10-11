@@ -38,12 +38,13 @@ class Visitor extends Model
         return $this->belongsTo(Branch::class);
     }
 
-    /** Next free badge number today: V001, V002… */
+    /** Next free badge number today: V001, V002… (after the highest one, so after a delete no two visitors share a badge). */
     public static function nextBadge(): string
     {
         $today = now(tenant('timezone'))->startOfDay()->utc();
-        $n = static::query()->where('checked_in_at', '>=', $today)->count() + 1;
+        $highest = static::query()->where('checked_in_at', '>=', $today)->pluck('badge_no')
+            ->map(fn (?string $badge) => (int) ltrim((string) $badge, 'V'))->max() ?? 0;
 
-        return sprintf('V%03d', $n);
+        return sprintf('V%03d', $highest + 1);
     }
 }

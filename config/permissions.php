@@ -18,7 +18,7 @@ return [
         'corrections.request', 'corrections.approve_first', 'corrections.approve_final', 'od_wfh.request_team',
         'periods.lock', 'periods.unlock',
         'reports.view', 'reports.view_team', 'reports.export',
-        'payroll.manage', 'visitors.manage', 'announcements.manage',
+        'payroll.manage', 'visitors.manage', 'visitors.delete', 'announcements.manage',
         'users.manage', 'settings.manage', 'billing.manage', 'audit.view', 'data.delete',
     ],
 
@@ -31,7 +31,7 @@ return [
             'shifts.manage', 'holidays.manage', 'usb.import', 'leave.request', 'leave.request_on_behalf',
             'leave.approve_final', 'leave.manage_types', 'leave.adjust_balance', 'corrections.request',
             'corrections.approve_final', 'periods.lock', 'reports.view', 'reports.export', 'payroll.manage',
-            'announcements.manage', 'audit.view',
+            'visitors.manage', 'visitors.delete', 'announcements.manage', 'audit.view',
         ],
         'manager' => [
             'attendance.view_team', 'attendance.view_own', 'employees.view', 'leave.request', 'leave.approve_first',

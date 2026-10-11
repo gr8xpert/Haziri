@@ -5,8 +5,10 @@ declare(strict_types=1);
 use App\Actions\Payroll\PayrollActions;
 use App\Actions\Periods\PeriodActions;
 use App\Enums\AttendanceStatus;
+use App\Enums\Role;
 use App\Filament\Tenant\Resources\Advances\Pages\ManageAdvances;
 use App\Filament\Tenant\Resources\PayrollRuns\Pages\ListPayrollRuns;
+use App\Filament\Tenant\Resources\Visitors\Pages\ManageVisitors;
 use App\Models\Advance;
 use App\Models\Announcement;
 use App\Models\AttendanceDay;
@@ -200,6 +202,30 @@ it('numbers visitor badges per day', function () {
     Visitor::create(['name' => 'A', 'checked_in_at' => now(), 'badge_no' => Visitor::nextBadge()]);
 
     expect(Visitor::nextBadge())->toBe('V002');
+});
+
+it('lets reception edit a visitor entry and only HR and up delete one, without two visitors sharing a badge', function () {
+    Filament::setCurrentPanel(Filament::getPanel('tenant'));
+    Setting::updateOrCreate(['key' => 'feature.visitors'], ['value' => true]);
+    app(TenantSettings::class)->flush();
+    $first = Visitor::create(['name' => 'Ali', 'checked_in_at' => now(), 'badge_no' => Visitor::nextBadge()]);
+    $typo = Visitor::create(['name' => 'Jhon', 'checked_in_at' => now(), 'badge_no' => Visitor::nextBadge()]);
+
+    $reception = User::create(['name' => 'Desk', 'email' => 'desk-v@pest.test', 'password' => 'x']);
+    $reception->assignRole(Role::Receptionist->value);
+    $this->actingAs($reception);
+    Livewire::test(ManageVisitors::class)
+        ->callTableAction('edit', $typo, data: ['name' => 'John'])->assertHasNoTableActionErrors()
+        ->assertTableActionHidden('delete', $typo);
+    expect($typo->fresh()->name)->toBe('John');
+
+    $hr = User::create(['name' => 'HR', 'email' => 'hr-v@pest.test', 'password' => 'x']);
+    $hr->assignRole(Role::Hr->value);
+    $this->actingAs($hr);
+    Livewire::test(ManageVisitors::class)->assertCanSeeTableRecords([$first, $typo])->callTableAction('delete', $first);
+
+    expect(Visitor::find($first->id))->toBeNull()
+        ->and(Visitor::nextBadge())->toBe('V003');
 });
 
 it('broadcasts announcements to their audience only', function () {

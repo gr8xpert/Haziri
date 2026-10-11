@@ -98,7 +98,7 @@ Owner, Admin, HR and Branch manager can view and download them (Branch managers 
 
 ### Visitor log is not on the Reports page
 
-Your plan does not include the visitor log, or your role does not manage visitors. HR does not have the visitors permission by default; ask the owner. See [Users and roles](/help/users-and-roles).
+Your plan does not include the visitor log, or your role does not manage visitors (reception, HR, the owner and admins do). See [Users and roles](/help/users-and-roles).
 
 ### Device sync shows "never" for a machine
 
