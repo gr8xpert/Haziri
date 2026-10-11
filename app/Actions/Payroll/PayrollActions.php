@@ -142,18 +142,20 @@ final class PayrollActions
 
     /**
      * Bank transfer file with configurable columns (setting payroll_bank_csv_columns,
-     * default account,name,amount,reference). One row per payslip with a positive net.
+     * default account,name,amount,reference). One row per payslip with a positive net; bank details come from the
+     * salary structure in force on the run month's last day, like the pay itself.
      */
     public function bankCsv(PayrollRun $run): string
     {
         $columns = (array) $this->settings->get('payroll_bank_csv_columns', ['account', 'name', 'amount', 'reference']);
+        $monthEnd = $run->period->dates()[1];
         $out = fopen('php://temp', 'r+');
         fputcsv($out, $columns);
         foreach ($run->payslips()->with('employee')->get() as $slip) {
             if ($slip->net <= 0) {
                 continue;
             }
-            $structure = SalaryStructure::effectiveFor($slip->employee_id, now()->format('Y-m-d'));
+            $structure = SalaryStructure::effectiveFor($slip->employee_id, $monthEnd);
             $values = [
                 'account' => $structure?->bank_account, 'bank' => $structure?->bank_name, 'name' => $slip->employee->fullName(),
                 'code' => $slip->employee->code, 'cnic' => $slip->employee->cnic, 'amount' => $slip->net,
@@ -178,12 +180,13 @@ final class PayrollActions
     /** Letter to the company's bank asking it to transfer each net salary (PDF bytes). */
     public function bankLetter(PayrollRun $run, ?string $bankName = null): string
     {
+        $monthEnd = $run->period->dates()[1];
         $rows = [];
         foreach ($run->payslips()->with('employee')->get()->sortBy('employee.code') as $slip) {
             if ($slip->net <= 0) {
                 continue;
             }
-            $structure = SalaryStructure::effectiveFor($slip->employee_id, now()->format('Y-m-d'));
+            $structure = SalaryStructure::effectiveFor($slip->employee_id, $monthEnd);
             $rows[] = ['name' => $slip->employee->fullName(), 'code' => $slip->employee->code, 'bank' => $structure?->bank_name,
                 'account' => $structure?->bank_account, 'amount' => $slip->net];
         }

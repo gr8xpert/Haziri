@@ -93,6 +93,18 @@ it('generates payslips from the locked snapshot and finalises them', function ()
     expect($payroll->bankCsv($run->fresh()))->toContain("\"'=HYPERLINK(")->not->toContain(',=HYPERLINK(');
 });
 
+it('takes the bank details for the bank file from the salary structure of the run month', function () {
+    $periods = app(PeriodActions::class);
+    $period = $periods->period(2026, 8);
+    $periods->lock($period, $this->owner);
+    $payroll = app(PayrollActions::class);
+    $run = $payroll->generate($period->fresh(), $this->owner);
+    SalaryStructure::create(['employee_id' => $this->emp->id, 'effective_from' => now()->subDay()->format('Y-m-d'), 'basic' => 70000,
+        'bank_name' => 'MCB', 'bank_account' => 'PK00MUCB0000009999999999']);
+
+    expect($payroll->bankCsv($run->fresh()))->toContain('PK36HABB0000001234567890')->not->toContain('PK00MUCB');
+});
+
 it('stores the bank account encrypted', function () {
     $raw = DB::table('salary_structures')->value('bank_account');
 
