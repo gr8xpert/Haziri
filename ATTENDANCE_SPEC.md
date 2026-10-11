@@ -322,7 +322,7 @@ resolve(employee, date):
 ```
 
 ### 7.4 Rule parameters (tenant `settings`, with defaults)
-`dedupe_window_sec=60`, `trust_device_direction=false`, `lates_per_absent=3` (0 = disabled; applied at period level → "deduction days"), `late_count_resets=monthly`, `half_day_counts_as=0.5`, `absent_deduction_days=1`, `unpaid_leave_deduction_days=1`, `overtime_enabled=false`, `overtime_rounding_min=15`, `punch_search_window_before_min=240`, `punch_search_window_after_min=360`, `auto_absent_after_days=1` (mark ABSENT only after the day is over), `store_punch_photos=true`, `photo_retention_days=90`, `geofence_default_radius_m=150`, `allow_future_manual_punch=false`, `employee_can_see_others=false`.
+`dedupe_window_sec=60`, `trust_device_direction=false`, `lates_per_absent=3` (0 = disabled; applied at period level → "deduction days"), `late_count_resets=monthly`, `half_day_counts_as=0.5`, `absent_deduction_days=1`, `unpaid_leave_deduction_days=1`, `overtime_enabled=false`, `overtime_rounding_min=15`, `punch_search_window_before_min=240`, `punch_search_window_after_min=360`, `auto_absent_after_days=1` (mark ABSENT only after the day is over), `store_punch_photos=true`, `photo_retention_days=90`, `geofence_default_radius_m=150`, `allow_future_manual_punch=false`.
 
 ### 7.5 Period computations (monthly)
 Computed on demand and snapshotted when locking a period:

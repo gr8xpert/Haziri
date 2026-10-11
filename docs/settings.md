@@ -29,7 +29,6 @@ read through `App\Services\Settings\TenantSettings`. Feature flags are stored as
 | `face_match_threshold` | 0.6 | Kiosk face recognition: minimum similarity (0..1, same formula as the Human library) |
 | `face_match_margin` | 0.05 | …and how far ahead of the next closest person the best match must be |
 | `allow_future_manual_punch` | false | |
-| `employee_can_see_others` | false | |
 | `leave_approval_chain` | `["manager","hr"]` | Approval steps; a missing manager is skipped |
 | `correction_approval_chain` | `["manager","hr"]` | |
 | `daily_wage_paid_holidays` | *(unset → false)* | Pay daily-wage staff for holidays |

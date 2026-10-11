@@ -46,7 +46,6 @@ The page has four sections. Change what you need, then click **Save settings** (
 | **Selfie required for mobile punch** | Staff must take a photo when punching from the phone. |
 | **Face check on PIN, QR card and phone punches** | Appears only if your plan includes face recognition on the kiosk. The punch photo is compared with the employee's enrolled face. Wrong face, no face or not enrolled → the punch waits in **Attendance → Punch approvals**. |
 | **Allow future manual punch** | Lets HR enter a manual punch for a date after today. Off by default; then {app} says *"Manual punches cannot be entered for future dates."* |
-| **Employees can see colleagues** | Meant to let staff see their colleagues in the staff app. At the moment the staff app does not use this switch, so it changes nothing. |
 
 ### Deductions & overtime
 
@@ -71,7 +70,7 @@ These numbers feed the month's deduction days, and from there the payroll. See [
 |---|---|
 | **Leave approval** | *Manager, then HR* (default), *HR only* or *Manager only*. If an employee has no manager with a login, the manager step is skipped. See [Leave requests](/help/leave-requests). |
 | **Correction approval** | The same choice for attendance corrections. See [Corrections](/help/corrections). |
-| **Tell managers about late arrivals** | Meant to tell managers when someone in their team punches in late. At the moment no message is sent; use the "Not in yet" alert and the late register report instead. |
+| **Tell managers about late arrivals** | When on, the employee's manager gets an in-app message the first time someone is counted late that day (owner, admins and HR when the employee has no manager). Once per person per day. Off by default. |
 | **"Not in yet" alert at** | Time of day when managers are told who has not punched in and has no leave. Default 11:00. |
 | **Daily summary to HR at** | Time HR gets the day's summary (present, late, absent, on leave). Default 18:00. |
 | **WhatsApp/SMS quiet from** / **… until** | No WhatsApp or SMS is sent between these times (default 22:00 to 08:00). Messages wait and go out when the quiet time ends. Email and in-app messages are not held back. |

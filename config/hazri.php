@@ -82,7 +82,6 @@ return [
         'face_match_margin' => 0.05,          // … and how far ahead of the next closest person
         'face_check_photo_punches' => false,  // kiosk PIN / QR and phone punches: check the photo's face (kiosk_face); fail → approval
         'allow_future_manual_punch' => false,
-        'employee_can_see_others' => false,
         'leave_approval_chain' => ['manager', 'hr'],
         'correction_approval_chain' => ['manager', 'hr'],
         // Notifications (spec §11). notify.{event} = [channels] overrides the per-event defaults.

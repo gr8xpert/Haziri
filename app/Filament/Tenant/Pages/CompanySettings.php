@@ -42,7 +42,7 @@ class CompanySettings extends Page
         'dedupe_window_sec', 'trust_device_direction', 'lates_per_absent', 'half_day_counts_as', 'absent_deduction_days',
         'unpaid_leave_deduction_days', 'overtime_enabled', 'overtime_rounding_min', 'punch_search_window_before_min',
         'punch_search_window_after_min', 'auto_absent_after_days', 'store_punch_photos', 'photo_retention_days',
-        'geofence_default_radius_m', 'allow_future_manual_punch', 'employee_can_see_others', 'daily_wage_paid_holidays',
+        'geofence_default_radius_m', 'allow_future_manual_punch', 'daily_wage_paid_holidays',
         'leave_approval_chain', 'correction_approval_chain', 'daily_summary_at', 'absent_alert_at', 'quiet_hours', 'notify_employee_late',
         'mobile_max_accuracy_m', 'mobile_require_selfie', 'face_check_photo_punches', 'pay_cycle_start_day', 'leave_year_start_month', 'late_adjustment_mode', 'late_adjustment_leave_type',
     ];
@@ -94,7 +94,6 @@ class CompanySettings extends Page
                     ->helperText('The photo is compared with the face enrolled under Face enrolment. Wrong face, no face or not enrolled → the punch waits in Punch approvals. Kiosks must be locked to approved tablets. On phones it stops casual buddy punching but a tech-savvy user could fool it, so keep checking the photos.')
                     ->visible(fn () => app(TenantSettings::class)->featureEnabled('kiosk_face')),
                 Toggle::make('allow_future_manual_punch')->inline(false),
-                Toggle::make('employee_can_see_others')->label('Employees can see colleagues')->inline(false),
             ]),
             Section::make(__('Deductions & overtime'))->columns(3)->schema([
                 $int('lates_per_absent', 'Lates that make one absent (0 = off)'),

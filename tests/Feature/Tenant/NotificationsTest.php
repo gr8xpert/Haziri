@@ -6,9 +6,12 @@ use App\Actions\Announcements\BroadcastAnnouncement;
 use App\Actions\Leave\DecideLeaveRequest;
 use App\Actions\Leave\SubmitLeaveRequest;
 use App\Enums\DevicePunchSourceType;
+use App\Enums\PunchSource;
+use App\Enums\PunchStatus;
 use App\Enums\Role;
 use App\Filament\Tenant\Resources\Holidays\HolidayResource;
 use App\Models\Announcement;
+use App\Models\AttendanceDay;
 use App\Models\Central\DeviceRegistry;
 use App\Models\Device;
 use App\Models\Employee;
@@ -16,8 +19,12 @@ use App\Models\Holiday;
 use App\Models\LeaveType;
 use App\Models\NotificationLog;
 use App\Models\NotificationTemplate;
+use App\Models\Punch;
+use App\Models\Setting;
 use App\Models\User;
+use App\Services\Attendance\AttendanceRecomputer;
 use App\Services\Notifications\TemplateRenderer;
+use App\Services\Settings\TenantSettings;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Mail;
 
@@ -117,4 +124,42 @@ it('reminds HR to confirm a provisional holiday 3 days ahead, once', function ()
     $before = $sent();
     $this->artisan('hazri:notify:scheduled', ['--now' => '2026-09-10 10:00'])->assertSuccessful();
     expect($sent())->toBe($before);
+});
+
+it('tells the manager once when a team member is late today, only when the switch is on', function () {
+    $this->emp->update(['device_pin' => '7101']);
+    $at = CarbonImmutable::parse('2026-09-01 09:40', 'Asia/Karachi');
+    Punch::create(['employee_id' => $this->emp->id, 'device_pin' => '7101', 'punched_at' => $at->utc(), 'local_date' => '2026-09-01',
+        'source' => PunchSource::Manual, 'status' => PunchStatus::Valid, 'dedupe_hash' => sha1('late-alert-' . uniqid())]);
+    $recompute = fn () => app(AttendanceRecomputer::class)->recompute($this->emp->id, '2026-09-01', $at->addHour()->utc());
+    $alerts = fn () => NotificationLog::where(['event' => 'employee_late', 'recipient' => "user:{$this->manager->id}"])->count();
+
+    expect($recompute()->flags)->toContain('late')->and($alerts())->toBe(0);
+
+    AttendanceDay::query()->delete();
+    Setting::updateOrCreate(['key' => 'notify_employee_late'], ['value' => true]);
+    app(TenantSettings::class)->flush();
+    $recompute();
+    $recompute();
+
+    expect($alerts())->toBe(1)
+        ->and(NotificationLog::where('event', 'employee_late')->value('payload'))->toMatchArray(['employee' => 'Imran', 'time' => '09:40']);
+});
+
+it('sends no late alert when an old day is recomputed, and tells HR when there is no manager', function () {
+    Setting::updateOrCreate(['key' => 'notify_employee_late'], ['value' => true]);
+    app(TenantSettings::class)->flush();
+    $this->emp->update(['device_pin' => '7102', 'manager_employee_id' => null]);
+    foreach (['2026-08-03', '2026-09-01'] as $date) {
+        Punch::create(['employee_id' => $this->emp->id, 'device_pin' => '7102', 'punched_at' => CarbonImmutable::parse("{$date} 09:50", 'Asia/Karachi')->utc(),
+            'local_date' => $date, 'source' => PunchSource::Manual, 'status' => PunchStatus::Valid, 'dedupe_hash' => sha1("late-old-{$date}")]);
+    }
+    $now = CarbonImmutable::parse('2026-09-01 12:00', 'Asia/Karachi')->utc();
+
+    app(AttendanceRecomputer::class)->recompute($this->emp->id, '2026-08-03', $now);
+    expect(NotificationLog::where('event', 'employee_late')->count())->toBe(0);
+
+    app(AttendanceRecomputer::class)->recompute($this->emp->id, '2026-09-01', $now);
+    expect(NotificationLog::where(['event' => 'employee_late', 'recipient' => "user:{$this->hr->id}"])->exists())->toBeTrue()
+        ->and(NotificationLog::where(['event' => 'employee_late', 'recipient' => "user:{$this->manager->id}"])->exists())->toBeFalse();
 });

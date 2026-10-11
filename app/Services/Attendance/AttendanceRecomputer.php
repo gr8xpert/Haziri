@@ -4,10 +4,13 @@ declare(strict_types=1);
 
 namespace App\Services\Attendance;
 
+use App\Enums\AttendanceFlag;
 use App\Models\AttendanceDay;
 use App\Models\AttendancePeriod;
 use App\Models\Employee;
 use App\Services\Attendance\Engine\StatusEngine;
+use App\Services\Notifications\LateArrivalAlert;
+use App\Services\Webhooks\Webhooks;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Log;
 
@@ -22,6 +25,7 @@ final class AttendanceRecomputer
     public function __construct(
         private readonly DayContextLoader $loader,
         private readonly StatusEngine $engine,
+        private readonly LateArrivalAlert $lateArrivalAlert,
     ) {}
 
     /**
@@ -45,7 +49,9 @@ final class AttendanceRecomputer
             return null;
         }
 
-        $result = $this->engine->resolve($this->loader->load($employee, $date, $now ?? CarbonImmutable::now('UTC')));
+        $now ??= CarbonImmutable::now('UTC');
+        $wasLate = in_array(AttendanceFlag::Late->value, $day->flags ?? [], true);
+        $result = $this->engine->resolve($this->loader->load($employee, $date, $now));
 
         $day->fill([
             'status' => $result->status,
@@ -69,11 +75,12 @@ final class AttendanceRecomputer
         $changed = $day->isDirty(['status', 'flags', 'first_in', 'last_out', 'late_min', 'overtime_min']);
         $day->save();
         if ($changed) {
-            \App\Services\Webhooks\Webhooks::dispatch('attendance_day.updated', [
+            Webhooks::dispatch('attendance_day.updated', [
                 'employee' => $employee->code, 'date' => $date, 'status' => $day->status?->value, 'flags' => $day->flags,
                 'worked_min' => $day->worked_min, 'late_min' => $day->late_min, 'overtime_min' => $day->overtime_min,
             ]);
         }
+        ($this->lateArrivalAlert)($employee, $day, $wasLate, $now);
 
         return $day;
     }

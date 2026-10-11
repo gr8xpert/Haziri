@@ -28,7 +28,7 @@ screens: notifications-texts=/admin/notification-templates | notifications-log=/
 | Unmapped pins pending | Owner, admins and HR | In-app |
 | Daily summary | Owner, admins and HR, at the time set in Company settings | Email |
 | Employee absent no leave ("Not in yet") | The team's manager, at the time set in Company settings | In-app, WhatsApp |
-| Employee late | Managers (see the note below) | In-app |
+| Employee late | The employee's manager (owner, admins and HR if they have no manager), once a day, only when *Tell managers about late arrivals* is on | In-app |
 | Missing punch out | The employee | In-app, WhatsApp, SMS |
 | Period locked | The owner | Email, in-app |
 | Shift swap asked / answered / pending | The colleague, then the employee who asked, then owner, admins and HR | In-app, email (and WhatsApp for asked and answered) |
@@ -41,7 +41,7 @@ screens: notifications-texts=/admin/notification-templates | notifications-log=/
 
 Each person gets the message in their language (English or Urdu), set on their login under **Users & roles**. WhatsApp and SMS need a phone number on the login or the employee. Email needs an email address.
 
-> **Note:** The *Employee late* text exists, and **Company settings** has a switch *Tell managers about late arrivals*, but at the moment {app} does not send this message. Use the "Not in yet" alert and the late register report instead.
+> **Note:** *Employee late* goes out the first time a day is counted as late, for today or yesterday only. Fixing older days, or a second late punch on the same day, does not send it again.
 
 The timing of the daily summary, the "Not in yet" alert and the quiet hours (no WhatsApp/SMS at night) are set on [Company settings](/help/company-settings).
 
