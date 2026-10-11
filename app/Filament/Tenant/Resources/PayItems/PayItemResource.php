@@ -9,7 +9,9 @@ use App\Filament\Concerns\RequiresFeature;
 use App\Filament\Tenant\NavigationGroup;
 use App\Models\Employee;
 use App\Models\PayItem;
+use App\Models\PayrollRun;
 use App\Services\Attendance\Period\PayCycle;
+use Closure;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\Select;
@@ -51,7 +53,13 @@ class PayItemResource extends Resource
         return $schema->columns(2)->components([
             Select::make('employee_id')->label('Employee')->required()->searchable()
                 ->options(fn () => Employee::orderBy('code')->get()->mapWithKeys(fn (Employee $e) => [$e->id => "{$e->code} — {$e->fullName()}"])),
-            TextInput::make('pay_month')->label('Pay month')->type('month')->required()->default(fn () => self::currentMonth()),
+            TextInput::make('pay_month')->label('Pay month')->type('month')->required()->default(fn () => self::currentMonth())
+                ->rules([fn (): Closure => function (string $attribute, mixed $value, Closure $fail): void {
+                    [$year, $month] = array_map('intval', explode('-', (string) $value) + [1 => 0]);
+                    if (self::monthIsFinal($year, $month)) {
+                        $fail(__('Payroll for :month is already final, so this would not be paid. Choose the next month.', ['month' => app(PayCycle::class)->label($year, $month)]));
+                    }
+                }]),
             Select::make('type')->options(['earning' => 'Pay (bonus, arrears, allowance)', 'deduction' => 'Deduct (fine, recovery)'])->default('earning')->required(),
             TextInput::make('label')->required()->maxLength(100)->placeholder('Eid bonus'),
             TextInput::make('amount')->numeric()->integer()->minValue(1)->prefix('Rs')->required(),
@@ -74,10 +82,10 @@ class PayItemResource extends Resource
             ])
             ->filters([SelectFilter::make('type')->options(['earning' => 'Pay', 'deduction' => 'Deduct'])])
             ->recordActions([
-                EditAction::make()
+                EditAction::make()->visible(fn (PayItem $r) => ! self::monthIsFinal($r->year, $r->month))
                     ->mutateRecordDataUsing(fn (array $data) => $data + ['pay_month' => sprintf('%04d-%02d', $data['year'], $data['month'])])
                     ->mutateDataUsing(fn (array $data) => self::splitMonth($data)),
-                DeleteAction::make(),
+                DeleteAction::make()->visible(fn (PayItem $r) => ! self::monthIsFinal($r->year, $r->month)),
             ]);
     }
 
@@ -93,6 +101,12 @@ class PayItemResource extends Resource
         unset($data['pay_month']);
 
         return $data + ['year' => $year, 'month' => $month];
+    }
+
+    /** The month's payroll run is final: items for it are no longer paid, so they cannot be added, changed or removed. */
+    public static function monthIsFinal(int $year, int $month): bool
+    {
+        return PayrollRun::query()->where('status', 'final')->whereHas('period', fn ($q) => $q->where(['year' => $year, 'month' => $month]))->exists();
     }
 
     public static function currentMonth(): string

@@ -267,6 +267,23 @@ it('records a bonus for the chosen pay month from the screen', function () {
         ->toBe(['year' => 2026, 'month' => 12, 'amount' => 25000, 'created_by' => $this->owner->id]);
 });
 
+it('refuses a bonus for a month whose payroll is final', function () {
+    Storage::fake('local');
+    fullMonth($this->emp, 2026, 8);
+    $item = PayItem::create(['employee_id' => $this->emp->id, 'year' => 2026, 'month' => 8, 'type' => 'earning', 'label' => 'Bonus', 'amount' => 1000]);
+    $this->payroll->finalise(($this->runFor)(2026, 8)->fresh(), $this->owner);
+    Filament::setCurrentPanel(Filament::getPanel('tenant'));
+    $this->actingAs($this->owner);
+
+    Livewire::test(ManagePayItems::class)
+        ->callAction('create', data: ['employee_id' => $this->emp->id, 'pay_month' => '2026-08', 'type' => 'earning', 'label' => 'Late bonus', 'amount' => 5000, 'taxable' => true])
+        ->assertHasActionErrors(['pay_month'])
+        ->assertTableActionHidden('edit', $item)
+        ->assertTableActionHidden('delete', $item);
+
+    expect(PayItem::where('label', 'Late bonus')->exists())->toBeFalse();
+});
+
 it('prints a bank letter for a payroll run', function () {
     Storage::fake('local');
     fullMonth($this->emp, 2026, 8);

@@ -46,7 +46,7 @@ Use the **filters** button to show only **Pay** or only **Deduct** items.
 
 To change or remove an item, use **Edit** or **Delete** on its row.
 
-> **Tip:** If the month's payroll run is already a draft, click **Recalculate** on the run after adding items. If the run is final, the item is not added any more. Put it into the next month instead.
+> **Tip:** If the month's payroll run is already a draft, click **Recalculate** on the run after adding items. If the run is final, {app} does not accept items for that month (*"Payroll for … is already final"*), and items already in that month can no longer be edited or deleted. Put it into the next month instead.
 
 > **Tip:** A taxable bonus raises that month's income tax: {app} adds the bonus to the yearly income once and takes the extra tax in the bonus month. The tax in the following months stays about the same. See [Payroll rules](/help/payroll-rules).
 
@@ -95,6 +95,10 @@ To remove an advance given by mistake, click **Delete** on its row. This is poss
 ### The bonus is not on the payslip
 
 The payroll run was calculated before you added it, or the **Pay month** is a different month. Check the month, then click **Recalculate** on the draft run. A final run cannot change.
+
+### "Payroll for … is already final, so this would not be paid."
+
+The payroll run for that pay month is final, so a new item would never reach a payslip. Choose the next month as **Pay month**, with a clear label such as "Arrears for August".
 
 ### I can't see Bonuses & Adjustments in the menu
 
