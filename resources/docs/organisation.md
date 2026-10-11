@@ -30,7 +30,7 @@ The list shows **Code**, **Name**, **Employees** (how many are in the branch) an
 2. Type the **Name**. The **Code** fills in by itself (you can change it, up to 20 characters).
 3. Fill in the **Address**.
 4. For phone punching, fill in **Latitude** and **Longitude** of the office. Tip: in Google Maps, long-press the office and copy the two numbers shown.
-5. **Geofence radius m**: how far from that point (20 to 5,000 metres) a phone punch is accepted. Default 150.
+5. **Geofence radius (m)**: how far from that point (20 to 5,000 metres) a phone punch is accepted. Default 150.
 6. **Office internet addresses** (optional): the public internet address(es) of the office connection, for example `39.45.10.22`. Type one and press Enter. When filled in, phone punches from any other connection wait in **Attendance → Punch approvals**, even inside the geofence.
 7. **Timezone**: leave empty to use the company timezone (Pakistan). Only change it for a branch abroad.
 8. **Weekly off days**: tick the days off, for example Sunday, or Friday for a branch that closes on Friday. Used only for staff whose shift has no weekly offs of its own. Default: Sunday.
@@ -108,7 +108,7 @@ The phone is not on an address listed in **Office internet addresses** (for exam
 
 ### Every phone punch from the office waits for approval as "outside the geofence"
 
-The branch **Latitude** / **Longitude** are wrong, or **Geofence radius m** is too small for your building. Check the location in Google Maps and try 200–300 m for a large site.
+The branch **Latitude** / **Longitude** are wrong, or **Geofence radius (m)** is too small for your building. Check the location in Google Maps and try 200–300 m for a large site.
 
 ### "The latitude field must be between -90 and 90"
 

@@ -63,21 +63,21 @@ class Integrations extends Page
 
         return $schema->statePath('data')->components([
             Section::make('WhatsApp')->columns(2)->description('Needs the WhatsApp module enabled for your plan.')->schema([
-                Select::make('whatsapp_provider')->options(['log' => 'Not set up (log only)', 'meta' => 'Meta WhatsApp Cloud API'])->live(),
+                Select::make('whatsapp_provider')->label('WhatsApp provider')->options(['log' => 'Not set up (log only)', 'meta' => 'Meta WhatsApp Cloud API'])->live(),
                 TextInput::make('whatsapp_meta_phone_number_id')->label('Phone number ID')->visible($is('whatsapp_provider', 'meta')),
                 TextInput::make('whatsapp_meta_token')->label('Permanent access token')->password()->revealable()
                     ->placeholder('•••• saved — leave blank to keep')->visible($is('whatsapp_provider', 'meta')),
                 TextInput::make('whatsapp_meta_api_version')->label('Graph API version')->visible($is('whatsapp_provider', 'meta')),
             ]),
             Section::make('SMS')->columns(2)->schema([
-                Select::make('sms_provider')->options(['log' => 'Not set up (log only)', 'http' => 'HTTP gateway'])->live(),
+                Select::make('sms_provider')->label('SMS provider')->options(['log' => 'Not set up (log only)', 'http' => 'HTTP gateway'])->live(),
                 TextInput::make('sms_http_url')->url()->label('Gateway URL')->visible($is('sms_provider', 'http'))
                     ->rule(fn () => function (string $attribute, $value, \Closure $fail) {
                         if (filled($value) && ($problem = PublicUrl::check((string) $value)) !== null) {
                             $fail($problem);
                         }
                     }),
-                Select::make('sms_http_method')->options(['POST' => 'POST', 'GET' => 'GET'])->visible($is('sms_provider', 'http')),
+                Select::make('sms_http_method')->label('SMS HTTP method')->options(['POST' => 'POST', 'GET' => 'GET'])->visible($is('sms_provider', 'http')),
                 TextInput::make('sms_http_sender')->label('Sender ID / mask')->visible($is('sms_provider', 'http')),
                 TextInput::make('sms_http_api_key')->label('API key / password')->password()->revealable()
                     ->placeholder('•••• saved — leave blank to keep')->visible($is('sms_provider', 'http')),
@@ -86,6 +86,11 @@ class Integrations extends Page
                     ->helperText('Values may use {to}, {message}, {sender}, {api_key}.')->visible($is('sms_provider', 'http')),
             ]),
         ]);
+    }
+
+    public function getSaveButtonLabel(): string
+    {
+        return __('Save');
     }
 
     public function save(TenantSettings $settings): void

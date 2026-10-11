@@ -74,19 +74,19 @@ Only the owner and admins can open **System → WhatsApp & SMS**.
 
 This needs WhatsApp alerts in your plan, and a WhatsApp Business account at Meta.
 
-1. In **Whatsapp provider**, pick *Meta WhatsApp Cloud API*.
+1. In **WhatsApp provider**, pick *Meta WhatsApp Cloud API*.
 2. Fill in **Phone number ID** and **Permanent access token** from your Meta Business account. Leave **Graph API version** as it is unless your IT person says otherwise.
-3. Click **Save settings**.
+3. Click **Save**.
 
 ### SMS (HTTP gateway)
 
 Most Pakistani SMS companies give you a web address (URL) to send messages. Ask them for the details.
 
-1. In **Sms provider**, pick *HTTP gateway*.
-2. Fill in **Gateway URL**, choose **Sms http method** (*POST* or *GET*, as your SMS company says), **Sender ID / mask**, and **API key / password**.
+1. In **SMS provider**, pick *HTTP gateway*.
+2. Fill in **Gateway URL**, choose **SMS HTTP method** (*POST* or *GET*, as your SMS company says), **Sender ID / mask**, and **API key / password**.
 3. In **Request parameters**, list the names your SMS company expects, with the values `{to}`, `{message}`, `{sender}` or `{api_key}`. For example: `to` = `{to}`, `message` = `{message}`, `api_key` = `{api_key}`.
 4. **Success response contains**: a word your gateway sends back when a message is accepted, for example `OK`. Leave empty to treat any normal reply as success.
-5. Click **Save settings**.
+5. Click **Save**.
 
 Saved passwords and tokens are kept secret: the field shows *•••• saved — leave blank to keep*. Leave it empty to keep the saved one; type a new one to replace it.
 

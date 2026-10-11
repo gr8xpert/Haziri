@@ -47,7 +47,7 @@ class BranchResource extends Resource
             TextInput::make('address')->columnSpanFull(),
             TextInput::make('lat')->numeric()->minValue(-90)->maxValue(90)->label('Latitude'),
             TextInput::make('lng')->numeric()->minValue(-180)->maxValue(180)->label('Longitude'),
-            TextInput::make('geofence_radius_m')->numeric()->integer()->minValue(20)->maxValue(5000)->default(150)->suffix('m'),
+            TextInput::make('geofence_radius_m')->label('Geofence radius (m)')->numeric()->integer()->minValue(20)->maxValue(5000)->default(150)->suffix('m'),
             TagsInput::make('allowed_ips')->label('Office internet addresses')->placeholder('e.g. 39.45.10.22')
                 ->nestedRecursiveRules([new IpOrCidr])->columnSpanFull()
                 ->helperText('Optional. Mobile punches from any other connection go to Punch approvals, even inside the geofence.'),
