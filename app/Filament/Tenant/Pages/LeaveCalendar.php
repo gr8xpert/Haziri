@@ -17,6 +17,7 @@ use App\Models\Holiday;
 use App\Models\LeaveRequest;
 use App\Models\Shift;
 use App\Models\ShiftAssignment;
+use App\Services\Settings\TenantSettings;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonPeriod;
 use Filament\Pages\Page;
@@ -45,7 +46,7 @@ class LeaveCalendar extends Page
 
     public static function canAccess(): bool
     {
-        return (bool) auth()->user()?->can('leave.request');
+        return app(TenantSettings::class)->featureEnabled('leave') && (bool) auth()->user()?->can('leave.request');
     }
 
     public function mount(): void

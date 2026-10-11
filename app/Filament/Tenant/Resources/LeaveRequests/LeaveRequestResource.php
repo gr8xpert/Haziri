@@ -8,6 +8,7 @@ use App\Actions\Leave\CancelLeaveRequest;
 use App\Actions\Leave\DecideLeaveRequest;
 use App\Enums\RequestStatus;
 use App\Filament\Concerns\AuthorizesByPermission;
+use App\Filament\Concerns\RequiresFeature;
 use App\Filament\Concerns\ScopesToTeam;
 use App\Filament\Tenant\NavigationGroup;
 use App\Models\LeaveRequest;
@@ -28,7 +29,9 @@ use Illuminate\Validation\ValidationException;
 
 class LeaveRequestResource extends Resource
 {
-    use AuthorizesByPermission, ScopesToTeam;
+    use AuthorizesByPermission, RequiresFeature, ScopesToTeam;
+
+    protected static string $feature = 'leave';
 
     protected static ?string $model = LeaveRequest::class;
 

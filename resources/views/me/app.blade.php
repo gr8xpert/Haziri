@@ -10,6 +10,9 @@
         'leave' => [__('Leave'), 'heroicon-o-sun', 'heroicon-s-sun'],
         'fix' => [__('Correction'), 'heroicon-o-pencil-square', 'heroicon-s-pencil-square'],
     ];
+    if (! $leaveEnabled) {
+        unset($tabs['leave']);
+    }
     $initials = collect(explode(' ', $employee->fullName()))->filter()->take(2)->map(fn ($p) => mb_substr($p, 0, 1))->implode('');
 @endphp
 <div x-data="meApp({ canPunch: @js($canPunch), faceCheck: @js($faceCheck ?? false), leaveTypes: @js($leaveTypes), locale: @js(str_replace('_', '-', app()->getLocale())) })" x-init="load()"
@@ -200,6 +203,7 @@
     </section>
 
     {{-- ================= Leave ================= --}}
+    @if ($leaveEnabled)
     <section x-show="tab === 'leave'" x-cloak x-transition.opacity.duration.150ms class="space-y-3 p-4">
         <div class="-mx-4 flex snap-x scroll-px-4 gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none]">
             <template x-for="b in data.balances ?? []" :key="b.code">
@@ -266,6 +270,7 @@
             <p x-show="loaded && !(data.requests ?? []).length" class="py-4 text-center text-sm text-zinc-500 dark:text-zinc-400">{{ __('No leave requests yet.') }}</p>
         </div>
     </section>
+    @endif
 
     {{-- ================= Correction ================= --}}
     <section x-show="tab === 'fix'" x-cloak x-transition.opacity.duration.150ms class="p-4">

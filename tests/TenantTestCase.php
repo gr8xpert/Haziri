@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests;
 
 use App\Actions\Tenants\ProvisionTenant;
+use App\Actions\Tenants\SetTenantFeatureFlags;
 use App\Models\Central\Tenant;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
@@ -27,6 +28,8 @@ abstract class TenantTestCase extends TestCase
             DB::connection('central')->statement('DROP DATABASE IF EXISTS hazri_t_pest');
             Artisan::call('migrate:fresh', ['--force' => true]);
             app(ProvisionTenant::class)('pest', 'Pest Test Co', 'owner@pest.test');
+            // Like a client whose plan includes Leave management; tests that need it off switch it off.
+            app(SetTenantFeatureFlags::class)(Tenant::query()->where('slug', 'pest')->firstOrFail(), ['leave' => true]);
             self::$booted = true;
         }
 

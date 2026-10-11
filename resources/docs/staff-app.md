@@ -14,7 +14,7 @@ screens: staff-app-home=/me
 - Sign in with your **mobile number** (you get a 6-digit code) or with your **email and password**.
 - **Today**: punch in and out (if your company allows it), see today's times, notices and your QR badge for the kiosk.
 - **Month**: your attendance for each day, your monthly report as a PDF and, once that month's payroll is final, your payslip.
-- **Leave**: see how many leave days you have left and ask for leave.
+- **Leave**: see how many leave days you have left and ask for leave. This tab shows only if your company uses leave management.
 - **Correction**: tell HR if you forgot to punch, worked outside, or worked from home.
 
 ## Open the app and add it to your phone

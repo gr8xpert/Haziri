@@ -15,6 +15,7 @@ screens: leave-requests=/admin/leave-requests | leave-request-new=/admin/leave-r
 - A request goes through the approval steps set in **Company settings** (normally the employee's manager first, then HR).
 - **Approve** takes the days off the employee's leave balance and marks those days as leave in attendance. **Reject** needs a reason.
 - **Cancel** gives the days back, even after approval (unless the month is locked).
+- These pages appear only if your plan includes *Leave management*. With it off, the Leave menu, the leave reports and the staff app's **Leave** tab are hidden.
 
 ## What you see on this page
 

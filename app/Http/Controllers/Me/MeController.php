@@ -40,6 +40,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -56,7 +57,8 @@ final class MeController
             'canPunch' => $settings->featureEnabled('mobile_punch') && (bool) $employee?->mobile_punch_allowed,
             'faceCheck' => $settings->featureEnabled('kiosk_face') && (bool) $settings->get('face_check_photo_punches'),
             'rtl' => app()->getLocale() === 'ur',
-            'leaveTypes' => LeaveType::where('is_active', true)->get(['id', 'name', 'code', 'allow_half_day']),
+            'leaveEnabled' => $leaveEnabled = $settings->featureEnabled('leave'),
+            'leaveTypes' => $leaveEnabled ? LeaveType::where('is_active', true)->get(['id', 'name', 'code', 'allow_half_day']) : [],
         ]);
     }
 
@@ -83,10 +85,11 @@ final class MeController
         }
         $today = $days->get(CarbonImmutable::now($tz)->format('Y-m-d'));
 
+        $leaveEnabled = app(TenantSettings::class)->featureEnabled('leave');
         $year = app(LeaveYear::class)->current();
-        $leaveBalances = LeaveType::where('is_active', true)->get()->map(fn (LeaveType $t) => [
+        $leaveBalances = $leaveEnabled ? LeaveType::where('is_active', true)->get()->map(fn (LeaveType $t) => [
             'code' => $t->code, 'name' => $t->name, 'remaining' => $balances->balance($employee, $t, $year)->remaining(),
-        ]);
+        ]) : [];
 
         return response()->json([
             'employee' => ['name' => $employee->fullName(), 'code' => $employee->code],
@@ -98,8 +101,9 @@ final class MeController
             'month' => $month,
             'calendar' => $calendar,
             'payslip' => $this->finalPayslip($employee, $month) !== null,
+            'leave_enabled' => $leaveEnabled,
             'balances' => $leaveBalances,
-            'requests' => LeaveRequest::query()->with('leaveType')->where('employee_id', $employee->id)->latest()->limit(10)->get()
+            'requests' => ! $leaveEnabled ? [] : LeaveRequest::query()->with('leaveType')->where('employee_id', $employee->id)->latest()->limit(10)->get()
                 ->map(fn (LeaveRequest $l) => ['type' => $l->leaveType?->code, 'from' => $l->from_date->format('Y-m-d'),
                     'to' => $l->to_date->format('Y-m-d'), 'days' => $l->days, 'status' => $l->status->value]),
             'announcements' => Announcement::visibleTo($employee)->limit(5)->get()
@@ -258,6 +262,9 @@ final class MeController
 
     public function leave(Request $request, SubmitLeaveRequest $submit): JsonResponse
     {
+        if (! app(TenantSettings::class)->featureEnabled('leave')) {
+            throw ValidationException::withMessages(['leave' => __('Leave requests are not enabled for your company.')]);
+        }
         $data = $request->validate([
             'leave_type_id' => ['required', 'integer', 'exists:leave_types,id'],
             'from_date' => ['required', 'date_format:Y-m-d'],

@@ -16,6 +16,7 @@ screens: leave-balances-list=/admin/leave-balances
 - **Adjust** adds or takes off days with a reason (for example encashment or bonus leave).
 - **Special rule** gives one employee different days for one leave type.
 - HR and the Owner see everyone. A manager sees only their own team and themselves, and cannot change anything.
+- These pages appear only if your plan includes *Leave management*. With it off, the Leave menu, the leave reports and the staff app's **Leave** tab are hidden.
 
 ## What you see on this page
 

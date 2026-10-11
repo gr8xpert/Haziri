@@ -15,6 +15,7 @@ screens: leave-reports-balances=/admin/reports/leave-balances | leave-reports-mo
 - **Monthly leave summary**: one leave type for one month: brought forward, earned, taken, charged for lates and half days, without pay, and the closing balance.
 - All three use the common filters and download to Excel and PDF. See [Reports](/help/reports-overview).
 - To change a balance, use **Leave → Leave balances**, not the report. See [Leave balances](/help/leave-balances).
+- These reports appear only if your plan includes *Leave management*.
 
 ## Leave register
 

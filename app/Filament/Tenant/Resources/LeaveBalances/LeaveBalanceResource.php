@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\Tenant\Resources\LeaveBalances;
 
 use App\Filament\Concerns\AuthorizesByPermission;
+use App\Filament\Concerns\RequiresFeature;
 use App\Filament\Concerns\ScopesToTeam;
 use App\Filament\Tenant\NavigationGroup;
 use App\Models\EmployeeLeaveRule;
@@ -25,7 +26,9 @@ use Illuminate\Support\Facades\DB;
 
 class LeaveBalanceResource extends Resource
 {
-    use AuthorizesByPermission, ScopesToTeam;
+    use AuthorizesByPermission, RequiresFeature, ScopesToTeam;
+
+    protected static string $feature = 'leave';
 
     protected static ?string $model = LeaveBalance::class;
 

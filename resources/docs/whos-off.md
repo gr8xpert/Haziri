@@ -16,6 +16,7 @@ screens: whos-off-week=/admin/leave-calendar
 - Only **approved** leave shows. Pending requests are not on it.
 - Filter by **Branch** and **Department**. Use the arrows to move week by week.
 - HR and the Owner see the whole company. A manager sees only their team and themselves.
+- These pages appear only if your plan includes *Leave management*. With it off, the Leave menu, the leave reports and the staff app's **Leave** tab are hidden.
 
 ## What you see on this page
 

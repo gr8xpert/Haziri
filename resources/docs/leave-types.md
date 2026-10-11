@@ -16,6 +16,7 @@ screens: leave-types-list=/admin/leave-types | leave-types-new=/admin/leave-type
 - Different grades or job categories can get different days with **Entitlement by grade / category**.
 - Leave types cannot be deleted. Switch off **Active** to stop using one.
 - Only the Owner, Admin and HR can open this page.
+- These pages appear only if your plan includes *Leave management*. With it off, the Leave menu, the leave reports and the staff app's **Leave** tab are hidden.
 
 ## What you see on this page
 

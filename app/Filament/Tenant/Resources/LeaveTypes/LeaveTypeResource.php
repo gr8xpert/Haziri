@@ -6,6 +6,7 @@ namespace App\Filament\Tenant\Resources\LeaveTypes;
 
 use App\Enums\EmploymentType;
 use App\Filament\Concerns\AuthorizesByPermission;
+use App\Filament\Concerns\RequiresFeature;
 use App\Filament\Tenant\NavigationGroup;
 use App\Models\Grade;
 use App\Models\LeaveType;
@@ -26,7 +27,9 @@ use Filament\Tables\Table;
 
 class LeaveTypeResource extends Resource
 {
-    use AuthorizesByPermission;
+    use AuthorizesByPermission, RequiresFeature;
+
+    protected static string $feature = 'leave';
 
     protected static ?string $model = LeaveType::class;
 
