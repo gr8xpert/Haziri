@@ -12,7 +12,7 @@ screens:
 
 - A **punch** is one record of an employee at the machine, kiosk or phone. {app} looks at all punches near the shift and works out one result per employee per day: a **status** (for example Present or Absent) and **flags** (for example Late or Left early).
 - The day is worked out again automatically whenever something changes: a new punch, an approved leave, a correction, a new holiday or a shift change. You never type the status yourself.
-- **Late** means the first punch came after the shift start plus the grace time. **Left early** means the last punch was more than the shift's *Early out before* minutes (default 30) before the shift end.
+- **Late** means the first punch came after the shift start plus the grace time. **Left early** means the last punch was more than the shift's *Early out before end* minutes (default 30) before the shift end.
 - A day with no punches becomes **Absent** only after the day is over (normally by the next morning). Until then it has no status yet.
 - Holidays, weekly offs and approved full-day leave come before punches. A **Change day status** correction comes before everything.
 - Once a month is locked, its days never change again. See [Month lock](/help/month-lock).
@@ -80,7 +80,7 @@ screens:
    - Otherwise **Absent**.
 8. There are punches:
    - If there is an approved half-day leave, **Half-day leave**.
-   - If the late minutes are more than the shift's *Half day if late after* limit, **Half day**.
+   - If the late minutes are more than the shift's *Half day if late by more than* limit, **Half day**.
    - If both in and out punches are there and the worked time is less than the shift's *Half day if worked less than* limit, **Half day**.
    - Otherwise **Present**.
 
@@ -94,7 +94,7 @@ Last of all, if a **Change day status** correction was approved for the day, tha
 
 - From **4 hours before the shift start** to **6 hours after the shift end**. These numbers are the defaults; change them in **System → Company settings** (*Punches count from … before shift* and *… until after shift end*).
 - For a 09:00–17:00 shift, punches between 05:00 and 23:00 count for that day.
-- For a **night shift**, for example 22:00–06:00 with *Crosses midnight* on, punches from 18:00 on 15 Sep until 12:00 on 16 Sep all count for **15 Sep**. So the morning punch at 06:05 closes the night shift of the day before.
+- For a **night shift**, for example 22:00–06:00 with *Ends the next day* on, punches from 18:00 on 15 Sep until 12:00 on 16 Sep all count for **15 Sep**. So the morning punch at 06:05 closes the night shift of the day before.
 
 **Which shift?** The employee's shift for that date (from the employee profile or the [Roster](/help/roster)). If they have none, the company's default shift. Then any [Timing overrides](/help/timing-overrides) for that date are applied, for example shorter Ramadan hours. Weekly offs come from the shift; if the shift has none ticked, from the employee's branch.
 
@@ -130,7 +130,7 @@ Late is not counted:
 
 Each shift has two settings for this:
 
-- **Early out before** (default 30 minutes): a last punch counts as **Left early** only when it is more than this many minutes before the shift end. Set it to 0 to use only the out grace.
+- **Early out before end** (default 30 minutes): a last punch counts as **Left early** only when it is more than this many minutes before the shift end. Set it to 0 to use only the out grace.
 - **Grace out** (default 5 minutes): the early minutes are counted from the shift end minus this grace.
 
 **Example.** Shift ends 17:00, early out before 30, grace out 5. Out at 16:40 is fine (20 minutes early is within 30). Out at 16:20 is **Left early** by 35 minutes (40 minutes early, minus the 5-minute grace). With early out before set to 0, out at 16:50 would already be Left early by 5 minutes.
@@ -145,7 +145,7 @@ Left early is not counted when the out punch is missing, when it was auto-closed
 
 A day becomes **Half day** when either:
 
-- the late minutes are more than **Half day if late after** (default 120 minutes), or
+- the late minutes are more than **Half day if late by more than** (default 120 minutes), or
 - the worked time is less than **Half day if worked less than** (default 240 minutes = 4 hours). This is the least worked time for a full day. This check needs both an in and an out punch.
 
 **Example.** In 09:00, out 12:30: 3 hours 30 minutes minus 1 hour break = 2 hours 30 minutes worked. That is less than 4 hours, so the day is **Half day** (also flagged Left early).
@@ -154,7 +154,7 @@ Leave a half-day field blank on the shift to switch that rule off.
 
 ### Shifts with break punches
 
-The shift setting **Multi punch mode** decides how more than two punches are read:
+The shift setting **Punch mode** decides how more than two punches are read:
 
 - **First in, last out** (default): the day runs from the first punch to the last. Punches in between are ignored. The unpaid break is subtracted.
 - **Every in/out pair**: punches are paired in order (1st with 2nd, 3rd with 4th, and so on) and the pairs are added up. The time between pairs counts as break, and only the rest of the unpaid break is subtracted.
@@ -167,7 +167,7 @@ If only one punch is found, the day is still **Present** (or Late), with the fla
 
 To fix it, add the missing punch with a [correction](/help/corrections) or [Manual entry](/help/manual-entry).
 
-A shift can also close missing out punches by itself: fill **Auto close missing out after** on the shift (in minutes). After that many minutes from the in punch, {app} sets the out time to a full scheduled day and adds the flag **Auto-closed**. Leave it blank to never auto-close.
+A shift can also close missing out punches by itself: fill **Auto-close a missing out after** on the shift (in minutes). After that many minutes from the in punch, {app} sets the out time to a full scheduled day and adds the flag **Auto-closed**. Leave it blank to never auto-close.
 
 ## Absent
 
@@ -179,9 +179,9 @@ The company setting **Mark absent after (days)** can wait longer. With 2, a day 
 
 Overtime is counted only when **Overtime enabled** is on in **Company settings** and the employee has **Overtime eligible** ticked on their profile.
 
-- On a working day: overtime = worked time minus expected time, but only if it is more than the shift's **Overtime after** minutes.
+- On a working day: overtime = worked time minus expected time, but only if it is more than the shift's **Overtime after** minutes. Once it is more, all of the extra time counts, not just the part beyond *Overtime after*.
 - On a holiday, off day or full-day leave: all worked time is overtime.
-- It is capped at the shift's **Max overtime** (if set), then rounded **down** to the company's *Round overtime down to* (default 15 minutes).
+- It is capped at the shift's **Max overtime per day** (if set), then rounded **down** to the company's *Round overtime down to* (default 15 minutes).
 
 **Example.** Shift 09:00–17:00, 60-minute break (expected 7 hours), *Overtime after* 30 minutes, rounding 15 minutes.
 
@@ -218,7 +218,7 @@ Check the shift the employee was on that day and its **Grace in** and **Late aft
 
 ### A night-shift employee shows two half days instead of one full night
 
-The shift is probably missing **Crosses midnight**. Without it, the morning punch is read as the next day. Open the shift, turn on *Crosses midnight*, then use **Recompute this month** in Company settings.
+The shift is probably missing **Ends the next day**. Without it, the morning punch is read as the next day. Open the shift, turn on *Ends the next day*, then use **Recompute this month** in Company settings.
 
 ### Today shows no status for people who have not come
 
@@ -230,7 +230,7 @@ The punch may be outside the search window (more than 4 hours before the shift o
 
 ### "Missing out punch" on many days
 
-The employees forget to punch out, or the machine missed them. Add the out punch with a [correction](/help/corrections), or set **Auto close missing out after** on the shift if you want {app} to assume a full day.
+The employees forget to punch out, or the machine missed them. Add the out punch with a [correction](/help/corrections), or set **Auto-close a missing out after** on the shift if you want {app} to assume a full day.
 
 ### I changed a company rule but old days did not change
 

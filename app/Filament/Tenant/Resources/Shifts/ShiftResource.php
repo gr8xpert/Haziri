@@ -51,27 +51,27 @@ class ShiftResource extends Resource
             Section::make(__('Timing'))->columns(3)->columnSpanFull()->schema([
                 CodeFromName::nameInput(Shift::class, 20)->required()->maxLength(100),
                 TextInput::make('code')->required()->maxLength(20)->unique(ignoreRecord: true)->helperText('Filled in from the name; you can change it.'),
-                Toggle::make('is_default')->helperText('Used for employees with no assignment')->inline(false),
+                Toggle::make('is_default')->label('Default shift')->helperText('Used for employees with no shift of their own')->inline(false),
                 TimePicker::make('start_time')->seconds(false)->required(),
                 TimePicker::make('end_time')->seconds(false)->required(),
-                Toggle::make('crosses_midnight')->helperText('Night shift ending the next day')->inline(false),
-                $minutes('break_min', 'Unpaid break')->default(60)->required(),
-                Select::make('multi_punch_mode')->options(MultiPunchMode::class)->default(MultiPunchMode::FirstLast)->required()
+                Toggle::make('crosses_midnight')->label('Ends the next day')->helperText('Night shift, for example 22:00–06:00')->inline(false),
+                $minutes('break_min', 'Taken off the worked time')->label('Unpaid break')->default(60)->required(),
+                Select::make('multi_punch_mode')->label('Punch mode')->options(MultiPunchMode::class)->default(MultiPunchMode::FirstLast)->required()
                     ->helperText('First in, last out: the day runs from the first to the last punch. Every in/out pair: break punches are subtracted.'),
             ]),
             Section::make(__('Late & early'))->columns(3)->schema([
-                $minutes('grace_in_min', 'Arrivals within this are on time')->default(15)->required(),
-                $minutes('late_after_min', 'Blank = same as grace'),
-                $minutes('half_day_if_late_after_min', 'Late minutes that make it a half day')->default(120),
-                $minutes('grace_out_min')->default(5)->required(),
-                $minutes('early_out_before_min', 'Leaving more than this before the end is an early out. 0 = only the out grace')->default(30)->required(),
-                $minutes('half_day_if_worked_less_than_min', 'The least worked time for a full day; less → half day')->default(240),
+                $minutes('grace_in_min', 'Arrivals within this many minutes of the start are on time')->label('Grace in')->default(15)->required(),
+                $minutes('late_after_min', 'An arrival this long after the start counts as late. Blank = same as grace in')->label('Late after'),
+                $minutes('half_day_if_late_after_min', 'Late by more than this makes the day a half day. Blank = never')->label('Half day if late by more than')->default(120),
+                $minutes('grace_out_min', 'Early-out minutes are counted from the end time minus this')->label('Grace out')->default(5)->required(),
+                $minutes('early_out_before_min', 'Leaving more than this before the end time is an early out. 0 = right after the grace out')->label('Early out before end')->default(30)->required(),
+                $minutes('half_day_if_worked_less_than_min', 'The least worked time for a full day; less makes it a half day. Blank = never')->label('Half day if worked less than')->default(240),
             ]),
             Section::make(__('Other'))->columns(2)->schema([
-                $minutes('auto_close_missing_out_after_min', 'Blank = never auto-close a missing punch-out'),
-                $minutes('overtime_after_min', 'Extra time beyond this counts as overtime'),
-                $minutes('max_overtime_min'),
-                CheckboxList::make('weekly_off_days')->options(BranchResource::WEEKDAYS)->columns(4)->columnSpanFull()
+                $minutes('auto_close_missing_out_after_min', 'Minutes after the first punch; the day is then closed as a full shift. Blank = never')->label('Auto-close a missing out after'),
+                $minutes('overtime_after_min', 'Once the extra time over the shift is more than this, all of the extra time is overtime. Blank = any extra time')->label('Overtime after'),
+                $minutes('max_overtime_min', 'Blank = no limit')->label('Max overtime per day'),
+                CheckboxList::make('weekly_off_days')->label('Weekly off days')->options(BranchResource::WEEKDAYS)->columns(4)->columnSpanFull()
                     ->dehydrateStateUsing(fn (?array $state): ?array => filled($state) ? array_map('intval', array_values($state)) : null)
                     ->helperText('Leave empty to use the branch weekly offs.'),
             ]),
