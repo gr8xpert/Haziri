@@ -56,7 +56,7 @@ This adds the fixed national days (Kashmir Day, Pakistan Day, Labour Day, Youm-e
 
 ## Add several days at once
 
-For Eid or a long closure, click **Add holiday range**. Fill in **Name**, **From**, **To**, **Type**, **Branch** and **Is paid**. {app} saves one holiday for every day in the range. If a day already has a holiday for the same branch, it is replaced.
+For Eid or a long closure, click **Add holiday range**. Fill in **Name**, **From**, **To**, **Type**, **Branch** and **Paid**. {app} saves one holiday for every day in the range. If a day already has a holiday for the same branch, it is replaced.
 
 ## Optional holidays
 

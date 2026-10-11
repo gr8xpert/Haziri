@@ -45,7 +45,7 @@ class ManageHolidays extends ManageRecords
                     DatePicker::make('to')->required()->afterOrEqual('from'),
                     Select::make('type')->options(HolidayType::class)->default(HolidayType::Company)->required(),
                     Select::make('branch_id')->label('Branch')->options(fn () => Branch::pluck('name', 'id'))->placeholder('All branches'),
-                    Toggle::make('is_paid')->default(true),
+                    Toggle::make('is_paid')->label('Paid')->default(true)->helperText('Off: still a day off, but not paid.'),
                 ])
                 ->action(function (array $data) {
                     $days = CarbonPeriod::create($data['from'], $data['to']);
