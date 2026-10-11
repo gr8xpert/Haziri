@@ -111,7 +111,7 @@ To ask for leave:
 
 1. Under **Apply for leave**, choose the **Leave type**.
 2. Choose **From** and **To** dates.
-3. Choose **Duration**: **Full day(s)**, **First half** or **Second half** (half days are for one date only).
+3. If the leave type allows half days, choose **Duration**: **Full day(s)**, **First half** or **Second half** (half days are for one date only). For other leave types this box does not show and the request is for full days.
 4. Write a **Reason** if you like.
 5. Add an **Attachment** if needed, for example a medical certificate for sick leave (photo or PDF, up to 5 MB).
 6. Tap **Send request**.

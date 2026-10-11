@@ -47,6 +47,7 @@ Alpine.data('meApp', ({ canPunch, faceCheck, leaveTypes, locale }) => ({
     fixType: 'add_punch',
     fixDate: '',
     leaveFrom: '',
+    leaveTypeId: String(leaveTypes[0]?.id ?? ''),
     selected: null,
     todayIso: isoDate(new Date()),
     canPunch,
@@ -130,6 +131,11 @@ Alpine.data('meApp', ({ canPunch, faceCheck, leaveTypes, locale }) => ({
         return (this.data.calendar ?? []).filter((d) => toneKey(d.code) === key).length;
     },
 
+    /** Half a day can only be asked for leave types that allow it; the server refuses it for the others. */
+    halfDayAllowed() {
+        return Boolean(this.leaveTypes.find((t) => String(t.id) === String(this.leaveTypeId))?.allow_half_day);
+    },
+
     requestTone(status) {
         return {
             approved: TONES.ok.chip,
@@ -206,6 +212,7 @@ Alpine.data('meApp', ({ canPunch, faceCheck, leaveTypes, locale }) => ({
             await api('/me/leave', new FormData(form));
             form.reset();
             this.leaveFrom = '';
+            this.leaveTypeId = String(this.leaveTypes[0]?.id ?? '');
             this.flash('Leave request sent');
             await this.load();
         } catch (e) {

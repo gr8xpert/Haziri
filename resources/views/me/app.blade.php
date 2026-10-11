@@ -219,7 +219,7 @@
             <h2 class="text-base font-semibold">{{ __('Apply for leave') }}</h2>
             <div>
                 <label for="lv-type" class="me-label">{{ __('Leave type') }}</label>
-                <select id="lv-type" name="leave_type_id" required class="me-input">
+                <select id="lv-type" name="leave_type_id" required class="me-input" x-model="leaveTypeId">
                     <template x-for="t in leaveTypes" :key="t.id"><option :value="t.id" x-text="t.name"></option></template>
                 </select>
             </div>
@@ -233,9 +233,9 @@
                     <input id="lv-to" type="date" name="to_date" required class="me-input" :min="leaveFrom">
                 </div>
             </div>
-            <div>
+            <div x-show="halfDayAllowed()">
                 <label for="lv-part" class="me-label">{{ __('Duration') }}</label>
-                <select id="lv-part" name="day_part" class="me-input">
+                <select id="lv-part" name="day_part" class="me-input" :disabled="!halfDayAllowed()">
                     <option value="full">{{ __('Full day(s)') }}</option>
                     <option value="first_half">{{ __('First half') }}</option>
                     <option value="second_half">{{ __('Second half') }}</option>
