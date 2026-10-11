@@ -6,6 +6,7 @@ namespace App\Filament\Tenant\Widgets;
 
 use App\Enums\AttendanceStatus;
 use App\Enums\EmployeeStatus;
+use App\Filament\Concerns\ScopesToTeam;
 use App\Filament\Tenant\Pages\Dashboard;
 use App\Models\AttendanceDay;
 use App\Models\Device;
@@ -18,10 +19,11 @@ use Filament\Widgets\Concerns\InteractsWithPageFilters;
 use Filament\Widgets\StatsOverviewWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 
-/** Dashboard counters for today (spec §9 phase 1). */
+/** Dashboard counters for today (spec §9 phase 1). Managers without view-all see only their own team. */
 class TodayStats extends StatsOverviewWidget
 {
     use InteractsWithPageFilters;
+    use ScopesToTeam;
 
     protected static ?int $sort = 1;
 
@@ -29,7 +31,7 @@ class TodayStats extends StatsOverviewWidget
 
     public static function canView(): bool
     {
-        return (bool) auth()->user()?->can('attendance.view_all');
+        return (bool) auth()->user()?->canAny(['attendance.view_all', 'attendance.view_team']);
     }
 
     protected function getStats(): array
@@ -38,29 +40,39 @@ class TodayStats extends StatsOverviewWidget
         $branch = Dashboard::selectedBranch($this->pageFilters);
         $branches = $branch !== null ? [$branch] : BranchAccess::ids(); // null = all branches
         $inBranch = fn ($q) => $q->whereHas('employee', fn ($e) => $e->whereIn('branch_id', $branches));
-        $days = AttendanceDay::query()->whereDate('date', $today)->when($branch !== null, $inBranch)->get();
+        $team = static::teamEmployeeIds('attendance.view_all');
+        $days = AttendanceDay::query()->whereDate('date', $today)->when($branch !== null, $inBranch)
+            ->when($team !== null, fn ($q) => $q->whereIn('employee_id', $team))->get();
         $active = Employee::query()->where('status', '!=', EmployeeStatus::Left)->where('joined_on', '<=', $today)
-            ->when($branch !== null, fn ($q) => $q->where('branch_id', $branch))->count();
+            ->when($branch !== null, fn ($q) => $q->where('branch_id', $branch))
+            ->when($team !== null, fn ($q) => $q->whereIn('id', $team))->count();
 
         $present = $days->whereIn('status', [AttendanceStatus::Present, AttendanceStatus::HalfDay, AttendanceStatus::OfficialDuty, AttendanceStatus::Wfh])->count();
         $late = $days->filter(fn (AttendanceDay $d) => in_array('late', $d->flags ?? [], true))->count();
         $onLeave = $days->whereIn('status', [AttendanceStatus::LeavePaid, AttendanceStatus::LeaveUnpaid, AttendanceStatus::HalfDayLeave])->count();
-        $off = $days->whereIn('status', [AttendanceStatus::Holiday, AttendanceStatus::WeeklyOff])->count();
+        $off = $days->whereIn('status', [AttendanceStatus::Holiday, AttendanceStatus::WeeklyOff, AttendanceStatus::Exempted])->count();
         $notIn = max(0, $active - $present - $onLeave - $off);
 
-        $unmapped = UnmappedPin::whereNull('resolved_employee_id')
-            ->when($branches !== null, fn ($q) => $q->whereHas('device', fn ($d) => $d->whereIn('branch_id', $branches)))->count();
-        $offline = Device::where('status', 'offline')->when($branches !== null, fn ($q) => $q->whereIn('branch_id', $branches))->count();
-
-        return [
+        $stats = [
             Stat::make(__('Present'), $present)->icon(Heroicon::OutlinedCheckCircle)
-                ->description(__('of :n active employees', ['n' => $active]))->color('success'),
+                ->description($team === null ? __('of :n active employees', ['n' => $active]) : __('of :n in your team', ['n' => $active]))->color('success'),
             Stat::make(__('Late'), $late)->icon(Heroicon::OutlinedClock)
                 ->description($late ? __('Arrived after grace time') : __('Everyone on time'))->color($late ? 'warning' : 'gray'),
             Stat::make(__('Not in yet / absent'), $notIn)->icon(Heroicon::OutlinedUserMinus)
                 ->description($notIn ? __('No punch recorded today') : __('Everyone accounted for'))->color($notIn ? 'danger' : 'gray'),
             Stat::make(__('On leave'), $onLeave)->icon(Heroicon::OutlinedCalendarDays)
                 ->description(__('Approved leave today'))->color('gray'),
+        ];
+        if ($team !== null) {
+            return $stats; // machines and unmapped PINs are not a team manager's job
+        }
+
+        $unmapped = UnmappedPin::whereNull('resolved_employee_id')
+            ->when($branches !== null, fn ($q) => $q->whereHas('device', fn ($d) => $d->whereIn('branch_id', $branches)))->count();
+        $offline = Device::where('status', 'offline')->when($branches !== null, fn ($q) => $q->whereIn('branch_id', $branches))->count();
+
+        return [
+            ...$stats,
             Stat::make(__('Unmapped PINs'), $unmapped)->icon(Heroicon::OutlinedFingerPrint)
                 ->description($unmapped ? __('Map them so punches count') : __('All mapped'))->color($unmapped ? 'warning' : 'gray'),
             Stat::make(__('Devices offline'), $offline)->icon(Heroicon::OutlinedSignalSlash)

@@ -2,12 +2,19 @@
 
 declare(strict_types=1);
 
+use App\Enums\AttendanceStatus;
 use App\Enums\Role;
+use App\Filament\Tenant\Widgets\InOfficeNow;
+use App\Filament\Tenant\Widgets\TodayStats;
+use App\Models\AttendanceDay;
+use App\Models\Employee;
 use App\Models\Setting;
 use App\Models\User;
 use App\Services\Features\FeatureCatalog;
 use App\Services\Settings\TenantSettings;
+use Carbon\CarbonImmutable;
 use Filament\Facades\Filament;
+use Livewire\Livewire;
 
 /*
 | Renders every tenant-panel page as the owner, so a broken form/table/page definition fails CI
@@ -88,4 +95,22 @@ it('gives every menu item its own icon', function () {
         ->map(fn ($icon) => $icon instanceof BackedEnum ? $icon->value : (string) $icon);
 
     expect($icons->count())->toBeGreaterThan(20)->and($icons->duplicates()->all())->toBe([]);
+});
+
+it('gives a manager a dashboard for their own team and counts exempted staff as off', function () {
+    $this->travelTo(CarbonImmutable::parse('2026-09-01 12:00', 'Asia/Karachi'));
+    $boss = Employee::create(['code' => 'DB0', 'first_name' => 'Bossa', 'joined_on' => '2025-01-01']);
+    $mine = Employee::create(['code' => 'DB1', 'first_name' => 'Teamina', 'joined_on' => '2025-01-01', 'manager_employee_id' => $boss->id]);
+    $excused = Employee::create(['code' => 'DB2', 'first_name' => 'Excusa', 'joined_on' => '2025-01-01', 'manager_employee_id' => $boss->id]);
+    $other = Employee::create(['code' => 'DB3', 'first_name' => 'Outsidera', 'joined_on' => '2025-01-01']);
+    foreach ([[$boss, AttendanceStatus::Present], [$mine, AttendanceStatus::Present], [$excused, AttendanceStatus::Exempted], [$other, AttendanceStatus::Present]] as [$e, $status]) {
+        AttendanceDay::create(['employee_id' => $e->id, 'date' => '2026-09-01', 'status' => $status, 'flags' => ['missing_out'], 'first_in' => '2026-09-01 04:00:00']);
+    }
+    $manager = User::create(['name' => 'Bossa', 'email' => 'boss-dash@pest.test', 'password' => 'secret123', 'employee_id' => $boss->id]);
+    $manager->assignRole(Role::Manager->value);
+    $this->actingAs($manager);
+
+    expect(TodayStats::canView())->toBeTrue()->and(InOfficeNow::canView())->toBeTrue();
+    Livewire::test(TodayStats::class)->assertSee('of 3 in your team')->assertSee('Everyone accounted for')->assertDontSee('Unmapped PINs');
+    Livewire::test(InOfficeNow::class)->assertSee('Teamina')->assertDontSee('Outsidera');
 });

@@ -14,7 +14,7 @@ screens: dashboard=/admin
 - Six boxes at the top: **Present**, **Late**, **Not in yet / absent**, **On leave**, **Unmapped PINs**, **Devices offline**.
 - **In office now** lists everyone who has punched in today and not yet punched out.
 - With more than one branch (if your plan includes branch managers), a **Branch** box lets you look at one branch, and **Branches today** compares them.
-- The numbers are shown to roles that can see all attendance: Owner, Admin, HR, Branch manager and Receptionist. Managers see an empty dashboard and use reports for their team.
+- Roles that can see all attendance (Owner, Admin, HR, Branch manager and Receptionist) see everyone. A Manager sees only their own team: the people who report to them, and themselves.
 
 ## What you see on this page
 
@@ -26,12 +26,14 @@ screens: dashboard=/admin
 |---|---|
 | **Present** | Employees who came today: present, half day, official duty or work from home. Under it: *of N active employees* (staff who have joined and not left). |
 | **Late** | Employees who arrived after the shift start plus the grace time. |
-| **Not in yet / absent** | Active employees with no punch today who are not on leave, not on a holiday and not on a weekly off. In the morning these are people who have not arrived yet; at the end of the day they are absent. |
+| **Not in yet / absent** | Active employees with no punch today who are not on leave, not on a holiday, not on a weekly off and not excused by a company exemption. In the morning these are people who have not arrived yet; at the end of the day they are absent. |
 | **On leave** | Employees on approved leave today (paid, unpaid or half-day leave). |
 | **Unmapped PINs** | Machine PINs that sent punches but are not linked to any employee. Their punches do not count until you link them. See [Unmapped PINs](/help/unmapped-pins). |
 | **Devices offline** | Attendance machines that have stopped sending. Check power and internet. See [Attendance machines](/help/zkteco-machines). |
 
 A box turns yellow or red when something needs your attention, and grey when all is well (for example *Everyone on time*, *All devices online*).
+
+A Manager sees only the first four boxes, counted for their own team (*of N in your team*), and **In office now** lists only their team.
 
 ### In office now
 
@@ -87,7 +89,7 @@ They did not punch out, so {app} still sees them as in. Ask staff to punch out e
 
 ### The dashboard is empty
 
-Your role only sees your own team (Manager). Use **Reports** to see your team's attendance. If you are HR or the owner and it is still empty, no employees have been added yet, or nobody has punched today.
+A Manager sees only the people who report to them. If nobody is set to report to you (**Manager** on the employee's record), your boxes show 0; ask HR to set it. Staff with the Employee role have no dashboard and use the staff app. If you are HR or the owner and it is still empty, no employees have been added yet, or nobody has punched today.
 
 ### "Devices offline" shows a machine that is working
 

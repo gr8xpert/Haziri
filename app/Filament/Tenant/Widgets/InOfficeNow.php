@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Filament\Tenant\Widgets;
 
+use App\Filament\Concerns\ScopesToTeam;
 use App\Filament\Tenant\Pages\Dashboard;
 use App\Models\AttendanceDay;
 use Carbon\CarbonImmutable;
@@ -15,10 +16,11 @@ use Filament\Widgets\Concerns\InteractsWithPageFilters;
 use Filament\Widgets\TableWidget;
 use Illuminate\Database\Eloquent\Builder;
 
-/** Live "in office now": punched in today, no punch-out yet. */
+/** Live "in office now": punched in today, no punch-out yet. Managers without view-all see only their own team. */
 class InOfficeNow extends TableWidget
 {
     use InteractsWithPageFilters;
+    use ScopesToTeam;
 
     protected static ?int $sort = 3;
 
@@ -28,7 +30,7 @@ class InOfficeNow extends TableWidget
 
     public static function canView(): bool
     {
-        return (bool) auth()->user()?->can('attendance.view_all');
+        return (bool) auth()->user()?->canAny(['attendance.view_all', 'attendance.view_team']);
     }
 
     public function table(Table $table): Table
@@ -40,6 +42,7 @@ class InOfficeNow extends TableWidget
             ->heading(__('In office now'))
             ->query(fn (): Builder => AttendanceDay::query()->with('employee.department')
                 ->whereDate('date', $today)->whereNotNull('first_in')->whereJsonContains('flags', 'missing_out')
+                ->tap(fn (Builder $q) => static::scopeToTeam($q, 'attendance.view_all'))
                 ->when(Dashboard::selectedBranch($this->pageFilters), fn ($q, $branch) => $q->whereHas('employee', fn ($e) => $e->where('branch_id', $branch))))
             ->defaultSort('first_in')
             ->paginated([10, 25, 50])
