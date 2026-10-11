@@ -21,6 +21,12 @@ final class SalarySheetReport extends Report
             ->options(fn () => PayrollRun::with('period')->latest('id')->get()->mapWithKeys(fn (PayrollRun $r) => [$r->id => $r->label() . " ({$r->status})"]))];
     }
 
+    /** Starts on the newest run, like the other payroll-run reports. */
+    public function defaults(): array
+    {
+        return ['run_id' => PayrollRun::query()->latest('id')->value('id')];
+    }
+
     public function ready(array $filters): bool
     {
         return ! empty($filters['run_id']);

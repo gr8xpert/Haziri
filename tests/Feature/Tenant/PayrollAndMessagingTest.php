@@ -6,6 +6,7 @@ use App\Actions\Payroll\PayrollActions;
 use App\Actions\Periods\PeriodActions;
 use App\Enums\AttendanceStatus;
 use App\Enums\Role;
+use App\Filament\Tenant\Pages\Reports\SalarySheet;
 use App\Filament\Tenant\Resources\Advances\Pages\ManageAdvances;
 use App\Filament\Tenant\Resources\PayrollRuns\Pages\ListPayrollRuns;
 use App\Filament\Tenant\Resources\Visitors\Pages\ManageVisitors;
@@ -234,4 +235,15 @@ it('broadcasts announcements to their audience only', function () {
 
     expect($a->isFor($this->emp))->toBeFalse()
         ->and($a->isFor(Employee::create(['code' => 'OB', 'first_name' => 'O', 'joined_on' => '2025-01-01', 'branch_id' => $other->id])))->toBeTrue();
+});
+
+it('opens the salary sheet on the newest payroll run', function () {
+    Filament::setCurrentPanel(Filament::getPanel('tenant'));
+    $this->actingAs($this->owner);
+    $periods = app(PeriodActions::class);
+    $period = $periods->period(2026, 8);
+    $periods->lock($period, $this->owner);
+    $run = app(PayrollActions::class)->generate($period->fresh(), $this->owner);
+
+    Livewire::test(SalarySheet::class)->assertSet('filters.run_id', $run->id)->assertSee('Bilal');
 });

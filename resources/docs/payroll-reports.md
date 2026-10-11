@@ -27,7 +27,7 @@ screens: payroll-reports-input=/admin/reports/payroll-input | payroll-reports-ta
 | **Provident fund statement** | Provident fund | **As of** + common filters |
 | **Gratuity liability** | Gratuity | **As of** + common filters |
 
-The common filters (branch, department and so on) are explained in [Reports](/help/reports-overview). In the **Payroll run** list each run shows its month and status, for example *September 2026 (draft)* or *August 2026 (final)*. Most of these reports start on the newest run; on **Salary sheet** you pick it yourself.
+The common filters (branch, department and so on) are explained in [Reports](/help/reports-overview). In the **Payroll run** list each run shows its month and status, for example *September 2026 (draft)* or *August 2026 (final)*. These reports start on the newest run; pick another one to see an older month.
 
 ## Payroll input
 
@@ -81,7 +81,7 @@ You need payroll permission (Owner, Admin or HR), and your plan must include tha
 
 ### "Choose the filters above" on Salary sheet
 
-No **Payroll run** is chosen. Pick one in the list. If the list is empty, no payroll has been run yet; see [Payroll runs](/help/payroll-runs).
+No **Payroll run** is chosen. The report starts on the newest run, so this usually means no payroll has been run yet, or the run was cleared from the list. Pick one in the list. If the list is empty, run payroll first; see [Payroll runs](/help/payroll-runs).
 
 ### The title line says "DRAFT"
 
