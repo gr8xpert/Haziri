@@ -8,15 +8,14 @@ use App\Enums\AttendanceFlag;
 use App\Enums\EmployeeStatus;
 use App\Enums\EmploymentType;
 use App\Enums\PunchSource;
-use App\Models\Branch;
 use App\Models\Contractor;
-use App\Models\Department;
 use App\Models\Designation;
 use App\Models\Employee;
 use App\Models\Shift;
 use App\Models\User;
 use App\Services\Attendance\Period\PayCycle;
 use App\Services\Attendance\ShiftResolver;
+use App\Support\BranchAccess;
 use Carbon\CarbonImmutable;
 use Filament\Forms\Components\Select;
 use Filament\Schemas\Components\Component;
@@ -91,8 +90,8 @@ abstract class Report
     protected function orgFilters(): array
     {
         return [
-            Select::make('branch_id')->label(__('Branch'))->options(fn () => Branch::pluck('name', 'id'))->placeholder(__('All')),
-            Select::make('department_id')->label(__('Department'))->options(fn () => Department::pluck('name', 'id'))->placeholder(__('All')),
+            Select::make('branch_id')->label(__('Branch'))->options(fn () => BranchAccess::branchOptions())->placeholder(__('All')),
+            Select::make('department_id')->label(__('Department'))->options(fn () => BranchAccess::departmentOptions())->placeholder(__('All')),
             Select::make('designation_id')->label(__('Designation'))->options(fn () => Designation::orderBy('name')->pluck('name', 'id'))
                 ->searchable()->placeholder(__('All')),
             Select::make('shift_id')->label(__('Shift'))->options(fn () => Shift::orderBy('start_time')->pluck('name', 'id'))->placeholder(__('All')),

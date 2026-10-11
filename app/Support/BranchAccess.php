@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace App\Support;
 
 use App\Enums\Role;
+use App\Models\Branch;
+use App\Models\Department;
+use App\Models\Employee;
 use App\Models\User;
 use App\Services\Settings\TenantSettings;
 
@@ -67,5 +70,29 @@ final class BranchAccess
     {
         self::$ids = null;
         self::$suspended = 0;
+    }
+
+    /**
+     * Branches to offer in a filter: only the user's own when branch-limited.
+     *
+     * @return array<int, string>
+     */
+    public static function branchOptions(): array
+    {
+        $ids = self::ids();
+
+        return Branch::query()->when($ids !== null, fn ($q) => $q->whereIn('id', $ids))->orderBy('name')->pluck('name', 'id')->all();
+    }
+
+    /**
+     * Departments to offer in a filter: for a branch-limited user, only those with staff in their branches.
+     *
+     * @return array<int, string>
+     */
+    public static function departmentOptions(): array
+    {
+        return Department::query()
+            ->when(self::restricted(), fn ($q) => $q->whereIn('id', Employee::query()->whereNotNull('department_id')->select('department_id')))
+            ->orderBy('name')->pluck('name', 'id')->all();
     }
 }

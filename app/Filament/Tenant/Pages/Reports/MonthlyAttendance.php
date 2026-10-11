@@ -7,8 +7,6 @@ namespace App\Filament\Tenant\Pages\Reports;
 use App\Enums\EmployeeStatus;
 use App\Filament\Tenant\NavigationGroup;
 use App\Jobs\BuildMonthlyAttendanceExport;
-use App\Models\Branch;
-use App\Models\Department;
 use App\Models\Employee;
 use App\Reports\EmployeeStatementReport;
 use App\Reports\ReportCatalog;
@@ -17,6 +15,7 @@ use App\Services\Attendance\Period\PayCycle;
 use App\Services\Reports\MonthlyAttendanceExport;
 use App\Services\Reports\MonthlyAttendancePdf;
 use App\Services\Reports\MonthlyAttendanceStatement;
+use App\Support\BranchAccess;
 use App\Support\Brand;
 use Carbon\CarbonImmutable;
 use Filament\Notifications\Notification;
@@ -105,13 +104,13 @@ class MonthlyAttendance extends Page
     /** @return array<int, string> */
     public function getDepartmentOptions(): array
     {
-        return Department::orderBy('name')->pluck('name', 'id')->all();
+        return BranchAccess::departmentOptions();
     }
 
     /** @return array<int, string> */
     public function getBranchOptions(): array
     {
-        return Branch::orderBy('name')->pluck('name', 'id')->all();
+        return BranchAccess::branchOptions();
     }
 
     /** @return array<string, mixed>|null */

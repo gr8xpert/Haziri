@@ -25,8 +25,8 @@ At the top are four filters:
 | Filter | What it does |
 |---|---|
 | **Month** | The pay-cycle month. The dates it covers are shown under it, for example *September 2026 (21 Aug – 20 Sep)*. |
-| **Branch** | Narrows the employee list, and decides who goes into the "all employees" PDF. |
-| **Department** | The same, by department. |
+| **Branch** | Narrows the employee list, and decides who goes into the "all employees" PDF. Branch managers see only their own branches here. |
+| **Department** | The same, by department. Branch managers see only departments that have staff in their branches. |
 | **Employee** | The person to show on screen. The list shows code and name. People who left more than three months ago are not in the list. |
 
 When you change **Branch** or **Department**, the chosen employee is cleared. Pick one again.

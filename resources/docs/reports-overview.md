@@ -52,7 +52,7 @@ Most reports have these filters after their own date or month filter. Leave a fi
 
 | Filter | What it does |
 |---|---|
-| **Branch** / **Department** / **Designation** | Only staff in that branch, department or job title. |
+| **Branch** / **Department** / **Designation** | Only staff in that branch, department or job title. Branch managers are offered only their own branches, and the departments that have staff there. |
 | **Shift** | Only staff whose shift is that shift *today* (not on the report dates). |
 | **Category** | The employment type, for example permanent, contract or daily wage. |
 | **Contractor** | Only staff supplied by that contractor. This filter appears only if you have added contractors. |

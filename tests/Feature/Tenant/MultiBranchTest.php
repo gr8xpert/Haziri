@@ -5,11 +5,13 @@ declare(strict_types=1);
 use App\Enums\AttendanceStatus;
 use App\Enums\Role;
 use App\Filament\Tenant\Pages\AskHazriPage;
+use App\Filament\Tenant\Pages\Reports\MonthlyAttendance;
 use App\Filament\Tenant\Pages\Reports\VisitorLog;
 use App\Filament\Tenant\Widgets\BranchComparison;
 use App\Filament\Tenant\Widgets\TodayStats;
 use App\Models\AttendanceDay;
 use App\Models\Branch;
+use App\Models\Department;
 use App\Models\Employee;
 use App\Models\Setting;
 use App\Models\User;
@@ -139,4 +141,19 @@ it('opens the visitor log to full report access only, with a shop manager seeing
 
     expect(VisitorLog::canAccess())->toBeTrue()
         ->and(collect((new VisitorLogReport)->rows(['from' => '2026-09-01', 'to' => '2026-09-01']))->pluck('name')->all())->toBe(['Visitor One']);
+});
+
+it('offers a shop manager only their shops and those shops\' departments in the report filters', function () {
+    $sales = Department::create(['name' => 'Sales', 'code' => 'SAL']);
+    $stores = Department::create(['name' => 'Stores', 'code' => 'STO']);
+    $this->ali->update(['department_id' => $sales->id]);
+    $this->bilal->update(['department_id' => $stores->id]);
+    Filament::setCurrentPanel(Filament::getPanel('tenant'));
+    $this->actingAs($this->manager);
+    BranchAccess::restrictTo(BranchAccess::forUser($this->manager));
+
+    $page = Livewire::test(MonthlyAttendance::class)->instance();
+
+    expect($page->getBranchOptions())->toBe([$this->shop1->id => 'Shop One'])
+        ->and($page->getDepartmentOptions())->toBe([$sales->id => 'Sales']);
 });
