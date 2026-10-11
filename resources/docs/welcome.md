@@ -124,7 +124,7 @@ The trial period is over and the company is paused. Your data is kept. Contact s
 
 ### "This account is suspended. Please contact support."
 
-Usually an invoice was not paid in time. Contact support. Once the payment is confirmed, the account opens again. See [Billing](/help/billing).
+Usually an invoice was not paid in time. The owner can still sign in to /admin and lands on **Billing**, where they can report the payment with **I have paid**. Once the payment is confirmed, the account opens again. See [Billing](/help/billing).
 
 ### I don't see Switch company
 

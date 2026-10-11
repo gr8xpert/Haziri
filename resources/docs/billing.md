@@ -58,7 +58,7 @@ The invoice is due 10 days after the 1st. During a free trial there are no invoi
 
 ## If you don't pay
 
-If an invoice is still open 15 days after its due date, the account is paused. Nobody in the company can log in to /admin or /me, and punches from machines are not accepted. Everyone sees *"This account is suspended. Please contact support."* Your data is kept. Contact support with your payment details; once the payment is confirmed, the account opens again.
+If an invoice is still open 15 days after its due date, the account is paused. Staff cannot use /me, punches from machines are not accepted, and every /admin page except **Billing** is closed: the owner can still sign in, and is taken straight to **Billing** to pay and click **I have paid**. Others see *"This account is suspended. Please contact support."* Your data is kept. Once the payment is confirmed, the account opens again.
 
 ## Employee limit
 

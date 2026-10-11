@@ -8,6 +8,7 @@ use App\Enums\TenantStatus;
 use App\Models\Central\Tenant;
 use Closure;
 use Illuminate\Http\Request;
+use Livewire\Livewire;
 use Stancl\Tenancy\Middleware\InitializeTenancyByDomainOrSubdomain;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -15,7 +16,8 @@ use Symfony\Component\HttpFoundation\Response;
  * Tenant identification for every tenant route and the tenant panel.
  * shared mode:    {slug}.{central domain} or a custom domain (stancl DomainOrSubdomain).
  * dedicated mode: every non-central host is the single HAZRI_DEDICATED_TENANT (spec §3.2).
- * Suspended tenants, and trials past their end date, get a 403 page.
+ * Suspended tenants, and trials past their end date, get a 403 page; a company suspended for non-payment can still
+ * sign in and open Billing to report the payment.
  */
 final class IdentifyTenant
 {
@@ -46,9 +48,27 @@ final class IdentifyTenant
             abort(403, __('Your free trial has ended. Please contact support to continue.'));
         }
         if ($tenant?->status === TenantStatus::Suspended) {
+            if ($tenant->suspension_reason === 'billing') {
+                if ($this->isBillingRequest($request)) {
+                    return $next($request);
+                }
+                if ($request->isMethod('GET') && $request->is('admin', 'admin/*') && ! Livewire::isLivewireRequest()) {
+                    return redirect('/admin/billing'); // the owner can still report a payment
+                }
+            }
             abort(403, __('This account is suspended. Please contact support.'));
         }
 
         return $next($request);
+    }
+
+    /**
+     * Suspended for an unpaid invoice: only signing in and out and the Billing page stay open, so the owner can report
+     * the payment. Livewire calls are checked too: this middleware is persistent, so Livewire re-runs it against the
+     * (signed) page path each component was rendered on.
+     */
+    private function isBillingRequest(Request $request): bool
+    {
+        return $request->is('admin/login', 'admin/logout', 'admin/billing');
     }
 }
