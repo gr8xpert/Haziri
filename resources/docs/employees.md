@@ -133,7 +133,7 @@ The list shows only **Active** employees at first. Open the **filters** and set 
 
 ### An employee punches on the machine but has no attendance
 
-The **Machine PIN** is blank or different from the user ID on the machine. Fix the PIN on the employee. Punches with an unknown PIN wait under [Unmapped PINs](/help/unmapped-pins).
+The **Machine PIN** is blank or different from the user ID on the machine. Fix the PIN on the employee. Punches with an unknown PIN wait under [Unmapped PINs](/help/unmapped-pins); when you save the right PIN, the waiting punches with it are attached to the employee and the days are worked out again.
 
 ### The CNIC is refused
 

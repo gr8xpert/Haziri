@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Actions\Punches\MapUnmappedPinAction;
 use App\Enums\EmployeeStatus;
 use App\Enums\EmploymentType;
 use App\Enums\WorkMode;
@@ -50,6 +51,16 @@ class Employee extends Model
             'custom_fields' => 'array',
             'kiosk_pin' => 'hashed',
         ];
+    }
+
+    /** A Machine PIN set or changed on the profile (or by import) picks up the punches already waiting under that PIN. */
+    protected static function booted(): void
+    {
+        static::saved(function (Employee $employee): void {
+            if (filled($employee->device_pin) && ($employee->wasRecentlyCreated || $employee->wasChanged('device_pin'))) {
+                app(MapUnmappedPinAction::class)->attach($employee, (string) $employee->device_pin);
+            }
+        });
     }
 
     public function getActivitylogOptions(): LogOptions

@@ -13,6 +13,7 @@ screens: unmapped-pins=/admin/unmapped-pins
 - Every person on a fingerprint or face machine has a user ID, called the **Machine PIN** in {app}. A punch is matched to an employee by this PIN.
 - When a machine sends a PIN that no employee has, the punch is kept but not counted. The PIN is listed here.
 - Click **Map to employee** and pick the person. The employee gets that Machine PIN, all their waiting punches are attached, and the days are worked out again.
+- Setting or changing the **Machine PIN** on an employee's profile does the same: their waiting punches with that PIN are attached.
 - The number next to *Unmapped PINs* in the menu is how many are still waiting.
 - The owner, admins and HR can map PINs.
 
@@ -66,7 +67,7 @@ If a PIN belongs to someone who should not be in attendance (a test user, a visi
 
 ### "… already uses PIN 42. Change it on the employee first."
 
-The employee you picked already has a different Machine PIN. Decide which one is right. If the machine's PIN is right, open the employee's profile, change **Machine PIN** to the new one, and save. Their waiting punches are not attached by this alone, so map the row here afterwards (or clear the PIN on the profile first, then map).
+The employee you picked already has a different Machine PIN. Decide which one is right. If the machine's PIN is right, open the employee's profile, change **Machine PIN** to the new one, and save. Their waiting punches with the new PIN are attached straight away and the row here shows as mapped.
 
 ### "PIN 42 already belongs to …"
 

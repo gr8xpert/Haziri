@@ -98,6 +98,21 @@ it('re-attaches punches when an unmapped PIN is mapped', function () {
         ->toBe(AttendanceStatus::Present);
 });
 
+it('attaches waiting punches when an employee gets that Machine PIN on the profile', function () {
+    ingest(machinePunch('77', '2026-09-01 09:00'));
+    ingest(machinePunch('88', '2026-09-01 09:05'));
+    $changed = staff('12', 'CHG');
+
+    $changed->update(['device_pin' => '77']);
+    $created = Employee::create(['code' => 'NEW', 'first_name' => 'New', 'joined_on' => '2025-01-01', 'device_pin' => '88']);
+
+    expect(Punch::where('device_pin', '77')->value('employee_id'))->toBe($changed->id)
+        ->and(Punch::where('device_pin', '88')->value('status'))->toBe(PunchStatus::Valid)
+        ->and(Punch::where('device_pin', '88')->value('employee_id'))->toBe($created->id)
+        ->and(UnmappedPin::where('device_pin', '77')->value('resolved_employee_id'))->toBe($changed->id)
+        ->and(AttendanceDay::where('employee_id', $changed->id)->whereDate('date', '2026-09-01')->exists())->toBeTrue();
+});
+
 it('says which mapped days were left alone because their month is locked', function () {
     ingest(machinePunch('99', '2026-09-01 09:00'));
     ingest(machinePunch('99', '2026-10-02 09:00'));
