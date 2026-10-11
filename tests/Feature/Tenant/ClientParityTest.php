@@ -248,17 +248,25 @@ it('rolls a leave balance forward month by month in the leave summary', function
         'from_date' => $from, 'to_date' => $to, 'days' => $days, 'status' => RequestStatus::Approved]);
     $leave('2026-04-14', '2026-04-14', 1);
     $leave('2026-05-12', '2026-05-13', 2);
-    $adjust = fn (float $days, string $on) => LeaveAdjustment::create(['employee_id' => $e->id, 'leave_type_id' => $type->id,
-        'year' => 2025, 'days' => $days, 'effective_on' => $on, 'reason' => 'test']);
-    $adjust(-1, '2026-05-31');
+    $adjust = fn (float $days, string $on, ?int $periodId = null) => LeaveAdjustment::create(['employee_id' => $e->id, 'leave_type_id' => $type->id,
+        'year' => 2025, 'days' => $days, 'effective_on' => $on, 'reason' => 'test', 'attendance_period_id' => $periodId]);
+    $adjust(-1, '2026-05-31', app(PeriodActions::class)->period(2026, 5)->id); // lates / half days, charged at lock
     $adjust(1, '2026-05-20');
+    $adjust(-0.5, '2026-05-21'); // HR's own correction: not a late / half-day adjustment
+    $unpaid = LeaveType::create(['name' => 'Without pay', 'code' => 'UL', 'annual_quota_days' => 0, 'is_paid' => false, 'allow_negative_balance' => true]);
+    $unpaidLeave = LeaveRequest::create(['employee_id' => $e->id, 'leave_type_id' => $unpaid->id,
+        'from_date' => '2026-05-14', 'to_date' => '2026-05-14', 'days' => 1, 'status' => RequestStatus::Approved]);
+    AttendanceDay::updateOrCreate(['employee_id' => $e->id, 'date' => '2026-05-14'], ['status' => AttendanceStatus::LeaveUnpaid, 'flags' => [], 'leave_request_id' => $unpaidLeave->id]);
+    $summary = fn (LeaveType $t) => collect((new MonthlyLeaveSummaryReport)->rows(['month' => '2026-05', 'leave_type_id' => $t->id]))->firstWhere('code', 'LS1');
 
-    $row = collect((new MonthlyLeaveSummaryReport)->rows(['month' => '2026-05', 'leave_type_id' => $type->id]))->firstWhere('code', 'LS1');
+    $row = $summary($type);
 
     // Before May: 28.5 opening + 7 months × 2.5 (Oct → Apr) − 1 used = 45
     expect($row['payroll_id'])->toBe('320001')
         ->and($row['previous'])->toBe(45.0)->and($row['allotted'])->toBe(2.5)->and($row['availed'])->toBe(2.0)
-        ->and($row['adjusted'])->toBe(1.0)->and($row['credit'])->toBe(1.0)->and($row['closing'])->toBe(45.5);
+        ->and($row['adjusted'])->toBe(1.0)->and($row['credit'])->toBe(0.5)->and($row['lwp'])->toBeNull()
+        ->and($row['closing'])->toBe(45.0)
+        ->and($summary($unpaid)['lwp'])->toBe(1);
 });
 
 it('shows yesterday out next to today in', function () {

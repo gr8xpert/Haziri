@@ -16,9 +16,10 @@ use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
 
 /**
- * One leave type's movement over one pay month: balance brought forward, allotted this month, availed, late / absent
- * adjustments, credits, leave without pay and the closing balance. Leave counts in the month it starts; adjustments
- * by their effective date. Used by the monthly leave summary and the monthly attendance report.
+ * One leave type's movement over one pay month: balance brought forward, allotted this month, availed, the late /
+ * half-day adjustments made when the month is locked, HR's manual adjustments (credit, net), this type's leave without
+ * pay and the closing balance. Leave counts in the month it starts; adjustments by their effective date. Used by the
+ * monthly leave summary and the monthly attendance report.
  */
 final class LeaveMonthSummary
 {
@@ -46,7 +47,9 @@ final class LeaveMonthSummary
         $adjustments = LeaveAdjustment::query()->where(['leave_type_id' => $type->id, 'year' => $year])->whereIn('employee_id', $ids)
             ->get()->groupBy('employee_id');
         $lwp = AttendanceDay::query()->whereIn('employee_id', $ids)->whereBetween('date', [$from, $to])
-            ->where('status', AttendanceStatus::LeaveUnpaid)->selectRaw('employee_id, count(*) as n')->groupBy('employee_id')->pluck('n', 'employee_id');
+            ->where('status', AttendanceStatus::LeaveUnpaid)
+            ->whereIn('leave_request_id', LeaveRequest::query()->withoutGlobalScopes()->select('id')->where('leave_type_id', $type->id))
+            ->selectRaw('employee_id, count(*) as n')->groupBy('employee_id')->pluck('n', 'employee_id');
         $periodHasYearStart = $yearStart->betweenIncluded($start, $end);
         $daysOf = fn (LeaveRequest $r) => (float) $r->days + count($r->sandwich_dates ?? []);
 
@@ -71,7 +74,7 @@ final class LeaveMonthSummary
                 $on = ($a->effective_on ?? CarbonImmutable::parse($a->created_at))->format('Y-m-d');
                 if ($on < $from) {
                     $adjBefore += $a->days;
-                } elseif ($on <= $to && $a->days < 0) {
+                } elseif ($on <= $to && $a->attendance_period_id !== null) {
                     $deducted -= $a->days;
                 } elseif ($on <= $to) {
                     $credit += $a->days;

@@ -68,10 +68,10 @@ Leave types that are switched off are not shown.
 | **Allotted** | Days earned this month. |
 | **Total** | Prev month bal + Allotted. |
 | **Availed** | Leave taken this month. |
-| **Adj (late / half day)** | Days taken off this leave by adjustments in the month, mostly lates and half days charged to leave (if your company does that). |
+| **Adj (late / half day)** | Days taken off this leave for lates and half days when the month was locked (if your company charges them to leave). Nothing else is counted here. |
 | **Total deducted** | Availed + Adj. |
-| **Credit leave** | Days added to this leave by adjustments in the month. |
-| **LWP** | Leave without pay: days in the month marked as unpaid leave (of any type). |
+| **Credit leave** | HR's own balance adjustments in the month (under **Leave → Leave balances**), added together: days added, less days removed. It can be negative. |
+| **LWP** | Leave without pay: days in the month taken as unpaid leave of this leave type. A paid leave type usually shows none; choose your unpaid leave type to see them. |
 | **Cur month bal** | The closing balance. |
 
 ![Monthly leave summary for one leave type](leave-reports-monthly-summary.jpg)
@@ -110,4 +110,4 @@ The register lists every request, whatever its status, so you have the full hist
 
 ### "LWP" shows days for an employee
 
-The employee had days marked as unpaid leave that month, for example an unpaid leave request. LWP counts all unpaid leave days in the month, not only this leave type. Those days are not paid. See [How attendance works](/help/how-attendance-works).
+The employee took leave of this type that is unpaid that month. LWP counts only this leave type; unpaid days of other types show when you choose that type. Those days are not paid. See [How attendance works](/help/how-attendance-works).

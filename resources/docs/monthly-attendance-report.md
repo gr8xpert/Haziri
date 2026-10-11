@@ -48,7 +48,7 @@ Once you pick an employee, the page shows:
 | **OT** | Overtime that day. |
 | **Remarks** | Why the day looks the way it does: the holiday name, the leave reason, the reason for a manual punch or a changed status, the exemption reason, or *Worked on a leave day: cancel the leave?* |
 
-4. **The leave table** (if the employee has leave types): for each type **Prev. balance**, **Allotted**, **Total**, **Availed**, **Adjusted (late / half day)** (days taken from leave because of lates or half days), **Credit**, **Without pay** and **Current balance**.
+4. **The leave table** (if the employee has leave types): for each type **Prev. balance**, **Allotted**, **Total**, **Availed**, **Adjusted (late / half day)** (days taken from leave because of lates or half days when the month was locked), **Credit** (HR's own balance adjustments, added together), **Without pay** (unpaid days of that leave type) and **Current balance**.
 
 The printed PDF has the same parts, plus **Printed on**, **Printed by**, the hours box (**Total duration**, **Overtime**, **Worked (after breaks)**), and signature lines: **Prepared by**, **Checked by (HR)** and **Employee signature**.
 
