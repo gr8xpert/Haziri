@@ -81,6 +81,8 @@ Each setup file you download contains its own new **agent key**: a password that
 
 ### The machines do not show online after the test
 
+When the agent cannot read a machine, it says why: a red line *Agent error: …* appears under the machine's **Status** on the Devices list and on its edit page (for example *i/o timeout* when the PC cannot reach the IP). The line goes away by itself once the agent reads the machine again.
+
 - The PC cannot reach the machine. From Command Prompt on the PC, type `ping` and the machine's IP (for example `ping 192.168.1.201`). If there is no reply, check the IP, the cable and that both are on the same network.
 - The IP in `agent.yaml` is `0.0.0.0` or wrong. Fix the **LAN IP** on the device and download the setup file again.
 - The PC has no internet.
@@ -89,7 +91,7 @@ Each setup file you download contains its own new **agent key**: a password that
 
 The agent read a machine whose serial number is not in {app}, or the machine was added with type *Machine (cloud)*. Add it under **Devices** with type **Machine (office PC agent)** and the exact serial number, then download a new setup file.
 
-### "The program is not on this server yet."
+### "The program is not on this server yet. Ask your support contact for the sync agent program (sync-agent.exe)."
 
 The **Download program** button is missing because the program has not been uploaded to the server. Ask support to send you the program file.
 

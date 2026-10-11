@@ -61,6 +61,8 @@ class DeviceResource extends Resource
                 ->visible(fn (Get $get) => self::typeIs($get, DevicePunchSourceType::Adms)),
             TextInput::make('ip')->label('LAN IP (for the agent)')->maxLength(45)
                 ->visible(fn (Get $get) => self::typeIs($get, DevicePunchSourceType::Agent)),
+            Html::make(fn (?Device $record) => self::agentError($record))->columnSpanFull()
+                ->visible(fn (?Device $record) => self::agentError($record) !== null),
             Section::make(__('Setup instructions'))->columnSpanFull()->collapsible()->schema([
                 Html::make(fn (Get $get) => new HtmlString(self::instructions($get('type'), (string) $get('serial_number')))),
             ]),
@@ -77,7 +79,7 @@ class DeviceResource extends Resource
                 TextColumn::make('branch.name'),
                 TextColumn::make('status')->badge()->color(fn (?string $state) => match ($state) {
                     'online' => 'success', 'offline' => 'danger', default => 'gray',
-                }),
+                })->description(fn (Device $record) => self::agentError($record)),
                 TextColumn::make('last_seen_at')->since()->placeholder('never'),
                 TextColumn::make('last_sync_at')->since()->placeholder('never')->label('Last sync'),
                 TextColumn::make('unsynced_count')->label('Unsynced'),
@@ -115,6 +117,17 @@ class DeviceResource extends Resource
     {
         Notification::make()->success()->title(__(':n command(s) queued', ['n' => $queued]))
             ->body(__('The device picks them up on its next check-in (usually within a minute).'))->send();
+    }
+
+    /** The sync agent's last problem reading this machine (sent with its heartbeat), in red; null when all is well. */
+    public static function agentError(?Device $device): ?HtmlString
+    {
+        $error = $device?->settings['last_error'] ?? null;
+        if (! filled($error)) {
+            return null;
+        }
+
+        return new HtmlString('<span class="text-sm text-danger-600 dark:text-danger-400">' . e(__('Agent error: :error', ['error' => $error])) . '</span>');
     }
 
     private static function typeIs(Get $get, DevicePunchSourceType $type): bool

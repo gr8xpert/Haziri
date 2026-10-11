@@ -7,6 +7,8 @@ use App\Enums\DevicePunchSourceType;
 use App\Enums\PunchSource;
 use App\Enums\PunchStatus;
 use App\Events\DeviceWentOffline;
+use App\Filament\Tenant\Resources\Devices\Pages\EditDevice;
+use App\Filament\Tenant\Resources\Devices\Pages\ListDevices;
 use App\Models\AttendanceDay;
 use App\Models\Central\AgentKey;
 use App\Models\Central\DeviceRegistry;
@@ -192,6 +194,22 @@ it('serves agent commands and records results', function () {
     $result->assertOk();
     $beat->assertOk();
     expect($cmd->fresh()->status)->toBe('done')->and($device->fresh()->unsynced_count)->toBe(4);
+});
+
+it('shows the agent\'s last error for a machine on the Devices list and edit page', function () {
+    $device = Device::create(['name' => 'Back', 'serial_number' => 'ZKAGENT01', 'type' => DevicePunchSourceType::Agent]);
+    ['plain' => $key] = AgentKey::issue($this->tenant->id, 'pest agent');
+    $beat = fn (array $machine) => $this->postJson("{$this->api}/api/v1/agent/heartbeat", ['devices' => [$machine + ['serial' => 'ZKAGENT01']]],
+        ['Authorization' => "Bearer {$key}"])->assertOk();
+
+    $beat(['reachable' => false, 'error' => 'dial tcp 192.168.1.201:4370: i/o timeout']);
+    $this->actingAs(User::where('email', 'owner@pest.test')->firstOrFail());
+    Filament\Facades\Filament::setCurrentPanel(Filament\Facades\Filament::getPanel('tenant'));
+    Livewire\Livewire::test(ListDevices::class)->assertSee('Agent error: dial tcp 192.168.1.201:4370: i/o timeout');
+    Livewire\Livewire::test(EditDevice::class, ['record' => $device->getRouteKey()])->assertSee('Agent error: dial tcp 192.168.1.201:4370: i/o timeout');
+
+    $beat(['reachable' => true]);
+    Livewire\Livewire::test(ListDevices::class)->assertDontSee('Agent error');
 });
 
 it('imports a USB attlog.dat, skipping junk lines and deduping re-imports', function () {
