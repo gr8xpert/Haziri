@@ -14,6 +14,7 @@ use Filament\Resources\Pages\Page;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Locked;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
@@ -158,7 +159,19 @@ class ImportEmployees extends Page
             return;
         }
         $importer->rememberMapping($this->preview['headers'], $this->byHeading() ?? []);
-        $count = $importer->import($this->preview['rows']);
+        try {
+            $count = $importer->import($this->preview['rows']);
+        } catch (ValidationException $e) {
+            Notification::make()->danger()->title(__('Nothing was imported'))->body(collect($e->errors())->flatten()->first())->persistent()->send();
+
+            return;
+        } catch (\Throwable $e) {
+            report($e);
+            Notification::make()->danger()->title(__('Nothing was imported'))
+                ->body(__('Something went wrong while saving. No employee was changed; please try again.'))->persistent()->send();
+
+            return;
+        }
         Notification::make()->success()->title(__(':n employees imported', ['n' => $count]))->send();
         $this->redirect(EmployeeResource::getUrl('index'));
     }

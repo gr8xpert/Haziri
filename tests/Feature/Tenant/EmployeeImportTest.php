@@ -122,3 +122,49 @@ it('writes a template with drop-downs, instructions and the company codes', func
         ->and($workbook)->toContain('name="Instructions"')->toContain('name="Codes"')
         ->and($strings)->toContain('Accounts');
 });
+
+it('updates only from filled cells and keeps the rest of an employee on file', function () {
+    $department = Department::create(['name' => 'Stores', 'code' => 'STR']);
+    Employee::create(['code' => 'K1', 'first_name' => 'Kamran', 'joined_on' => '2024-01-01', 'department_id' => $department->id,
+        'employment_type' => 'contract', 'work_mode' => 'field', 'overtime_eligible' => true, 'city' => 'Lahore', 'phone' => '03001112222']);
+    $file = clientSheet("code,first_name,joined_on,department_code,employment_type,work_mode,overtime_eligible,city,phone\nK1,Kamran,01/01/2024,,,,,,03009998888\n");
+    $importer = app(EmployeeImporter::class);
+
+    $importer->import($importer->preview(Storage::disk('local')->path($file))['rows']);
+
+    $employee = Employee::where('code', 'K1')->firstOrFail();
+    expect($employee->department_id)->toBe($department->id)->and($employee->employment_type->value)->toBe('contract')
+        ->and($employee->work_mode->value)->toBe('field')->and($employee->overtime_eligible)->toBeTrue()
+        ->and($employee->city)->toBe('Lahore')->and($employee->phone)->toBe('03009998888');
+});
+
+it('restores a deleted employee whose code is in the file', function () {
+    Employee::create(['code' => 'RH1', 'first_name' => 'Rehan', 'joined_on' => '2023-01-01'])->delete();
+    $file = clientSheet("code,first_name,joined_on\nRH1,Rehan,01/06/2026\n");
+    $importer = app(EmployeeImporter::class);
+
+    $preview = $importer->preview(Storage::disk('local')->path($file));
+    expect($preview['restores'])->toBe(1)->and($preview['rows'][0]['_deleted'])->toBeTrue();
+
+    $importer->import($preview['rows']);
+    $employee = Employee::where('code', 'RH1')->firstOrFail();
+    expect($employee->trashed())->toBeFalse()->and($employee->joined_on->format('Y-m-d'))->toBe('2026-06-01')
+        ->and(Employee::withTrashed()->where('code', 'RH1')->count())->toBe(1);
+});
+
+it('warns before importing past the plan limit and says why nothing was imported', function () {
+    Filament::setCurrentPanel(Filament::getPanel('tenant'));
+    $this->actingAs(User::where('email', 'owner@pest.test')->firstOrFail());
+    tenant()->update(['employee_limit' => Employee::where('status', '!=', 'left')->count() + 1]);
+    $upload = UploadedFile::fake()->createWithContent('staff.csv', "code,first_name,joined_on\nL1,One,01/01/2025\nL2,Two,01/01/2025\nL3,Three,01/01/2025\n");
+
+    try {
+        $page = Livewire::test(ImportEmployees::class)->set('data.file', $upload)->call('check');
+        expect($page->get('preview')['over_limit'])->toBe(2)->and($page->get('preview')['capacity_left'])->toBe(1);
+
+        $page->call('import')->assertNotified('Nothing was imported');
+        expect(Employee::whereIn('code', ['L1', 'L2', 'L3'])->count())->toBe(0);
+    } finally {
+        tenant()->update(['employee_limit' => null]);
+    }
+});

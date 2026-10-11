@@ -56,11 +56,26 @@
         </x-filament::section>
 
         <x-filament::section :heading="__('Preview')" icon="heroicon-o-eye">
-            <dl class="grid grid-cols-3 gap-6 sm:max-w-lg">
+            <dl @class(['grid gap-6', 'grid-cols-3 sm:max-w-lg' => ! ($preview['restores'] ?? 0), 'grid-cols-2 sm:grid-cols-4 sm:max-w-2xl' => $preview['restores'] ?? 0])>
                 <div class="hz-kpi"><dt>{{ __('New') }}</dt><dd>{{ $preview['creates'] }}</dd></div>
                 <div class="hz-kpi"><dt>{{ __('Updates') }}</dt><dd>{{ $preview['updates'] }}</dd></div>
+                @if ($preview['restores'] ?? 0)
+                    <div class="hz-kpi"><dt>{{ __('Restored') }}</dt><dd>{{ $preview['restores'] }}</dd></div>
+                @endif
                 <div class="hz-kpi"><dt>{{ __('Errors') }}</dt><dd @class(['text-danger-600! dark:text-danger-400!' => count($preview['errors'])])>{{ count($preview['errors']) }}</dd></div>
             </dl>
+
+            @if ($preview['over_limit'] ?? 0)
+                <p class="mt-5 rounded-lg bg-danger-50 p-3 text-sm text-danger-700 ring-1 ring-danger-600/15 dark:bg-danger-500/10 dark:text-danger-400 dark:ring-danger-400/20">
+                    {{ __('Your plan has room for :left more active employees, but this file adds :adds. Remove :over new rows, mark people who left as left, or upgrade the plan; otherwise nothing is imported.', ['left' => $preview['capacity_left'], 'adds' => $preview['capacity_left'] + $preview['over_limit'], 'over' => $preview['over_limit']]) }}
+                </p>
+            @endif
+
+            @if ($preview['restores'] ?? 0)
+                <p class="mt-5 text-sm text-gray-700 dark:text-gray-300">
+                    {{ __(':n rows match deleted employees. They will be restored and updated from the file.', ['n' => $preview['restores']]) }}
+                </p>
+            @endif
 
             @if ($preview['new_departments'])
                 <p class="mt-5 text-sm text-gray-700 dark:text-gray-300">
@@ -96,7 +111,11 @@
                                     <td>{{ $row['device_pin'] }}</td>
                                     <td class="whitespace-nowrap">{{ $row['joined_on'] }}</td>
                                     <td>
-                                        <x-filament::badge :color="$row['_exists'] ? 'info' : 'success'">{{ $row['_exists'] ? __('Update') : __('New') }}</x-filament::badge>
+                                        @if ($row['_deleted'] ?? false)
+                                            <x-filament::badge color="warning">{{ __('Restore') }}</x-filament::badge>
+                                        @else
+                                            <x-filament::badge :color="$row['_exists'] ? 'info' : 'success'">{{ $row['_exists'] ? __('Update') : __('New') }}</x-filament::badge>
+                                        @endif
                                     </td>
                                 </tr>
                             @endforeach

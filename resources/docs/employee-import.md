@@ -13,7 +13,7 @@ screens: employee-import=/admin/employees/import
 - Go to **People → Employees** and click **Import from Excel**. You can use our template or your own staff list (.xlsx or .csv, up to 5 MB).
 - {app} guesses which of your columns is which. You check the guesses, and they are remembered for next time.
 - Every row needs an **Employee code**, a **First name** (or one full **Name** column) and a **Joining date**.
-- A code that is already in {app} **updates** that employee; a new code **adds** a new employee.
+- A code that is already in {app} **updates** that employee (only from the cells you filled in); a new code **adds** a new employee. A code of a deleted employee **restores** that employee.
 - Nothing is saved until you click **Import … rows**. Rows with errors are skipped; the others can be imported.
 - Owner, Admin and HR can import.
 
@@ -38,7 +38,7 @@ screens: employee-import=/admin/employees/import
 4. Look at **Match your columns**. For each of **Your column** you see the value from the **First row** and the **{app} field** it will go into. Change any wrong choice, or pick **— Skip this column —** for columns you do not need.
 5. If a yellow box says **Still needed: …**, match a column to each field it names. Required fields have a **\*** in the list.
 6. Tick **Create missing departments** if your file has department names that are not in {app} yet.
-7. Look at the **Preview**: **New**, **Updates** and **Errors**. The table shows the first 50 rows that will be imported, each with a **New** or **Update** badge.
+7. Look at the **Preview**: **New**, **Updates** and **Errors** (and **Restored** when rows match deleted employees). The table shows the first 50 rows that will be imported, each with a **New**, **Update** or **Restore** badge. A red box warns you if the new rows would go over your plan's employee limit.
 8. Click **Import … rows** (for example **Import 120 rows**).
 
 You go back to the Employees list with the message "120 employees imported".
@@ -71,10 +71,13 @@ Fields that are not in the import (for example the manager, kiosk PIN or payroll
 
 Upload a file with the same codes. Those rows show as **Update** in the preview.
 
-- Empty cells in **Father's / husband's name**, **Address**, **City**, **Payroll ID**, **Home phone** and **Emergency contact** do not wipe what is already saved.
-- The other columns are saved as they are in the file. An empty **Branch**, **Department** or **Designation** cell clears it, and an empty **Employment type**, **Work mode** or **Overtime eligible** cell sets the default (*Permanent*, *office*, *no*).
+- Only filled-in cells change an employee. An empty cell, or a column you skip, keeps what is already saved. So a file with just **Employee code**, **First name**, **Joining date** and the one column you want to change is enough.
+- The defaults (*Permanent*, *office*, overtime *no*) are only used for new employees.
+- To clear a value (for example remove someone's department), change that employee by hand. See [Employees](/help/employees).
 
-> **Tip:** To update only a few fields, put the full, current data in the file (download your staff with the [Employee information report](/help/other-reports) first), or change those employees by hand.
+### Employees you deleted
+
+A row whose code belongs to a deleted employee shows a **Restore** badge, and the preview says how many rows will be restored. On import the employee comes back with their history and is updated from the file, as when you re-hire someone. If they were marked as left, change their status on the employee page.
 
 ## Common problems
 
@@ -108,6 +111,6 @@ No column is matched to these fields. Pick the right column in the **{app} field
 
 Only .xlsx and .csv files up to 5 MB are accepted. An old .xls file, or a damaged file, cannot be read. Open it in Excel and use **Save as → Excel Workbook (.xlsx)**, then upload again.
 
-### I click Import and nothing is added
+### "Your plan has room for 5 more active employees, but this file adds 8."
 
-The new employees would take you over your plan's employee limit, so the whole import is cancelled. Check how many active employees your plan allows under [Billing](/help/billing). Mark people who have gone as left, import fewer rows, or upgrade the plan.
+The new (and restored) employees would take you over your plan's employee limit. If you import anyway, nothing is saved and a red **Nothing was imported** message gives the reason. Mark people who have gone as left, remove some new rows, or upgrade the plan. See [Billing](/help/billing).

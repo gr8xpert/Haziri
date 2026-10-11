@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Employees;
 
+use App\Enums\EmployeeStatus;
 use App\Enums\EmploymentType;
 use App\Enums\WorkMode;
 use App\Models\Branch;
@@ -13,6 +14,7 @@ use App\Models\Employee;
 use App\Models\Grade;
 use App\Models\Setting;
 use App\Services\Ai\AiGateway;
+use App\Services\Billing\BillingService;
 use App\Services\Settings\TenantSettings;
 use App\Support\Excel\Spreadsheet;
 use Carbon\CarbonImmutable;
@@ -23,7 +25,8 @@ use Illuminate\Validation\Rule;
 
 /**
  * Excel/CSV employee import (spec §9 phase 1): template or the client's own sheet → match columns → preview
- * (per-row errors) → import. Rows are matched on `code`: existing employees are updated, new ones created.
+ * (per-row errors) → import. Rows are matched on `code`: existing employees are updated (only from filled cells; an
+ * empty cell keeps what is on file), deleted ones are restored, new ones created.
  */
 final class EmployeeImporter
 {
@@ -82,6 +85,9 @@ final class EmployeeImporter
         'home_phone' => ['homephone', 'landline', 'telephone', 'residencephone'],
         'emergency_contact' => ['emergencycontact', 'emergency', 'nextofkin'],
     ];
+
+    /** What a new employee gets when the file leaves these empty. */
+    private const DEFAULTS = ['employment_type' => 'permanent', 'work_mode' => 'office', 'overtime_eligible' => false];
 
     /** Setting holding the column choices HR confirmed last time (normalised header => field). */
     private const REMEMBERED = 'employee_import_columns';
@@ -214,7 +220,7 @@ final class EmployeeImporter
 
     /**
      * @param  array<string, ?string>|null  $mapping  lower-cased header => field; null = guess
-     * @return array{headers: list<string>, sample: array<string, string>, mapping: array<string, ?string>, rows: list<array<string, mixed>>, errors: array<int, list<string>>, creates: int, updates: int, new_departments: list<string>}
+     * @return array{headers: list<string>, sample: array<string, string>, mapping: array<string, ?string>, rows: list<array<string, mixed>>, errors: array<int, list<string>>, creates: int, updates: int, restores: int, over_limit: int, capacity_left: ?int, new_departments: list<string>}
      */
     public function preview(string $path, ?array $mapping = null, bool $createMissing = false): array
     {
@@ -224,7 +230,7 @@ final class EmployeeImporter
         $branches = Branch::query()->get(['id', 'code', 'name']);
         $departments = Department::query()->get(['id', 'code', 'name']);
         $find = fn ($models, string $value) => $models->first(fn ($m) => strcasecmp((string) $m->code, $value) === 0 || strcasecmp((string) $m->name, $value) === 0)?->id;
-        $existing = Employee::withTrashed()->pluck('id', 'code');
+        $existing = Employee::withTrashed()->get(['id', 'code', 'status', 'deleted_at'])->keyBy('code');
 
         $rows = [];
         $errors = [];
@@ -318,6 +324,7 @@ final class EmployeeImporter
                 continue;
             }
 
+            $onFile = $existing->get($r['code']);
             $rows[] = [
                 'code' => $r['code'],
                 'first_name' => $r['first_name'],
@@ -331,21 +338,27 @@ final class EmployeeImporter
                 'department_id' => $departmentId,
                 'department_new' => $departmentNew,
                 'designation' => $r['designation'],
-                'employment_type' => $r['employment_type'] ?? EmploymentType::Permanent->value,
+                'employment_type' => $r['employment_type'],
                 'joined_on' => $r['joined_on'],
                 'device_pin' => $r['device_pin'],
                 'card_no' => $r['card_no'],
-                'work_mode' => $r['work_mode'] ?? WorkMode::Office->value,
-                'overtime_eligible' => self::yes($r['overtime_eligible']),
+                'work_mode' => $r['work_mode'],
+                'overtime_eligible' => $r['overtime_eligible'] !== null ? self::yes($r['overtime_eligible']) : null,
                 'grade' => $r['grade'],
-                '_exists' => isset($existing[$r['code']]),
+                '_exists' => $onFile !== null,
+                '_deleted' => (bool) $onFile?->trashed(),
+                '_adds' => $onFile === null || ($onFile->trashed() && $onFile->status !== EmployeeStatus::Left),
             ] + array_map(fn (string $k) => $r[$k], array_combine(self::OPTIONAL_TEXT, self::OPTIONAL_TEXT));
         }
 
         $updates = count(array_filter($rows, fn ($r) => $r['_exists']));
+        $capacityLeft = BillingService::employeeCapacityLeft();
+        $adds = count(array_filter($rows, fn ($r) => $r['_adds']));
 
         return ['headers' => $headers, 'sample' => $raw[0] ?? [], 'mapping' => $mapping, 'rows' => $rows, 'errors' => $errors,
-            'creates' => count($rows) - $updates, 'updates' => $updates, 'new_departments' => array_values($newDepartments)];
+            'creates' => count($rows) - $updates, 'updates' => $updates, 'restores' => count(array_filter($rows, fn ($r) => $r['_deleted'])),
+            'over_limit' => $capacityLeft === null ? 0 : max(0, $adds - $capacityLeft), 'capacity_left' => $capacityLeft,
+            'new_departments' => array_values($newDepartments)];
     }
 
     /**
@@ -372,12 +385,22 @@ final class EmployeeImporter
                 if ($departmentId === null && ! empty($row['department_new'])) {
                     $departmentId = $departments[strtolower($row['department_new'])] ??= self::createDepartment($row['department_new']);
                 }
-                // Blank optional columns never wipe what is already on file.
-                $optional = array_filter(array_intersect_key($row, array_flip(self::OPTIONAL_TEXT)), fn ($v) => $v !== null);
-                $attrs = collect($row)->except(['designation', 'grade', 'department_new', '_exists', 'code', ...self::OPTIONAL_TEXT])->all()
-                    + $optional + ['designation_id' => $designationId] + ($gradeId ? ['grade_id' => $gradeId] : []);
-                $attrs['department_id'] = $departmentId;
-                Employee::withTrashed()->updateOrCreate(['code' => $row['code']], $attrs);
+                // Empty cells never wipe what is already on file, and defaults only apply to new employees.
+                $attrs = array_filter(['designation_id' => $designationId, 'grade_id' => $gradeId, 'department_id' => $departmentId]
+                    + collect($row)->except(['designation', 'grade', 'department_new', '_exists', '_deleted', '_adds', 'code'])->all(), fn ($v) => $v !== null);
+                $employee = Employee::withTrashed()->where('code', $row['code'])->first();
+                if ($employee === null) {
+                    Employee::create(['code' => $row['code']] + $attrs + self::DEFAULTS);
+
+                    continue;
+                }
+                if ($employee->trashed()) {
+                    if ($employee->status !== EmployeeStatus::Left) {
+                        BillingService::assertEmployeeCapacity();
+                    }
+                    $employee->restore();
+                }
+                $employee->update($attrs);
             }
 
             return count($rows);

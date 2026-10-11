@@ -116,17 +116,29 @@ final class BillingService
     /** Called when an employee is created in tenant context: refuse beyond the tenant / plan limit. */
     public static function assertEmployeeCapacity(): void
     {
-        $tenant = tenant();
-        if ($tenant === null) {
-            return;
+        $left = self::employeeCapacityLeft();
+        if ($left !== null && $left <= 0) {
+            throw ValidationException::withMessages(['code' => __('Your plan allows :n active employees. Mark someone as left or upgrade the plan.', ['n' => self::employeeLimit()])]);
         }
-        $limit = $tenant->employee_limit ?? ($tenant->plan?->limits['employees'] ?? null);
+    }
+
+    /** How many more active employees the company can have under its tenant / plan limit; null = no limit. */
+    public static function employeeCapacityLeft(): ?int
+    {
+        $limit = self::employeeLimit();
         if ($limit === null) {
-            return;
+            return null;
         }
-        $active = Employee::query()->where('status', '!=', EmployeeStatus::Left)->count();
-        if ($active >= (int) $limit) {
-            throw ValidationException::withMessages(['code' => __('Your plan allows :n active employees. Mark someone as left or upgrade the plan.', ['n' => $limit])]);
-        }
+
+        return max(0, $limit - Employee::query()->where('status', '!=', EmployeeStatus::Left)->count());
+    }
+
+    /** The company's own employee limit, else its plan's; null = unlimited (or outside a company). */
+    public static function employeeLimit(): ?int
+    {
+        $tenant = tenant();
+        $limit = $tenant?->employee_limit ?? ($tenant?->plan?->limits['employees'] ?? null);
+
+        return $limit === null ? null : (int) $limit;
     }
 }
