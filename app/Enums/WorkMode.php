@@ -20,4 +20,10 @@ enum WorkMode: string implements HasLabel
             self::Remote => __('Remote'),
         };
     }
+
+    /** Only office staff are held to the branch geofence and office internet; field and remote staff punch from anywhere. */
+    public function isTiedToOffice(): bool
+    {
+        return $this === self::Office;
+    }
 }

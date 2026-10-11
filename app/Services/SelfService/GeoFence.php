@@ -8,7 +8,7 @@ use App\Enums\WorkMode;
 use App\Models\Employee;
 use App\Services\Settings\TenantSettings;
 
-/** Spec §6.6: is a GPS fix inside the employee's branch geofence? Field staff are never fenced. */
+/** Spec §6.6: is a GPS fix inside the employee's branch geofence? Field and remote staff are never fenced. */
 final class GeoFence
 {
     public function __construct(private readonly TenantSettings $settings) {}
@@ -16,8 +16,9 @@ final class GeoFence
     /** @return array{inside: bool, distance_m: ?int, radius_m: ?int, reason: string} */
     public function check(Employee $employee, float $lat, float $lng, ?int $accuracyM): array
     {
-        if ($employee->work_mode === WorkMode::Field) {
-            return ['inside' => true, 'distance_m' => null, 'radius_m' => null, 'reason' => 'field_staff'];
+        $mode = $employee->work_mode ?? WorkMode::Office;
+        if (! $mode->isTiedToOffice()) {
+            return ['inside' => true, 'distance_m' => null, 'radius_m' => null, 'reason' => $mode->value . '_staff'];
         }
         $branch = $employee->branch;
         if ($branch === null || $branch->lat === null || $branch->lng === null) {

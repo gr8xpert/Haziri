@@ -74,7 +74,7 @@ The employee is counted from the **Joined on** date. Days before that date are n
 Some fields change how {app} treats the person:
 
 - **Manager**: this person approves the employee's leave and corrections first. See [Leave requests](/help/leave-requests).
-- **Work mode**: *Office*, *Field* or *Remote*. *Field* staff can punch from the phone anywhere; they are never limited by the office area. See [Phone punching](/help/phone-punching).
+- **Work mode**: *Office*, *Field* or *Remote*. *Field* and *Remote* staff can punch from the phone anywhere; they are never limited by the office area or the office internet. See [Phone punching](/help/phone-punching).
 - **Can punch from phone** (on by default): off means the person must punch on the machine or kiosk. Shown only if your plan includes mobile punch.
 - **Kiosk PIN (4 digits)**: a second, secret PIN asked on the kiosk tablet after the Machine PIN. Shown only if your plan includes the kiosk. See [Kiosk](/help/kiosk).
 - **Overtime eligible**: off means extra hours are not counted as overtime.

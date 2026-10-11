@@ -67,7 +67,7 @@ final class SelfPunch
         $geo = $this->fence->check($employee, $lat, $lng, $accuracyM);
         // Office-internet rule: from another connection the punch needs approval even inside the geofence.
         $officeIps = array_values(array_filter($employee->branch?->allowed_ips ?? []));
-        $geo['office_network'] = $officeIps === [] || $employee->work_mode === WorkMode::Field
+        $geo['office_network'] = $officeIps === [] || ! ($employee->work_mode ?? WorkMode::Office)->isTiedToOffice()
             ? null : ($ip !== null && IpUtils::checkIp($ip, $officeIps));
         $direction ??= self::nextDirection($employee->id);
         // Someone logged in as a colleague: check the selfie's face against the enrolled one.

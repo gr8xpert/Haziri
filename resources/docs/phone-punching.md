@@ -14,7 +14,7 @@ screens: phone-punching-app=/me | phone-punching-branch=/admin/branches >> New b
 - A punch made **inside the branch's geofence** counts straight away. A punch from **outside** is saved but waits for approval in **Attendance → Punch approvals**.
 - **Geofence**: a circle around the branch's location (150 m by default). Set the location under **Organisation → Branches**.
 - Optional extra rules: **Office internet addresses** on the branch, **Selfie required for mobile punch**, **Reject mobile GPS worse than**, and a face check.
-- **Field** staff are never limited by the geofence or the office internet. Turn **Can punch from phone** off for staff who must use the machine.
+- **Field** and **Remote** staff are never limited by the geofence or the office internet. Turn **Can punch from phone** off for staff who must use the machine.
 
 This works only if your plan includes *Mobile punch (GPS)*. Without it, the punch button does not appear in the staff app.
 
@@ -75,7 +75,7 @@ Under **System → Company settings**, in the **Punches** section:
 
 On the employee's profile, in the **Attendance** section:
 
-- **Work mode**: *Office*, *Field* or *Remote*. **Field** staff (sales, drivers, technicians) can punch from anywhere: no geofence and no office internet check. *Office* and *Remote* staff are checked against their branch.
+- **Work mode**: *Office*, *Field* or *Remote*. **Field** staff (sales, drivers, technicians) and **Remote** staff (working from home) can punch from anywhere: no geofence and no office internet check. Only *Office* staff are checked against their branch.
 - **Can punch from phone**: on by default. Turn it off for staff who must punch on the shop machine or kiosk.
 
 See [Employees](/help/employees).
@@ -97,10 +97,6 @@ The phone's location is less accurate than the limit in **Reject mobile GPS wors
 ### Every phone punch goes to Punch approvals
 
 Usually the branch has no **Latitude** and **Longitude**, or they are wrong. Check them under **Organisation → Branches**. If the branch has **Office internet addresses**, staff on mobile data also go to approval; check the IP is still correct (some providers change it).
-
-### Remote staff punching from home always need approval
-
-*Remote* staff are still checked against their branch's location. If they really work away from the office, set their **Work mode** to **Field**.
 
 ### "Please punch on the machine or kiosk at your workplace."
 

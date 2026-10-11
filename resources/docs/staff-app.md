@@ -52,7 +52,7 @@ At the top you see today's date and a short line, for example *"At work since 09
 
 You see the **Punch in** / **Punch out** button only if your company allows phone punching for you.
 
-1. Be at your workplace (field staff can be anywhere).
+1. Be at your workplace (field and remote staff can be anywhere).
 2. Tap **Punch in** in the morning, or **Punch out** when you leave.
 3. Allow **location** when the phone asks. If the camera opens, look at it: a selfie is taken.
 4. You see *"Punched in at 09:02."*

@@ -122,11 +122,14 @@ it('tells staff the real reason a phone punch was not simply stored', function (
         ->assertOk()->assertJson(['outcome' => 'double_tap', 'message' => 'You had already punched a moment ago, so this one was not counted again.']);
 });
 
-it('lets field staff punch anywhere', function () {
-    $this->emp->update(['work_mode' => 'field']);
+it('lets field and remote staff punch anywhere', function (string $mode) {
+    $this->emp->update(['work_mode' => $mode]);
+    $this->office->update(['allowed_ips' => ['39.45.10.22']]);
 
-    $this->actingAs($this->user)->postJson("{$this->base}/me/punch", ['lat' => 24.86, 'lng' => 67.00])->assertJson(['inside_geofence' => true]);
-});
+    $this->actingAs($this->user)->withServerVariables(['REMOTE_ADDR' => '110.93.1.5'])
+        ->postJson("{$this->base}/me/punch", ['lat' => 24.86, 'lng' => 67.00])
+        ->assertJson(['outcome' => 'stored', 'inside_geofence' => true, 'office_network' => null]);
+})->with(['field', 'remote']);
 
 it('punches on the kiosk by PIN, asks for the kiosk PIN when set, and dedupes offline replays', function () {
     $device = Device::create(['name' => 'Tab', 'serial_number' => 'KIOSK-TEST1', 'type' => DevicePunchSourceType::Kiosk]);
