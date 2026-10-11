@@ -70,11 +70,12 @@ Sometimes a mistake is found after locking.
 
 1. Click **Unlock** on the locked month (owner and admin only).
 2. Write the **Reason**. It is saved in the [Audit log](/help/audit-log).
-3. Submit.
+3. If the month's payroll is already final, the window warns you that the final payslips will not change. Tick **I understand the final payroll for this month will not change** to go on.
+4. Submit.
 
 The month goes back to **In review**. Leave days that were charged for lates and half days at locking are given back. Make your fixes, then **Lock** again; a new summary is saved and the charges are made again.
 
-> **Tip:** If payroll was already run for the month, check it again after unlocking and locking. See [Payroll runs](/help/payroll-runs).
+> **Tip:** If the month's payroll run is still a draft, click **Recalculate** on it after you lock again. A final run never changes: put any difference into the next month under [Bonuses & Adjustments](/help/bonuses-and-advances). See [Payroll runs](/help/payroll-runs).
 
 ## Common problems
 

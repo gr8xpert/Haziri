@@ -6,7 +6,9 @@ use App\Actions\Payroll\FinalSettlementActions;
 use App\Actions\Payroll\PayrollActions;
 use App\Actions\Periods\PeriodActions;
 use App\Enums\AttendanceStatus;
+use App\Enums\PeriodStatus;
 use App\Filament\Tenant\Resources\PayItems\Pages\ManagePayItems;
+use App\Filament\Tenant\Resources\Periods\Pages\ListPeriods;
 use App\Models\Advance;
 use App\Models\AttendanceDay;
 use App\Models\Employee;
@@ -282,6 +284,25 @@ it('refuses a bonus for a month whose payroll is final', function () {
         ->assertTableActionHidden('delete', $item);
 
     expect(PayItem::where('label', 'Late bonus')->exists())->toBeFalse();
+});
+
+it('asks for confirmation before unlocking a month whose payroll is final', function () {
+    Storage::fake('local');
+    fullMonth($this->emp, 2026, 8);
+    $run = ($this->runFor)(2026, 8);
+    $this->payroll->finalise($run->fresh(), $this->owner);
+    Filament::setCurrentPanel(Filament::getPanel('tenant'));
+    $this->actingAs($this->owner);
+
+    Livewire::test(ListPeriods::class)
+        ->callTableAction('unlock', $run->period, data: ['reason' => 'Late correction'])
+        ->assertHasTableActionErrors(['final_payroll_understood']);
+    expect($run->period->fresh()->status)->toBe(PeriodStatus::Locked);
+
+    Livewire::test(ListPeriods::class)
+        ->callTableAction('unlock', $run->period, data: ['reason' => 'Late correction', 'final_payroll_understood' => true])
+        ->assertHasNoTableActionErrors();
+    expect($run->period->fresh()->status)->toBe(PeriodStatus::Review);
 });
 
 it('prints a bank letter for a payroll run', function () {

@@ -10,7 +10,9 @@ use App\Filament\Concerns\AuthorizesByPermission;
 use App\Filament\Tenant\NavigationGroup;
 use App\Filament\Tenant\Pages\Reports\MonthSummary;
 use App\Models\AttendancePeriod;
+use App\Models\PayrollRun;
 use Filament\Actions\Action;
+use Filament\Forms\Components\Checkbox;
 use Filament\Forms\Components\Textarea;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
@@ -76,9 +78,21 @@ class PeriodResource extends Resource
                     ])])),
                 Action::make('unlock')->icon(Heroicon::OutlinedArrowPath)->color('danger')
                     ->visible(fn (AttendancePeriod $r) => $r->status === PeriodStatus::Locked && auth()->user()->can('periods.unlock'))
-                    ->schema([Textarea::make('reason')->required()])
+                    ->modalDescription(fn (AttendancePeriod $r) => self::hasFinalPayroll($r)
+                        ? __('Payroll for this month is already final. Unlocking does not change the final payslips: put any difference into the next month under Bonuses & Adjustments.')
+                        : null)
+                    ->schema(fn (AttendancePeriod $r) => [
+                        Textarea::make('reason')->required(),
+                        ...(self::hasFinalPayroll($r) ? [Checkbox::make('final_payroll_understood')->accepted()
+                            ->label(__('I understand the final payroll for this month will not change'))] : []),
+                    ])
                     ->action(fn (AttendancePeriod $record, array $data, PeriodActions $a) => self::run(fn () => $a->unlock($record, auth()->user(), $data['reason']))),
             ]);
+    }
+
+    private static function hasFinalPayroll(AttendancePeriod $period): bool
+    {
+        return PayrollRun::query()->where('period_id', $period->id)->where('status', 'final')->exists();
     }
 
     /** Every employee's numbers for the month (Month summary report), with a link to each one's day-by-day sheet. */
