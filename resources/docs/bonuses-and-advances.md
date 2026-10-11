@@ -48,7 +48,7 @@ To change or remove an item, use **Edit** or **Delete** on its row.
 
 > **Tip:** If the month's payroll run is already a draft, click **Recalculate** on the run after adding items. If the run is final, the item is not added any more. Put it into the next month instead.
 
-> **Tip:** A taxable bonus raises that month's income tax. {app} spreads tax over the rest of the tax year, so the tax in the following months comes down again. See [Payroll rules](/help/payroll-rules).
+> **Tip:** A taxable bonus raises that month's income tax: {app} adds the bonus to the yearly income once and takes the extra tax in the bonus month. The tax in the following months stays about the same. See [Payroll rules](/help/payroll-rules).
 
 ## Advances
 
@@ -108,4 +108,4 @@ The advance was **Issued on** a date after the last day of that payroll month, o
 
 ### Income tax went up in the bonus month
 
-This is expected. A taxable bonus increases that month's tax, and later months even out. If the bonus should not be taxed, edit it and switch **Taxable** off, then recalculate.
+This is expected. The extra tax on a taxable bonus is taken in the month it is paid; later months are not affected. If the bonus should not be taxed, edit it and switch **Taxable** off, then recalculate.

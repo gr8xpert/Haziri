@@ -134,6 +134,26 @@ it('spreads the remaining tax over the rest of the tax year using earlier months
         ->and($september->meta['ytd_tax'])->toBe(5045 + 3946);
 });
 
+it('counts a one-off bonus in the yearly income once and taxes it in the bonus month', function () {
+    Storage::fake('local');
+    fullMonth($this->emp, 2026, 8);
+    fullMonth($this->emp, 2026, 9);
+    PayItem::create(['employee_id' => $this->emp->id, 'year' => 2026, 'month' => 8, 'type' => 'earning', 'label' => 'Bonus', 'amount' => 300000]);
+
+    $august = ($this->runFor)(2026, 8);
+    $slip = $august->payslips()->where('employee_id', $this->emp->id)->firstOrFail();
+
+    // Regular 140,000 × 11 = 1,540,000 → 43,400 a year (3,945 a month); with the bonus once 1,840,000 → 76,400: 33,000 more now
+    expect($slip->meta['projected_income'])->toBe(1840000)
+        ->and($slip->meta['tax'])->toBe(3945 + 33000);
+
+    $this->payroll->finalise($august->fresh(), $this->owner);
+    $september = ($this->runFor)(2026, 9)->payslips()->where('employee_id', $this->emp->id)->firstOrFail();
+
+    // 440,000 already + 140,000 × 10 = 1,840,000 → 76,400; 36,945 paid → 39,455 ÷ 10
+    expect($september->meta['tax'])->toBe(3946);
+});
+
 it('leaves statutory lines off when those features are switched off', function () {
     payrollFeatures(['payroll_tax' => false, 'payroll_social' => false, 'payroll_pf' => false]);
     fullMonth($this->emp, 2026, 8);

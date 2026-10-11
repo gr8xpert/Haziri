@@ -72,14 +72,23 @@ final class IncomeTax
     }
 
     /**
+     * Regular pay is projected over the months left and its tax spread over them. A one-off amount (bonus, arrears)
+     * is part of $taxableThisMonth but counted in the yearly income only once, and the extra tax it causes is
+     * deducted in full this month.
+     *
      * @return array{tax: int, projected_income: int, annual_tax: int}
      */
-    public function monthly(int $taxableThisMonth, int $ytdTaxable, int $ytdTax, string $periodEnd): array
+    public function monthly(int $taxableThisMonth, int $ytdTaxable, int $ytdTax, string $periodEnd, int $oneOffThisMonth = 0): array
     {
         $left = $this->monthsLeft($periodEnd);
-        $projected = $ytdTaxable + $taxableThisMonth * $left;
-        $annual = $this->annualTax($projected, $this->taxYearFor($periodEnd));
+        $taxYear = $this->taxYearFor($periodEnd);
+        $oneOff = max(0, min($oneOffThisMonth, $taxableThisMonth));
+        $regularProjected = $ytdTaxable + ($taxableThisMonth - $oneOff) * $left;
+        $regularAnnual = $this->annualTax($regularProjected, $taxYear);
+        $projected = $regularProjected + $oneOff;
+        $annual = $oneOff > 0 ? $this->annualTax($projected, $taxYear) : $regularAnnual;
+        $tax = (int) round(($regularAnnual - $ytdTax) / $left) + ($annual - $regularAnnual);
 
-        return ['tax' => max(0, (int) round(($annual - $ytdTax) / $left)), 'projected_income' => $projected, 'annual_tax' => $annual];
+        return ['tax' => max(0, $tax), 'projected_income' => $projected, 'annual_tax' => $annual];
     }
 }

@@ -67,16 +67,18 @@ final class StatutoryPayroll
 
         if ($on('payroll_tax') && ! $employee->tax_exempt) {
             $taxable = 0;
+            $oneOff = 0;
             foreach ($lines as $l) {
                 if ($l['type'] === 'earning' && ($l['taxable'] ?? true)) {
                     $taxable += $l['amount'];
+                    $oneOff += ($l['code'] ?? '') === 'pay_item' ? $l['amount'] : 0;
                 } elseif ($l['type'] === 'deduction' && ($l['code'] ?? '') === 'attendance') {
                     $taxable -= $l['amount']; // salary not paid is not income
                 }
             }
             $taxable = max(0, $taxable);
             [$ytdTaxable, $ytdTax] = $this->yearToDate($employee, $periodEnd);
-            $tax = $this->tax->monthly($taxable, $ytdTaxable, $ytdTax, $periodEnd);
+            $tax = $this->tax->monthly($taxable, $ytdTaxable, $ytdTax, $periodEnd, $oneOff);
             if ($tax['tax'] > 0) {
                 $lines[] = ['label' => 'Income tax', 'type' => 'deduction', 'amount' => $tax['tax'], 'code' => 'tax'];
             }

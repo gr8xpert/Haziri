@@ -109,9 +109,9 @@ These follow the Finance Act 2026 as we understood it. Ask your tax adviser to c
 Each month, {app}:
 
 1. Adds up this month's **taxable pay**: basic, taxable allowances, overtime and taxable bonuses, minus the attendance deduction. Allowances and bonuses with **Taxable** off are left out.
-2. Guesses the **income for the whole tax year**: taxable pay already paid this tax year + this month's taxable pay × the months left (including this one).
+2. Guesses the **income for the whole tax year**: taxable pay already paid this tax year + this month's regular taxable pay × the months left (including this one). A one-off bonus or arrears from **Bonuses & Adjustments** is added once, not for every month left.
 3. Works out the **annual tax** on that income from the slabs.
-4. Takes off the tax already deducted this tax year, and divides the rest by the months left.
+4. Takes off the tax already deducted this tax year, and divides the rest by the months left. The extra tax caused by a one-off bonus is deducted in full in the bonus month.
 
 **Worked example (2026-27).** Ali's salary is basic Rs 100,000 + house rent Rs 40,000 (taxable) + medical Rs 10,000 (not taxable). He was not absent in July 2026.
 
@@ -120,7 +120,7 @@ Each month, {app}:
 - This is in the Rs 1,200,000 – 2,200,000 band: Rs 6,000 + 11% × (Rs 1,680,000 − Rs 1,200,000) = Rs 6,000 + Rs 52,800 = **Rs 58,800** for the year.
 - No tax deducted yet, so July tax = Rs 58,800 ÷ 12 = **Rs 4,900**.
 
-If his pay stays the same, every month's tax is Rs 4,900. If he is absent, gets a raise or a bonus, the yearly figure is worked out again and the tax for the remaining months goes up or down, so that by June the total is right.
+If his pay stays the same, every month's tax is Rs 4,900. If he is absent or gets a raise, the yearly figure is worked out again and the tax for the remaining months goes up or down, so that by June the total is right. If he gets a one-off bonus, the tax on the bonus is taken in that month and the other months stay about the same.
 
 Employees with **No income tax** switched on in their profile get no tax line.
 
