@@ -5,9 +5,10 @@ declare(strict_types=1);
 namespace App\Reports;
 
 use App\Models\Visitor;
+use App\Support\BranchAccess;
 use Carbon\CarbonImmutable;
 
-/** R16 — Visitor log (daily / monthly). */
+/** R16 — Visitor log (daily / monthly). Branch-limited users see their branches' visitors only. */
 final class VisitorLogReport extends DateRangeReport
 {
     public function title(): string
@@ -36,8 +37,11 @@ final class VisitorLogReport extends DateRangeReport
         $tz = $this->tz();
         $from = CarbonImmutable::parse($filters['from'], $tz)->utc();
         $to = CarbonImmutable::parse($filters['to'], $tz)->endOfDay()->utc();
+        $branchIds = BranchAccess::ids();
 
-        return Visitor::query()->with('host')->whereBetween('checked_in_at', [$from, $to])->orderBy('checked_in_at')->get()
+        return Visitor::query()->with('host')->whereBetween('checked_in_at', [$from, $to])
+            ->when($branchIds !== null, fn ($q) => $q->whereIn('branch_id', $branchIds))
+            ->orderBy('checked_in_at')->get()
             ->map(fn (Visitor $v) => [
                 'badge' => $v->badge_no, 'name' => $v->name, 'phone' => $v->phone, 'company' => $v->company,
                 'host' => $v->host?->fullName(), 'purpose' => $v->purpose,

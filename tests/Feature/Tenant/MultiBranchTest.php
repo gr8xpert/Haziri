@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Enums\AttendanceStatus;
 use App\Enums\Role;
 use App\Filament\Tenant\Pages\AskHazriPage;
+use App\Filament\Tenant\Pages\Reports\VisitorLog;
 use App\Filament\Tenant\Widgets\BranchComparison;
 use App\Filament\Tenant\Widgets\TodayStats;
 use App\Models\AttendanceDay;
@@ -12,8 +13,10 @@ use App\Models\Branch;
 use App\Models\Employee;
 use App\Models\Setting;
 use App\Models\User;
+use App\Models\Visitor;
 use App\Reports\BranchSummaryReport;
 use App\Reports\DailyMusterReport;
+use App\Reports\VisitorLogReport;
 use App\Services\Attendance\AttendanceImpact;
 use App\Services\Settings\TenantSettings;
 use App\Support\BranchAccess;
@@ -111,4 +114,29 @@ it('filters the dashboard counters by the chosen shop', function () {
 
     Livewire::test(TodayStats::class, ['pageFilters' => ['branch_id' => $this->shop2->id]])
         ->assertSee('of 1 active employees')->assertDontSee('of 2 active employees');
+});
+
+it('opens the visitor log to full report access only, with a shop manager seeing their shop\'s visitors', function () {
+    Setting::updateOrCreate(['key' => 'feature.visitors'], ['value' => true]);
+    app(TenantSettings::class)->flush();
+    foreach ([[$this->shop1, 'Visitor One'], [$this->shop2, 'Visitor Two']] as [$shop, $name]) {
+        Visitor::create(['name' => $name, 'branch_id' => $shop->id, 'checked_in_at' => '2026-09-01 05:00:00', 'badge_no' => 'V001']);
+    }
+    $access = function (Role $role): bool {
+        $user = User::create(['name' => $role->value, 'email' => "{$role->value}-visitors@pest.test", 'password' => 'secret123']);
+        $user->assignRole($role->value);
+        $this->actingAs($user);
+
+        return VisitorLog::canAccess();
+    };
+
+    expect($access(Role::Hr))->toBeTrue()
+        ->and($access(Role::Receptionist))->toBeFalse()
+        ->and($access(Role::Manager))->toBeFalse();
+
+    $this->actingAs($this->manager);
+    BranchAccess::restrictTo(BranchAccess::forUser($this->manager));
+
+    expect(VisitorLog::canAccess())->toBeTrue()
+        ->and(collect((new VisitorLogReport)->rows(['from' => '2026-09-01', 'to' => '2026-09-01']))->pluck('name')->all())->toBe(['Visitor One']);
 });

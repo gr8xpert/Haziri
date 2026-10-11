@@ -60,7 +60,7 @@ Exemptions are added under **Shifts & holidays → Exemptions**. See [Exemptions
 
 ## Visitor log
 
-This report appears only if your plan includes the visitor log, and only for users who manage visitors (Owner, Admin and Receptionist).
+This report appears only if your plan includes the visitor log, and only for users with full report access: Owner, Admin, HR and Branch manager (their branches' visitors only). Managers and Receptionists do not see it; reception uses the [Visitors](/help/visitors) page instead.
 
 **Shows:** each visitor who checked in during the date range: **Badge**, **Name**, **Phone**, **Company**, **Visiting** (the employee they came to see), **Purpose**, **In** (date and time), **Out** and **Minutes** (how long they stayed). Visitors who have not checked out have an empty **Out**.
 
@@ -92,13 +92,13 @@ To fix a machine, see [Attendance machines](/help/zkteco-machines), the [Sync ag
 
 ## Who can see these reports
 
-Owner, Admin, HR and Branch manager can view and download them (Branch managers see only their branches' staff in Employee information and Manual entry audit). Managers can view them for their own team, without downloads. Visitor log has its own rule; see above.
+Owner, Admin, HR and Branch manager can view and download them (Branch managers see only their branches' staff in Employee information and Manual entry audit). Managers can view them for their own team, without downloads, except Visitor log; see above.
 
 ## Common problems
 
 ### Visitor log is not on the Reports page
 
-Your plan does not include the visitor log, or your role does not manage visitors (reception, HR, the owner and admins do). See [Users and roles](/help/users-and-roles).
+Your plan does not include the visitor log, or your role does not have full report access (Owner, Admin, HR and Branch manager do; Managers and Receptionists do not). See [Users and roles](/help/users-and-roles).
 
 ### Device sync shows "never" for a machine
 

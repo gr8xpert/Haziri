@@ -77,7 +77,7 @@ When the visitor leaves, click **Check out** on their row. The **Out** column sh
 
 ## Visitor report
 
-For a list over a longer time, use the **Visitor log** report (see [Other reports](/help/other-reports)). You can export it to Excel or PDF.
+For a list over a longer time, use the **Visitor log** report (see [Other reports](/help/other-reports)). You can export it to Excel or PDF. It needs full report access (Owner, Admin, HR, Branch manager), so a Receptionist does not see it.
 
 ## Common problems
 

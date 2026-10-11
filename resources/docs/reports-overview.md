@@ -77,9 +77,9 @@ In many tables the employee's name is a link. Click it to open that person's [de
 | Role | Reports |
 |---|---|
 | **Owner, Admin** | All reports. |
-| **HR** | All reports except **Visitor log** (that needs the visitors permission, which the Owner, Admin and Receptionist have). |
-| **Branch manager** | Attendance, leave and people reports, for their own branches only. No payroll reports. |
-| **Manager** | Attendance and leave reports for the people who report to them only. No downloads and no payroll reports. |
+| **HR** | All reports. |
+| **Branch manager** | Attendance, leave and people reports (including **Visitor log**), for their own branches only. No payroll reports. |
+| **Manager** | Attendance and leave reports for the people who report to them only. No downloads, no **Visitor log** and no payroll reports. |
 | **Receptionist, Employee** | No Reports page. Employees see their own attendance in the [staff app](/help/staff-app). |
 
 The payroll reports need payroll permission (Owner, Admin, HR) and payroll in your plan.
@@ -106,7 +106,7 @@ You do not have permission to download reports. Managers can only view them. Ask
 
 ### A report is missing from the Reports page
 
-Either your role cannot open it, or your plan does not include it. Payroll reports need payroll permission and payroll in your plan. **Visitor log** needs the visitor feature and the visitors permission. See [Billing](/help/billing).
+Either your role cannot open it, or your plan does not include it. Payroll reports need payroll permission and payroll in your plan. **Visitor log** needs the visitor log in your plan and full report access (not a Manager's team access). See [Billing](/help/billing).
 
 ### The month in the report does not start on the 1st
 
