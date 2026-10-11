@@ -24,9 +24,9 @@ screens: zkteco-machines-list=/admin/devices | zkteco-machines-form=/admin/devic
 |---|---|
 | **Name** | Your own name for the machine, for example *Reception K40*. |
 | **Serial** | The machine's serial number. This is how {app} knows which company a machine belongs to. |
-| **Type** | How punches arrive: *Machine (cloud)*, *Machine (office PC agent)*, *USB import*, or *Kiosk* (kiosk tablets are listed here too). |
+| **Type** | How punches arrive: *Machine (cloud)*, *Machine (office PC agent)* or *USB import*. Kiosk tablets are not listed here; they are under **Devices → Kiosks**. |
 | **Branch** | The branch where the machine stands. |
-| **Status** | *online* (green), *offline* (red), or blank if it has never connected. |
+| **Status** | *online* (green), *offline* (red), or blank if it has never connected. For a machine read by the sync agent, a red *Agent error: …* line under it says why the agent could not read the machine. |
 | **Last seen at** | When the machine last talked to {app}, for example *2 minutes ago*, or *never*. |
 | **Last sync** | When punches were last received from it. |
 | **Unsynced** | Agent machines only: punches still on the machine that have not been sent yet. |

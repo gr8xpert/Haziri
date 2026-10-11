@@ -27,4 +27,14 @@ enum DevicePunchSourceType: string implements HasLabel
             self::Mobile => __('Mobile'),
         };
     }
+
+    /**
+     * The machine types added under Devices; kiosk tablets are made under Kiosks.
+     *
+     * @return list<self>
+     */
+    public static function machineTypes(): array
+    {
+        return [self::Adms, self::Agent, self::Usb];
+    }
 }

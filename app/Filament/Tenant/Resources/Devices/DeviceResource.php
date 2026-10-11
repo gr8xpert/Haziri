@@ -26,6 +26,7 @@ use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\HtmlString;
 use Illuminate\Validation\ValidationException;
 
@@ -50,7 +51,7 @@ class DeviceResource extends Resource
     {
         return $schema->columns(2)->components([
             TextInput::make('name')->required()->maxLength(100)->placeholder('Reception K40'),
-            Select::make('type')->options(DevicePunchSourceType::class)->required()->live()->default(DevicePunchSourceType::Adms),
+            Select::make('type')->options(fn (?Device $record) => self::typeOptions($record))->required()->live()->default(DevicePunchSourceType::Adms),
             TextInput::make('serial_number')->required()->maxLength(50)->unique(ignoreRecord: true)
                 ->helperText('Menu → System Info → Device Info → Serial Number'),
             TextInput::make('model')->maxLength(50)->placeholder('K40 / K50 / MB20 / SpeedFace'),
@@ -67,6 +68,27 @@ class DeviceResource extends Resource
                 Html::make(fn (Get $get) => new HtmlString(self::instructions($get('type'), (string) $get('serial_number')))),
             ]),
         ]);
+    }
+
+    /** Kiosk tablets are made and managed under Kiosks, so they are not listed here. */
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()->where('type', '!=', DevicePunchSourceType::Kiosk->value);
+    }
+
+    /**
+     * Machine types only; an older device keeps its own type in the list so its form still saves.
+     *
+     * @return array<string, string>
+     */
+    private static function typeOptions(?Device $record): array
+    {
+        $types = DevicePunchSourceType::machineTypes();
+        if ($record?->type !== null && ! in_array($record->type, $types, true)) {
+            $types[] = $record->type;
+        }
+
+        return collect($types)->mapWithKeys(fn (DevicePunchSourceType $type) => [$type->value => $type->getLabel()])->all();
     }
 
     public static function table(Table $table): Table

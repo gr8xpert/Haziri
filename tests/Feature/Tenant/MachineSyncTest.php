@@ -7,6 +7,7 @@ use App\Enums\DevicePunchSourceType;
 use App\Enums\PunchSource;
 use App\Enums\PunchStatus;
 use App\Events\DeviceWentOffline;
+use App\Filament\Tenant\Resources\Devices\Pages\CreateDevice;
 use App\Filament\Tenant\Resources\Devices\Pages\EditDevice;
 use App\Filament\Tenant\Resources\Devices\Pages\ListDevices;
 use App\Models\AttendanceDay;
@@ -45,7 +46,7 @@ beforeEach(function () {
 
 afterEach(function () {
     // Central rows are outside the tenant transaction.
-    DeviceRegistry::query()->whereIn('serial_number', ['ZKADMS01', 'ZKAGENT01'])->delete();
+    DeviceRegistry::query()->whereIn('serial_number', ['ZKADMS01', 'ZKAGENT01', 'ZKADMS77', 'KIOSK-LIST1'])->delete();
     UnknownDevice::query()->whereIn('serial_number', ['ZKNOBODY', 'ZKBLOCKED'])->delete();
     AgentKey::query()->where('label', 'pest agent')->delete();
     DB::connection('central')->table('tenants')->where('id', 'other-co-id')->delete();
@@ -210,6 +211,22 @@ it('shows the agent\'s last error for a machine on the Devices list and edit pag
 
     $beat(['reachable' => true]);
     Livewire\Livewire::test(ListDevices::class)->assertDontSee('Agent error');
+});
+
+it('offers only machine types for a new device and leaves kiosk tablets to the Kiosks page', function () {
+    Device::create(['name' => 'Gate K40', 'serial_number' => 'ZKADMS77', 'type' => DevicePunchSourceType::Adms]);
+    $tablet = Device::create(['name' => 'Reception tablet', 'serial_number' => 'KIOSK-LIST1', 'type' => DevicePunchSourceType::Kiosk]);
+    $this->actingAs(User::where('email', 'owner@pest.test')->firstOrFail());
+    Filament\Facades\Filament::setCurrentPanel(Filament\Facades\Filament::getPanel('tenant'));
+
+    Livewire\Livewire::test(ListDevices::class)->assertCanSeeTableRecords(Device::where('serial_number', 'ZKADMS77')->get())
+        ->assertCanNotSeeTableRecords([$tablet]);
+    Livewire\Livewire::test(CreateDevice::class)
+        ->fillForm(['name' => 'Tab 2', 'serial_number' => 'KIOSK-LIST2', 'type' => 'kiosk'])->call('create')
+        ->assertHasFormErrors(['type']);
+    Livewire\Livewire::test(CreateDevice::class)
+        ->fillForm(['name' => 'Old K40', 'serial_number' => 'USB-LIST3', 'type' => 'usb'])->call('create')
+        ->assertHasNoFormErrors();
 });
 
 it('imports a USB attlog.dat, skipping junk lines and deduping re-imports', function () {
