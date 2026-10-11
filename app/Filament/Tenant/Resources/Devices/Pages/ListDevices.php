@@ -31,7 +31,7 @@ class ListDevices extends ListRecords
                 ->modalSubmitAction(false)->modalCancelActionLabel(__('Close'))
                 ->extraModalFooterActions([
                     Action::make('downloadProgram')->label(__('Download program'))->icon(Heroicon::OutlinedArrowDownTray)
-                        ->url(fn () => url(AgentSetupFile::PROGRAM))->visible(fn () => AgentSetupFile::programAvailable()),
+                        ->action(fn () => response()->download(public_path(AgentSetupFile::PROGRAM), AgentSetupFile::DOWNLOAD_NAME))->visible(fn () => AgentSetupFile::programAvailable()),
                     Action::make('downloadSetupFile')->label(__('Download setup file'))->icon(Heroicon::OutlinedDocumentArrowDown)->color('gray')
                         ->action(fn (AgentSetupFile $file) => response()->streamDownload(
                             fn () => print ($file->make(request()->getScheme(), request()->getPort())), 'agent.yaml', ['Content-Type' => 'text/yaml'])),

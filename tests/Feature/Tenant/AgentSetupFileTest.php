@@ -25,5 +25,7 @@ it('writes a ready agent.yaml with a new key and the company\'s agent machines',
 it('says when the program is not on the server', function () {
     $html = view('filament.tenant.agent-setup', ['program' => false])->render();
 
-    expect($html)->toContain('not on this server yet')->toContain('hazri-agent.exe -c agent.yaml --once');
+    expect($html)->toContain('not on this server yet')->toContain('sync-agent.exe -c agent.yaml --once')
+        ->toContain('Machine (office PC agent)')
+        ->not->toMatch('/haz(i)?ri/i');   // white-label clients see these steps too
 });

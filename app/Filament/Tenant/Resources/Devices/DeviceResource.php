@@ -8,6 +8,7 @@ use App\Enums\DevicePunchSourceType;
 use App\Filament\Concerns\AuthorizesByPermission;
 use App\Filament\Tenant\NavigationGroup;
 use App\Models\Device;
+use App\Services\Devices\AgentSetupFile;
 use App\Services\Devices\DeviceCommander;
 use App\Support\Brand;
 use Filament\Actions\Action;
@@ -128,6 +129,7 @@ class DeviceResource extends Resource
         $type = $type instanceof DevicePunchSourceType ? $type : DevicePunchSourceType::tryFrom((string) $type);
         $adms = e(Brand::host('adms'));
         $api = e(Brand::host('api'));
+        $exe = AgentSetupFile::DOWNLOAD_NAME;
 
         return match ($type) {
             DevicePunchSourceType::Adms => <<<HTML
@@ -143,7 +145,7 @@ class DeviceResource extends Resource
                 <ol class="list-decimal ps-5 space-y-1 text-sm">
                   <li>Save this device with its <b>LAN IP</b> (and comm key, if the machine has one).</li>
                   <li>On the Devices list, click <b>Sync agent</b>: download the program and the setup file (it already contains this device and a key).</li>
-                  <li>Put both in one folder on an always-on PC on the same network, test with <code>hazri-agent.exe -c agent.yaml --once</code>, then install it as a service (steps in that window).</li>
+                  <li>Put both in one folder on an always-on PC on the same network, test with <code>{$exe} -c agent.yaml --once</code>, then install it as a service (steps in that window).</li>
                   <li>This page shows <b>online</b> after the first poll (60 s). Server address used: <code>https://{$api}</code>.</li>
                 </ol>
                 HTML,

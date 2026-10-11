@@ -18,6 +18,9 @@ final class AgentSetupFile
     /** Where the built program is served from (public/downloads, shipped with the release, not in git). */
     public const PROGRAM = 'downloads/hazri-agent.exe';
 
+    /** The name the program is saved under on the client's PC: neutral, so white-label clients never see ours. */
+    public const DOWNLOAD_NAME = 'sync-agent.exe';
+
     public static function programAvailable(): bool
     {
         return is_file(public_path(self::PROGRAM));
@@ -30,9 +33,9 @@ final class AgentSetupFile
         $server = $scheme . '://' . Brand::host('api') . ($port && ! in_array($port, [80, 443], true) ? ":{$port}" : '');
 
         $lines = [
-            '# Haziri sync agent settings for ' . tenant('company_name') . ', made ' . now()->format('d M Y H:i') . '.',
+            '# ' . Brand::name() . ' sync agent settings for ' . tenant('company_name') . ', made ' . now()->format('d M Y H:i') . '.',
             '# Keep this file private: the api_key lets the agent send punches for your company.',
-            "# Put it next to hazri-agent.exe as agent.yaml. Fill in any ip left as 0.0.0.0 (the machine's LAN address).",
+            '# Put it next to ' . self::DOWNLOAD_NAME . " as agent.yaml. Fill in any ip left as 0.0.0.0 (the machine's LAN address).",
             'server: ' . $server,
             'api_key: ' . $key,
             'poll_seconds: 60',
@@ -51,7 +54,7 @@ final class AgentSetupFile
             $lines[] = '    clear_after_sync: false';
         }
         if ($devices->isEmpty()) {
-            $lines[] = '  []   # add the machine under Devices (type: agent) first, then download this file again';
+            $lines[] = '  []   # add the machine under Devices (type: Machine (office PC agent)) first, then download this file again';
         }
 
         return implode("\n", $lines) . "\n";
