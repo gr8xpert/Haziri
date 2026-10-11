@@ -161,6 +161,27 @@ it('accrues monthly leave and caps carry-forward', function () {
     expect(LeaveBalance::where(['employee_id' => $this->emp->id, 'leave_type_id' => $monthly->id, 'year' => 2026])->value('opening'))->toBe(7.0);
 });
 
+it('creates and refreshes balances only for the people a leave type applies to', function () {
+    $maternity = LeaveType::create(['name' => 'Maternity', 'code' => 'MAT', 'annual_quota_days' => 90, 'gender_restriction' => 'female',
+        'applies_to' => ['permanent']]);
+    $svc = app(LeaveBalanceService::class);
+    $mother = person('MUM', ['gender' => 'female', 'employment_type' => 'permanent']);
+    $man = person('MAN', ['gender' => 'male', 'employment_type' => 'permanent']);
+    $contractor = person('CON', ['gender' => 'female', 'employment_type' => 'contract']);
+    $leftover = LeaveBalance::create(['employee_id' => $man->id, 'leave_type_id' => $maternity->id, 'year' => 2026, 'accrued' => 90]);
+    $booked = LeaveBalance::create(['employee_id' => $contractor->id, 'leave_type_id' => $maternity->id, 'year' => 2026, 'accrued' => 90, 'used' => 5]);
+
+    $svc->openYear(2026);
+    $svc->accrueAll(2026);
+
+    $holders = LeaveBalance::where(['leave_type_id' => $maternity->id, 'year' => 2026])->pluck('employee_id');
+    expect($holders)->toContain($mother->id)->toContain($contractor->id)->not->toContain($man->id)
+        ->and(LeaveBalance::find($leftover->id))->toBeNull()
+        ->and($booked->fresh()->used)->toBe(5.0)
+        ->and($svc->accrued($man, $maternity, 2026))->toBe(0.0)
+        ->and($svc->accrued($mother, $maternity, 2026))->toBeGreaterThan(0.0);
+});
+
 it('lets a grade row set its own carry forward and longest request', function () {
     $officer = Grade::create(['code' => 'OFF', 'name' => 'Officer']);
     $this->al->update(['carry_forward_max' => 7, 'max_consecutive_days' => 10]);

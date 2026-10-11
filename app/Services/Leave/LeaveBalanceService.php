@@ -39,7 +39,7 @@ final class LeaveBalanceService
     public function accrued(Employee $employee, LeaveType $type, int $year, ?CarbonImmutable $asOf = null): float
     {
         $quota = $this->entitlement($employee, $type);
-        if ($quota <= 0 || ! $employee->leave_credit) {
+        if ($quota <= 0 || ! $employee->leave_credit || ! $type->appliesTo($employee)) {
             return 0.0;
         }
         // Month index inside the leave year (0 = first month) from which the employee earns leave.
@@ -112,12 +112,19 @@ final class LeaveBalanceService
         return $n;
     }
 
-    /** Monthly job: refresh accrued for every active type (idempotent; also applies entitlement changes). */
+    /**
+     * Monthly job: refresh accrued for every active type (idempotent; also applies entitlement changes). Only for
+     * employees the type applies to (Applies to, Gender); untouched balances made for anyone else are removed.
+     */
     public function accrueAll(int $year): int
     {
         $n = 0;
         foreach (LeaveType::query()->where('is_active', true)->get() as $type) {
+            $this->removeUnusedInapplicable($type, $year);
             foreach (Employee::query()->where('status', '!=', EmployeeStatus::Left)->get() as $employee) {
+                if (! $type->appliesTo($employee)) {
+                    continue;
+                }
                 $balance = $this->balance($employee, $type, $year);
                 $balance->update(['accrued' => $this->accrued($employee, $type, $year)]);
                 $n++;
@@ -133,6 +140,9 @@ final class LeaveBalanceService
         $n = 0;
         foreach (LeaveType::query()->where('is_active', true)->get() as $type) {
             foreach (Employee::query()->where('status', '!=', EmployeeStatus::Left)->get() as $employee) {
+                if (! $type->appliesTo($employee)) {
+                    continue;
+                }
                 $previous = LeaveBalance::query()->where(['employee_id' => $employee->id, 'leave_type_id' => $type->id, 'year' => $year - 1])->first();
                 $carry = $previous ? min($previous->remaining(), $this->rules($employee, $type)['carry_forward_max']) : 0.0;
                 // An overdrawn balance follows the employee into the new year only where negatives are allowed.
@@ -144,6 +154,18 @@ final class LeaveBalanceService
         }
 
         return $n;
+    }
+
+    /** Balances of a restricted type held by employees it does not apply to, deleted only when nothing was ever booked on them. */
+    private function removeUnusedInapplicable(LeaveType $type, int $year): void
+    {
+        if (! $type->applies_to && ! $type->gender_restriction) {
+            return;
+        }
+        LeaveBalance::query()->with('employee')->where(['leave_type_id' => $type->id, 'year' => $year])
+            ->where('opening', 0)->where('used', 0)->where('pending', 0)->where('adjusted', 0)->get()
+            ->filter(fn (LeaveBalance $b) => $b->employee !== null && ! $type->appliesTo($b->employee))
+            ->each->delete();
     }
 
     private static function roundHalf(float $days): float

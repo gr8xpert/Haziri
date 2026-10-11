@@ -44,6 +44,16 @@ class LeaveType extends Model
         return LogOptions::defaults()->logAll()->logOnlyDirty();
     }
 
+    /** Whether this type is for the employee at all: their employment type is ticked under Applies to, and the gender matches. */
+    public function appliesTo(Employee $employee): bool
+    {
+        if ($this->applies_to && ! in_array($employee->employment_type?->value, $this->applies_to, true)) {
+            return false;
+        }
+
+        return ! $this->gender_restriction || $employee->gender === $this->gender_restriction;
+    }
+
     public function entitlements(): HasMany
     {
         return $this->hasMany(LeaveEntitlement::class);

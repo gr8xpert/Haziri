@@ -55,7 +55,7 @@ screens: leave-types-list=/admin/leave-types | leave-types-new=/admin/leave-type
 | **Sandwich rule** | A weekly off or holiday between two leave days counts as leave too. Example: leave on Saturday and Monday, Sunday off → Sunday also comes off the balance. |
 | **Counts weekends** | Count every calendar day in the request, not only working days. |
 | **Applies to** | Tick the categories (Permanent, Contract, Probation, Daily wage, Intern) that can use it. None ticked = everyone. |
-| **Gender restriction** | *Female only*, *Male only*, or *Everyone* (for example maternity leave). |
+| **Gender restriction** | *Female only*, *Male only*, or *Everyone* (for example maternity leave). With *Applies to*, it also decides who gets a balance of this type. |
 | **Active** | Off hides the type from new requests. |
 | **Paid out on leaving** | The unused balance is paid in the final settlement. This appears only if your plan includes *Final settlement*. |
 | **Allow negative balance** | Leave can be approved beyond the balance; the overdraft carries into the next leave year. |

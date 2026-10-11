@@ -54,7 +54,7 @@ See [Leave types](/help/leave-types) for quota, accrual and carry-forward rules,
 1. Click **Create / refresh balances** at the top.
 2. Confirm.
 
-{app} creates any missing rows for the current leave year (with carry-forward from last year) and works out **Accrued** again for every active leave type and every employee who has not left. Running it twice does no harm.
+{app} creates any missing rows for the current leave year (with carry-forward from last year) and works out **Accrued** again for every active leave type and every employee who has not left. A type with **Applies to** or a **Gender restriction** gets rows only for the employees it applies to; an unused row for anyone else (nothing used, pending, adjusted or carried) is removed. Running it twice does no harm.
 
 > **Tip:** Use it after you add a leave type, change a quota, or add staff, so the numbers show straight away instead of on the 1st.
 
@@ -85,6 +85,10 @@ Who wins: the employee's special rule, then the grade / category row on the leav
 ### "Not enough balance: 2 day(s) left, 3 requested."
 
 The employee's **Remaining** is less than the request. Apply for fewer days, use another type (for example unpaid leave), add days with **Adjust**, or switch on **Allow negative balance** on the leave type.
+
+### A man has a maternity leave balance
+
+Check the leave type's **Gender restriction** and the employee's gender on their profile, then click **Create / refresh balances**. Unused rows for people the type does not apply to are removed. A row that already has days used or adjusted stays; fix it with **Adjust**.
 
 ### A new employee has no balance
 

@@ -58,7 +58,8 @@ final class MeController
             'faceCheck' => $settings->featureEnabled('kiosk_face') && (bool) $settings->get('face_check_photo_punches'),
             'rtl' => app()->getLocale() === 'ur',
             'leaveEnabled' => $leaveEnabled = $settings->featureEnabled('leave'),
-            'leaveTypes' => $leaveEnabled ? LeaveType::where('is_active', true)->get(['id', 'name', 'code', 'allow_half_day']) : [],
+            'leaveTypes' => $leaveEnabled ? LeaveType::where('is_active', true)->get()->filter(fn (LeaveType $t) => $employee === null || $t->appliesTo($employee))
+                ->map(fn (LeaveType $t) => $t->only(['id', 'name', 'code', 'allow_half_day']))->values() : [],
         ]);
     }
 
@@ -87,7 +88,7 @@ final class MeController
 
         $leaveEnabled = app(TenantSettings::class)->featureEnabled('leave');
         $year = app(LeaveYear::class)->current();
-        $leaveBalances = $leaveEnabled ? LeaveType::where('is_active', true)->get()->map(fn (LeaveType $t) => [
+        $leaveBalances = $leaveEnabled ? LeaveType::where('is_active', true)->get()->filter(fn (LeaveType $t) => $t->appliesTo($employee))->values()->map(fn (LeaveType $t) => [
             'code' => $t->code, 'name' => $t->name, 'remaining' => $balances->balance($employee, $t, $year)->remaining(),
         ]) : [];
 
