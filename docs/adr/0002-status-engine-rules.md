@@ -20,7 +20,7 @@ Each rule is covered by a test in `tests/Unit/StatusEngine/`.
 | Pending days | A working day with no punches returns `status = null` (pending) until the day **and** the shift are over, plus `auto_absent_after_days − 1` days. Only then is it `ABSENT`. |
 | Late | Flag `late` when arrival is more than `late_after_min` (fallback `grace_in_min`) after the start. `late_min = arrival − (start + grace_in)` (the spec's formula). |
 | Half day by lateness | `late_min > half_day_if_late_after_min`. |
-| Early out | `early_out_min = (end − grace_out) − last_out`; the flag is set when it is > 0. `early_out_before_min` is stored on shifts but not used yet. |
+| Early out | Flag `early_out` when the last out is more than `max(grace_out, early_out_before_min)` before the end. `early_out_min = (end − grace_out) − last_out`. `early_out_before_min = 0` means only the out grace applies. |
 | Break | First/last mode: `worked = span − break_min`. Paired mode: the time between pairs already counts as unpaid, so only the part of `break_min` not already taken as out-time is deducted. |
 | Auto-close | Once `now > first_in + auto_close_missing_out_after_min`, set `last_out = first_in + expected + break`, so the day counts as exactly the scheduled time. Flags `missing_out` + `auto_closed` both stay (R6 shows both). No early-out on auto-closed days. |
 | Missing out, not closed | Status `PRESENT` (the half-day-by-worked-time check is skipped); worked = 0 in first/last mode. |

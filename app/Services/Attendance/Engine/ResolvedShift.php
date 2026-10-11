@@ -25,7 +25,6 @@ final readonly class ResolvedShift
         public ?int $lateAfterMin = null,
         public ?int $halfDayIfLateAfterMin = 120,
         public ?int $halfDayIfWorkedLessThanMin = 240,
-        public int $minFullDayMin = 480,
         public int $earlyOutBeforeMin = 30,
         public ?int $autoCloseMissingOutAfterMin = null,
         public int $breakMin = 0,
@@ -40,6 +39,12 @@ final readonly class ResolvedShift
     public function lateThresholdMin(): int
     {
         return $this->lateAfterMin ?? $this->graceInMin;
+    }
+
+    /** Minutes before scheduled end a departure must exceed to count as early out; 0 means only the out grace applies. */
+    public function earlyOutThresholdMin(): int
+    {
+        return max($this->graceOutMin, $this->earlyOutBeforeMin);
     }
 
     /**

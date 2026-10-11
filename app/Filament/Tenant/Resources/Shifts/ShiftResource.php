@@ -64,11 +64,10 @@ class ShiftResource extends Resource
                 $minutes('late_after_min', 'Blank = same as grace'),
                 $minutes('half_day_if_late_after_min', 'Late minutes that make it a half day')->default(120),
                 $minutes('grace_out_min')->default(5)->required(),
-                $minutes('early_out_before_min')->default(30)->required(),
-                $minutes('half_day_if_worked_less_than_min', 'Worked less → half day')->default(240),
+                $minutes('early_out_before_min', 'Leaving more than this before the end is an early out. 0 = only the out grace')->default(30)->required(),
+                $minutes('half_day_if_worked_less_than_min', 'The least worked time for a full day; less → half day')->default(240),
             ]),
             Section::make(__('Other'))->columns(2)->schema([
-                $minutes('min_full_day_min')->default(480)->required(),
                 $minutes('auto_close_missing_out_after_min', 'Blank = never auto-close a missing punch-out'),
                 $minutes('overtime_after_min', 'Extra time beyond this counts as overtime'),
                 $minutes('max_overtime_min'),

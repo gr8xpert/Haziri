@@ -59,15 +59,14 @@ Use **Edit** or **Delete** at the end of a row. **New shift** at the top right o
 | **Grace in min** | 15 | Arrivals within this many minutes of the start time are on time. |
 | **Late after min** | blank | When the employee counts as late. Blank = same as grace. Late minutes are counted from the end of the grace time. |
 | **Half day if late after min** | 120 | If the employee is late by more than this, the day becomes a half day. |
-| **Grace out min** | 5 | Leaving this many minutes before the end time is still fine. Leaving earlier than that is an early out. |
-| **Early out before min** | 30 | Kept with the shift; {app} does not use it yet when it works out the day. |
-| **Half day if worked less than min** | 240 | If the employee worked less than this (for example 4 hours), the day is a half day. |
+| **Grace out min** | 5 | Early-out minutes are counted from the end time minus this grace. |
+| **Early out before min** | 30 | Leaving more than this many minutes before the end time is an early out. 0 = an early out starts right after the out grace. |
+| **Half day if worked less than min** | 240 | The least worked time for a full day. If the employee worked less than this (for example 4 hours), the day is a half day. |
 
 ### Other
 
 | Field | What it does |
 |---|---|
-| **Min full day min** | Kept with the shift (default 480); {app} does not use it yet when it works out the day. |
 | **Auto close missing out after min** | If someone forgets to punch out, {app} closes the day as a full shift after this many minutes from their first punch. Blank = never; the day stays *Missing out* until someone fixes it. |
 | **Overtime after min** | Extra time counts as overtime only when it is more than this. Once it is more, all the extra time counts. |
 | **Max overtime min** | The most overtime one day can have. Blank = no limit. |
@@ -83,6 +82,7 @@ Shift *Morning*: 09:00–17:00, grace 15, half day if late after 120, break 60.
 - Ali punches in at 09:40 → late by 25 minutes (40 minus the 15 grace).
 - Ali punches in at 11:30 → late by more than 120 minutes → half day.
 - Ali punches 09:00 and 17:00 → worked 7 hours (8 hours minus the 60-minute break).
+- Ali punches out at 16:40 → not an early out (20 minutes is within the 30 of *Early out before*). Out at 16:20 → early out by 35 minutes (40 minus the 5 grace out).
 
 See [How attendance works](/help/how-attendance-works) for the full rules.
 

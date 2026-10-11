@@ -144,7 +144,7 @@ Only key columns are listed; add `id`, timestamps, soft deletes where sensible. 
 - `usb_imports` — device_id, file_path, rows_total, rows_imported, rows_duplicate, rows_unmapped, imported_by, log (json)
 
 ### 5.3 Shifts and schedules
-- `shifts` — name, code, start_time, end_time, crosses_midnight (bool), grace_in_min (default 15), grace_out_min (5), late_after_min (nullable → grace_in), half_day_if_late_after_min (e.g. 120), half_day_if_worked_less_than_min (e.g. 240), min_full_day_min (e.g. 480), early_out_before_min (30), auto_close_missing_out_after_min (nullable, e.g. 720), break_min (unpaid break length), multi_punch_mode (`first_last|paired`), overtime_after_min (nullable), max_overtime_min, weekly_off_days (json, overrides branch), is_default
+- `shifts` — name, code, start_time, end_time, crosses_midnight (bool), grace_in_min (default 15), grace_out_min (5), late_after_min (nullable → grace_in), half_day_if_late_after_min (e.g. 120), half_day_if_worked_less_than_min (e.g. 240; the least worked time for a full day), early_out_before_min (30; leaving more than this before the end is an early out), auto_close_missing_out_after_min (nullable, e.g. 720), break_min (unpaid break length), multi_punch_mode (`first_last|paired`), overtime_after_min (nullable), max_overtime_min, weekly_off_days (json, overrides branch), is_default
 - `shift_assignments` — employee_id, shift_id, effective_from, effective_to (nullable). Latest effective wins. A weekly roster is just many short assignments; rosters UI writes these rows.
 - `shift_overrides` — name (e.g. "Ramadan 2027"), from_date, to_date, scope (`tenant|branch|department|shift`), scope_id, start_time, end_time, grace_in_min…, priority. Applied on top of the resolved shift for dates in range. Jummah: an override with `weekday=5` and different times / a longer break.
 - `holidays` — date, name, type (`gazetted|company|optional`), branch_id (nullable = all), is_paid (default true)
@@ -281,7 +281,7 @@ Auth: `Authorization: Bearer <agent_key>`; key resolves to tenant; device serial
 | `HALF_DAY_LEAVE` | half-day approved leave + worked other half | 0.5 + worked half |
 | `OFFICIAL_DUTY` | OD / outstation marked by HR or approved correction | yes |
 | `WFH` | work-from-home marked/approved | yes |
-| `PRESENT` | worked ≥ `min_full_day_min` (or first/last punch pairing OK) | yes |
+| `PRESENT` | worked ≥ `half_day_if_worked_less_than_min` (or first/last punch pairing OK) | yes |
 | `HALF_DAY` | late beyond `half_day_if_late_after_min` or worked < `half_day_if_worked_less_than_min` | 0.5 |
 | `ABSENT` | working day, no valid punch, no leave | no |
 

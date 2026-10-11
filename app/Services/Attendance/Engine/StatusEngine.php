@@ -99,8 +99,9 @@ final class StatusEngine
             }
             $autoClosed = isset($flags[AttendanceFlag::AutoClosed->value]);
             if ($lastOut !== null && ! $missingOut && ! $autoClosed && $leave?->dayPart !== LeaveDayPart::SecondHalf) {
-                $earlyOutMin = max(0, $this->minutes($lastOut, $end) - $shift->graceOutMin);
-                if ($earlyOutMin > 0) {
+                $beforeEnd = $this->minutes($lastOut, $end);
+                if ($beforeEnd > $shift->earlyOutThresholdMin()) {
+                    $earlyOutMin = max(0, $beforeEnd - $shift->graceOutMin);
                     $flags[AttendanceFlag::EarlyOut->value] = AttendanceFlag::EarlyOut;
                 }
             }

@@ -58,7 +58,6 @@ class Shift extends Model
             lateAfterMin: $this->late_after_min,
             halfDayIfLateAfterMin: $this->half_day_if_late_after_min,
             halfDayIfWorkedLessThanMin: $this->half_day_if_worked_less_than_min,
-            minFullDayMin: $this->min_full_day_min,
             earlyOutBeforeMin: $this->early_out_before_min,
             autoCloseMissingOutAfterMin: $this->auto_close_missing_out_after_min,
             breakMin: $this->break_min,

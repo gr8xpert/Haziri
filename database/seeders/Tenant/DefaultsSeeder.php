@@ -27,7 +27,6 @@ class DefaultsSeeder extends Seeder
             'grace_out_min' => 5,
             'half_day_if_late_after_min' => 120,
             'half_day_if_worked_less_than_min' => 240,
-            'min_full_day_min' => 480,
             'break_min' => 60,
             'weekly_off_days' => json_encode([0]),
             'is_default' => true,

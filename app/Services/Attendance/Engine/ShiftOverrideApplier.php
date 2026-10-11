@@ -14,7 +14,7 @@ final class ShiftOverrideApplier
 {
     private const ALLOWED = [
         'startTime', 'endTime', 'crossesMidnight', 'graceInMin', 'graceOutMin', 'lateAfterMin',
-        'halfDayIfLateAfterMin', 'halfDayIfWorkedLessThanMin', 'minFullDayMin', 'earlyOutBeforeMin',
+        'halfDayIfLateAfterMin', 'halfDayIfWorkedLessThanMin', 'earlyOutBeforeMin',
         'autoCloseMissingOutAfterMin', 'breakMin', 'overtimeAfterMin', 'maxOvertimeMin',
     ];
 

@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Enums\AttendanceFlag;
 use App\Enums\AttendanceStatus;
 use App\Enums\MultiPunchMode;
+use App\Enums\PunchDirection;
 use App\Enums\PunchSource;
 use App\Services\Attendance\Engine\EngineSettings;
 use App\Services\Attendance\Engine\StatusEngine;
@@ -66,6 +67,25 @@ it('turns a short worked day into a half day and flags early out', function () {
         ->and($r->earlyOutMin)->toBe(325); // 18:00 − 5 grace − 12:30
 });
 
+it('counts an early out only beyond early_out_before_min', function () {
+    $within = $this->engine->resolve(Scenario::day('2026-09-01', ['2026-09-01 09:00', '2026-09-01 17:40']));
+    $beyond = $this->engine->resolve(Scenario::day('2026-09-01', ['2026-09-01 09:00', '2026-09-01 17:20']));
+
+    expect($within->hasFlag(AttendanceFlag::EarlyOut))->toBeFalse()
+        ->and($within->earlyOutMin)->toBe(0)
+        ->and($beyond->hasFlag(AttendanceFlag::EarlyOut))->toBeTrue()
+        ->and($beyond->earlyOutMin)->toBe(35); // 40 early − 5 grace
+});
+
+it('falls back to the out grace when early_out_before_min is 0', function () {
+    $r = $this->engine->resolve(Scenario::day('2026-09-01', ['2026-09-01 09:00', '2026-09-01 17:50'], [
+        'shift' => Scenario::shift(['earlyOutBeforeMin' => 0]),
+    ]));
+
+    expect($r->hasFlag(AttendanceFlag::EarlyOut))->toBeTrue()
+        ->and($r->earlyOutMin)->toBe(5);
+});
+
 it('keeps a single punch present with missing_out and no worked time', function () {
     $r = $this->engine->resolve(Scenario::day('2026-09-01', ['2026-09-01 09:00']));
 
@@ -101,7 +121,7 @@ it('does not auto-close before the configured time', function () {
 
 it('flags a lone out punch as missing_in when directions are trusted', function () {
     $ctx = Scenario::day('2026-09-01', [], [
-        'punches' => [Scenario::punch('2026-09-01 18:00', App\Enums\PunchDirection::Out)],
+        'punches' => [Scenario::punch('2026-09-01 18:00', PunchDirection::Out)],
     ]);
     $r = $this->engine->resolve($ctx);
 

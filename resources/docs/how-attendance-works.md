@@ -12,7 +12,7 @@ screens:
 
 - A **punch** is one record of an employee at the machine, kiosk or phone. {app} looks at all punches near the shift and works out one result per employee per day: a **status** (for example Present or Absent) and **flags** (for example Late or Left early).
 - The day is worked out again automatically whenever something changes: a new punch, an approved leave, a correction, a new holiday or a shift change. You never type the status yourself.
-- **Late** means the first punch came after the shift start plus the grace time. **Left early** means the last punch was before the shift end minus the out grace.
+- **Late** means the first punch came after the shift start plus the grace time. **Left early** means the last punch was more than the shift's *Early out before* minutes (default 30) before the shift end.
 - A day with no punches becomes **Absent** only after the day is over (normally by the next morning). Until then it has no status yet.
 - Holidays, weekly offs and approved full-day leave come before punches. A **Change day status** correction comes before everything.
 - Once a month is locked, its days never change again. See [Month lock](/help/month-lock).
@@ -128,9 +128,12 @@ Late is not counted:
 
 ## Leaving early
 
-Each shift has a **Grace out** time (default 5 minutes). A last punch earlier than the shift end minus this grace is **Left early**.
+Each shift has two settings for this:
 
-**Example.** Shift ends 17:00, grace out 5 minutes. Out at 16:56 is fine. Out at 16:50 is **Left early** by 5 minutes (10 minutes early, minus the 5-minute grace).
+- **Early out before** (default 30 minutes): a last punch counts as **Left early** only when it is more than this many minutes before the shift end. Set it to 0 to use only the out grace.
+- **Grace out** (default 5 minutes): the early minutes are counted from the shift end minus this grace.
+
+**Example.** Shift ends 17:00, early out before 30, grace out 5. Out at 16:40 is fine (20 minutes early is within 30). Out at 16:20 is **Left early** by 35 minutes (40 minutes early, minus the 5-minute grace). With early out before set to 0, out at 16:50 would already be Left early by 5 minutes.
 
 Left early is not counted when the out punch is missing, when it was auto-closed, or when the employee has leave for the **second half** of the day.
 
@@ -143,7 +146,7 @@ Left early is not counted when the out punch is missing, when it was auto-closed
 A day becomes **Half day** when either:
 
 - the late minutes are more than **Half day if late after** (default 120 minutes), or
-- the worked time is less than **Half day if worked less than** (default 240 minutes = 4 hours). This check needs both an in and an out punch.
+- the worked time is less than **Half day if worked less than** (default 240 minutes = 4 hours). This is the least worked time for a full day. This check needs both an in and an out punch.
 
 **Example.** In 09:00, out 12:30: 3 hours 30 minutes minus 1 hour break = 2 hours 30 minutes worked. That is less than 4 hours, so the day is **Half day** (also flagged Left early).
 
