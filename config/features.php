@@ -25,7 +25,7 @@ return [
         'kiosk' => ['group' => 'attendance', 'label' => 'Kiosk tablet', 'requires' => [], 'default' => false],
         'kiosk_face' => ['group' => 'attendance', 'label' => 'Face recognition on kiosk', 'requires' => ['kiosk'], 'default' => false],
         'mobile_punch' => ['group' => 'attendance', 'label' => 'Mobile punch (GPS)', 'requires' => [], 'default' => false],
-        'leave' => ['group' => 'attendance', 'label' => 'Leave management', 'requires' => [], 'default' => false],
+        'leave' => ['group' => 'attendance', 'label' => 'Leave management', 'requires' => [], 'default' => true],
         'rosters' => ['group' => 'attendance', 'label' => 'Rosters & shift swaps', 'requires' => [], 'default' => true],
         'multi_branch' => ['group' => 'attendance', 'label' => 'Branch managers & branch dashboard', 'requires' => [], 'default' => false],
         'visitors' => ['group' => 'attendance', 'label' => 'Visitor log', 'requires' => [], 'default' => false],
