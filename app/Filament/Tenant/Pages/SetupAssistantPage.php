@@ -45,7 +45,10 @@ class SetupAssistantPage extends Page
 
     public function propose(SetupAssistant $assistant): void
     {
-        $this->validate(['policy' => ['required', 'string', 'min:40', 'max:20000']]);
+        $this->validate(['policy' => ['required', 'string', 'min:40', 'max:20000']], [
+            'policy.required' => __('Paste your policy text first.'),
+            'policy.min' => __('The policy is too short. Paste at least :min characters.'),
+        ]);
         $r = $assistant->propose($this->policy, auth()->id());
         $this->error = $r['ok'] ? null : $r['error'];
         $this->diff = $r['diff'] ?? [];

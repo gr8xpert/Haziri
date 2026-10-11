@@ -88,9 +88,9 @@ After applying, open **System → Company settings** and click **Recompute this 
 
 Your plan does not include the AI assistant, or you are not the owner or an admin. HR cannot open it. You can set everything by hand on **Company settings** and **Shifts**.
 
-### Nothing happens when I click Propose settings
+### "The policy is too short" under the text box
 
-The policy text is too short (under 40 characters) or empty. Paste the full policy and try again.
+The policy text is under 40 characters, or the box is empty. Paste the full policy and try again.
 
 ### "This month's AI budget is used up."
 

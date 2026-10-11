@@ -2,7 +2,11 @@
     <form wire:submit="propose" class="hz-card flex flex-col gap-3 p-4 sm:p-5">
         <label for="hz-policy" class="hz-label">{{ __('Your attendance and leave policy') }}</label>
         <textarea id="hz-policy" wire:model="policy" rows="10" class="hz-native"
-                  placeholder="{{ __('Paste the policy text here. Grace time, half-day rules, leave quotas, weekly offs...') }}"></textarea>
+                  placeholder="{{ __('Paste the policy text here. Grace time, half-day rules, leave quotas, weekly offs...') }}"
+                  @error('policy') aria-invalid="true" aria-describedby="hz-policy-error" @enderror></textarea>
+        @error('policy')
+            <p id="hz-policy-error" class="text-sm text-danger-600 dark:text-danger-400">{{ $message }}</p>
+        @enderror
         <div class="flex flex-wrap items-center gap-3">
             <x-filament::button type="submit" icon="heroicon-m-sparkles" wire:loading.attr="disabled" wire:target="propose">{{ __('Propose settings') }}</x-filament::button>
             <span wire:loading.flex wire:target="propose" class="items-center gap-2 text-sm text-gray-500 dark:text-gray-400">

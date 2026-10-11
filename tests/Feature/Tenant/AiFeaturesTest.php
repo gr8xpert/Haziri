@@ -8,6 +8,7 @@ use App\Enums\PunchSource;
 use App\Enums\PunchStatus;
 use App\Enums\Role;
 use App\Filament\Tenant\Pages\AskHazriPage;
+use App\Filament\Tenant\Pages\SetupAssistantPage;
 use App\Filament\Tenant\Resources\Anomalies\AnomalyResource;
 use App\Filament\Tenant\Resources\Anomalies\Pages\ListAnomalies;
 use App\Jobs\GenerateMonthlyNarrative;
@@ -255,4 +256,12 @@ it('proposes settings from a policy as a reviewable diff', function () {
     expect($r['diff'][0])->toMatchArray(['key' => 'lates_per_absent', 'current' => 3, 'proposed' => 4])
         ->and($r['diff'][1]['proposed'])->toBe([0, 6])
         ->and(app(TenantSettings::class)->get('lates_per_absent'))->toBe(3); // nothing applied yet
+});
+
+it('shows why the Setup assistant did not read a policy that is too short', function () {
+    $this->actingAs($this->owner);
+
+    Livewire::test(SetupAssistantPage::class)->set('policy', 'Too short.')->call('propose')
+        ->assertHasErrors(['policy' => 'min'])->assertSee('The policy is too short');
+    expect($this->ai->calls)->toBe([]);
 });
