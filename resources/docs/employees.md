@@ -68,7 +68,7 @@ The employee is counted from the **Joined on** date. Days before that date are n
 | **Personal** | Father's / husband's name, **CNIC** (13 digits, no dashes), Gender, Date of birth, City, Address. **Payroll ID** appears only if your plan includes payroll. |
 | **Contact** | Cell phone, Home phone, Email, Emergency contact. The cell phone is used for the phone sign-in code and for WhatsApp / SMS messages. |
 | **Employment** | Grade, **Manager**, Contractor (only if you have contractors), Probation ends on, Contract ends on, **Left on**, Leaving reason, Office phone, Office ext., Official mobile. |
-| **Attendance** | Card no, **Kiosk PIN (4 digits)**, **Work mode**, **Can punch from phone**, Overtime eligible, Late deduction exempt, **Earns leave**. |
+| **Attendance** | Card no, **Kiosk PIN (4 digits)** (and **Remove kiosk PIN** once one is set), **Work mode**, **Can punch from phone**, Overtime eligible, Late deduction exempt, **Earns leave**. |
 | **Payroll & statutory** | NTN, No income tax, Provident fund member, EOBI registered, EOBI number, PESSI / SESSI registered, Social security number. Shown only if your plan includes tax, EOBI / social security or provident fund. |
 
 Some fields change how {app} treats the person:
@@ -76,7 +76,7 @@ Some fields change how {app} treats the person:
 - **Manager**: this person approves the employee's leave and corrections first. See [Leave requests](/help/leave-requests).
 - **Work mode**: *Office*, *Field* or *Remote*. *Field* and *Remote* staff can punch from the phone anywhere; they are never limited by the office area or the office internet. See [Phone punching](/help/phone-punching).
 - **Can punch from phone** (on by default): off means the person must punch on the machine or kiosk. Shown only if your plan includes mobile punch.
-- **Kiosk PIN (4 digits)**: a second, secret PIN asked on the kiosk tablet after the Machine PIN. Shown only if your plan includes the kiosk. See [Kiosk](/help/kiosk).
+- **Kiosk PIN (4 digits)**: a second, secret PIN asked on the kiosk tablet after the Machine PIN. Shown only if your plan includes the kiosk. Once a PIN is set the box stays empty: leave it empty to keep the PIN, type a new one to change it, or turn on **Remove kiosk PIN** and save to take it away. See [Kiosk](/help/kiosk).
 - **Overtime eligible**: off means extra hours are not counted as overtime.
 - **Late deduction exempt**: no late roll-up or late adjustment for this person.
 - **Earns leave**: off means no leave builds up, for example for daily wagers.

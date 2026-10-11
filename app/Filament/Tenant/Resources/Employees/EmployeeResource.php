@@ -129,7 +129,11 @@ class EmployeeResource extends Resource
                     Section::make(__('Attendance'))->columns(3)->schema([
                         TextInput::make('card_no')->maxLength(30),
                         TextInput::make('kiosk_pin')->password()->revealable()->regex('/^\d{4}$/')->label('Kiosk PIN (4 digits)')
-                            ->dehydrated(fn (?string $s) => filled($s))->visible(fn () => $on('kiosk')),
+                            ->dehydrated(fn (?string $s) => filled($s))->visible(fn () => $on('kiosk'))
+                            ->helperText(fn (?Employee $record) => filled($record?->kiosk_pin) ? __('A PIN is set. Leave empty to keep it.') : null),
+                        Toggle::make('remove_kiosk_pin')->label('Remove kiosk PIN')->helperText('The kiosk then asks only for the Machine PIN')
+                            ->dehydrated(false)->visible(fn (?Employee $record) => $on('kiosk') && filled($record?->kiosk_pin))
+                            ->saveRelationshipsUsing(fn (Employee $record, ?bool $state) => $state ? $record->forceFill(['kiosk_pin' => null])->save() : null),
                         Select::make('work_mode')->options(WorkMode::class)->default(WorkMode::Office)->required(),
                         Toggle::make('mobile_punch_allowed')->label('Can punch from phone')->default(true)
                             ->helperText('Off = must punch on the shop machine or kiosk')->visible(fn () => $on('mobile_punch')),

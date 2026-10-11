@@ -40,7 +40,7 @@ Each kiosk also shows in **Devices → Devices** with type *Kiosk*, so its punch
 2. **Name**: for example *Main gate tablet*.
 3. **Branch**: choose the branch. Employees of other branches are refused. Leave empty for all branches.
 4. **Allowed modes**: tick one or more:
-   - **Employee PIN (+ optional 4-digit kiosk PIN)**: staff type their **Machine PIN**. If an employee has a **Kiosk PIN (4 digits)** on their profile, they must type that too.
+   - **Employee PIN (+ optional 4-digit kiosk PIN)**: staff type their **Machine PIN**. If an employee has a **Kiosk PIN (4 digits)** on their profile, they must type that too. To stop asking someone for it, turn on **Remove kiosk PIN** on their profile.
    - **QR badge from the phone**: staff show the QR code from their staff app to the camera. The code changes every day.
    - **Face recognition**: staff just look at the camera. Their face must be enrolled first; see [Face enrolment](/help/face-enrolment).
 5. **Require photo**: on by default. A selfie is taken with every punch, so you can check who punched under **Attendance → Punch photos**.

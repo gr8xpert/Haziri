@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Filament\Tenant\Resources\Employees\Pages\CreateEmployee;
+use App\Filament\Tenant\Resources\Employees\Pages\EditEmployee;
 use App\Models\Branch;
 use App\Models\Employee;
 use App\Models\Setting;
@@ -71,4 +72,16 @@ it('creates an employee from the main fields, with the picked shift and the only
     expect($employee->branch_id)->toBe($branch->id)
         ->and(ShiftAssignment::where(['employee_id' => $employee->id, 'shift_id' => $night->id])->value('effective_from')?->format('Y-m-d'))
         ->toBe('2026-09-01');
+});
+
+it('lets HR remove a kiosk PIN', function () {
+    employeeFormFeatures(true);
+    $employee = Employee::create(['code' => 'KP1', 'first_name' => 'Kashif', 'joined_on' => '2025-01-01', 'kiosk_pin' => '1234']);
+
+    Livewire::test(EditEmployee::class, ['record' => $employee->getRouteKey()])
+        ->assertFormFieldIsVisible('remove_kiosk_pin')
+        ->fillForm(['remove_kiosk_pin' => true])->call('save')->assertHasNoFormErrors();
+
+    expect($employee->fresh()->kiosk_pin)->toBeNull();
+    Livewire::test(EditEmployee::class, ['record' => $employee->getRouteKey()])->assertFormFieldIsHidden('remove_kiosk_pin');
 });
