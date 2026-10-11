@@ -133,7 +133,7 @@ class DeviceResource extends Resource
             DevicePunchSourceType::Adms => <<<HTML
                 <ol class="list-decimal ps-5 space-y-1 text-sm">
                   <li>On the device: <b>Menu → Comm. → Cloud Server Setting</b> (older firmware: <b>ADMS</b>).</li>
-                  <li>Server address: <code>{$adms}</code>, port <code>443</code>, <b>HTTPS on</b> (or port 80 without HTTPS), Enable Domain Name: <b>ON</b>.</li>
+                  <li>Server address: <code>{$adms}</code>, port <code>80</code>, <b>HTTPS off</b>, Enable Domain Name: <b>ON</b>. (Port <code>443</code> with HTTPS on also works if your firmware supports it.)</li>
                   <li>Proxy: off. Save and restart the device.</li>
                   <li>If you set a comm key here, enter the same key on the device (Comm. → Comm Key).</li>
                   <li>Within a minute this page shows <b>online</b>. Then use <b>Push all employees</b> so PINs and names are on the machine.</li>
