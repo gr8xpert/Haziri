@@ -53,7 +53,7 @@ Most reports have these filters after their own date or month filter. Leave a fi
 | Filter | What it does |
 |---|---|
 | **Branch** / **Department** / **Designation** | Only staff in that branch, department or job title. Branch managers are offered only their own branches, and the departments that have staff there. |
-| **Shift** | Only staff whose shift is that shift *today* (not on the report dates). |
+| **Shift** | Only staff who were on that shift on at least one of the report dates (the day, the From–To range or the month), as set under **Assign shift** or the roster. People with no shift set count as the default shift. |
 | **Category** | The employment type, for example permanent, contract or daily wage. |
 | **Contractor** | Only staff supplied by that contractor. This filter appears only if you have added contractors. |
 | **Employee status** | Active, on leave or left. |
@@ -98,7 +98,7 @@ A filter that the report needs is empty, for example the date, the month, the le
 
 ### "No data for these filters"
 
-Nothing matched. Check the dates, and set filters such as **Branch**, **Department** or **Employee** back to **All**. Remember that the **Shift** filter uses today's shift, not the shift on the report dates.
+Nothing matched. Check the dates, and set filters such as **Branch**, **Department** or **Employee** back to **All**. The **Shift** filter keeps only people who were on that shift during the report dates.
 
 ### I can't see the Excel and PDF buttons
 

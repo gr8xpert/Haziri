@@ -12,6 +12,7 @@ use App\Models\ShiftOverride;
 use App\Services\Attendance\Engine\ResolvedShift;
 use App\Services\Attendance\Engine\ShiftOverrideApplier;
 use App\Services\Settings\TenantSettings;
+use Carbon\CarbonPeriod;
 use Illuminate\Database\Eloquent\Builder;
 
 /**
@@ -67,15 +68,39 @@ final class ShiftResolver
      */
     public function employeeIdsOnShift(int $shiftId, string $date): array
     {
-        $current = ShiftAssignment::query()
-            ->where('effective_from', '<=', $date)
-            ->where(fn (Builder $q) => $q->whereNull('effective_to')->orWhere('effective_to', '>=', $date))
+        return $this->employeeIdsOnShiftBetween($shiftId, $date, $date);
+    }
+
+    /**
+     * Employees whose assigned shift is $shiftId on at least one day from $from to $to (Y-m-d), by the same rule as
+     * employeeIdsOnShift(): the latest assignment covering that day, else the default shift.
+     *
+     * @return list<int>
+     */
+    public function employeeIdsOnShiftBetween(int $shiftId, string $from, string $to): array
+    {
+        $assignments = ShiftAssignment::query()
+            ->where('effective_from', '<=', $to)
+            ->where(fn (Builder $q) => $q->whereNull('effective_to')->orWhere('effective_to', '>=', $from))
             ->orderByDesc('effective_from')->orderByDesc('id')
-            ->get(['employee_id', 'shift_id'])
-            ->unique('employee_id');
-        $ids = $current->where('shift_id', $shiftId)->pluck('employee_id')->all();
-        if (Shift::query()->whereKey($shiftId)->where('is_default', true)->exists()) {
-            $ids = array_merge($ids, Employee::query()->whereNotIn('id', $current->pluck('employee_id'))->pluck('id')->all());
+            ->get(['employee_id', 'shift_id', 'effective_from', 'effective_to'])
+            ->groupBy('employee_id');
+        $isDefault = Shift::query()->whereKey($shiftId)->where('is_default', true)->exists();
+        $dates = collect(CarbonPeriod::create($from, $to))->map(fn ($d) => $d->format('Y-m-d'));
+
+        $ids = [];
+        foreach ($assignments as $employeeId => $list) {
+            foreach ($dates as $date) {
+                $current = $list->first(fn (ShiftAssignment $a) => $a->effective_from->format('Y-m-d') <= $date
+                    && ($a->effective_to === null || $a->effective_to->format('Y-m-d') >= $date));
+                if ($current !== null ? (int) $current->shift_id === $shiftId : $isDefault) {
+                    $ids[] = (int) $employeeId;
+                    break;
+                }
+            }
+        }
+        if ($isDefault) {
+            $ids = array_merge($ids, Employee::query()->whereNotIn('id', $assignments->keys())->pluck('id')->all());
         }
 
         return array_values(array_unique($ids));

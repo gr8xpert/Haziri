@@ -134,7 +134,7 @@ abstract class Report
             ->when($filters['contractor_id'] ?? null, fn ($q, $v) => $q->where('contractor_id', $v))
             ->when($filters['employee_id'] ?? null, fn ($q, $v) => $q->whereKey($v))
             ->when($filters['employee_status'] ?? null, fn ($q, $v) => $q->where('status', $v instanceof EmployeeStatus ? $v->value : $v))
-            ->when($filters['shift_id'] ?? null, fn ($q, $v) => $q->whereIn('id', $this->employeesOnShift((int) $v)))
+            ->when($filters['shift_id'] ?? null, fn ($q, $v) => $q->whereIn('id', $this->employeesOnShift((int) $v, $filters)))
             ->when($user && ! $user->can('attendance.view_all'), fn ($q) => $q->where('manager_employee_id', $user->employee_id ?? 0))
             ->orderBy('code');
     }
@@ -215,9 +215,24 @@ abstract class Report
     }
 
     /** @return list<int> employees whose shift today is $shiftId */
-    protected function employeesOnShift(int $shiftId): array
+    /**
+     * Employees on $shiftId on any day the report covers: From–To, the Date, or the pay-cycle Month; today otherwise.
+     *
+     * @param  array<string, mixed>  $filters
+     * @return list<int>
+     */
+    protected function employeesOnShift(int $shiftId, array $filters): array
     {
-        return app(ShiftResolver::class)->employeeIdsOnShift($shiftId, CarbonImmutable::now($this->tz())->format('Y-m-d'));
+        $today = CarbonImmutable::now($this->tz())->format('Y-m-d');
+        [$from, $to] = match (true) {
+            ! empty($filters['from']) && ! empty($filters['to']) => [(string) $filters['from'], (string) $filters['to']],
+            ! empty($filters['date']) => [(string) $filters['date'], (string) $filters['date']],
+            (bool) preg_match('/^\d{4}-\d{2}$/', (string) ($filters['month'] ?? '')) => array_map(
+                fn (CarbonImmutable $d) => $d->format('Y-m-d'), $this->cycleRange((string) $filters['month'])),
+            default => [$today, $today],
+        };
+
+        return app(ShiftResolver::class)->employeeIdsOnShiftBetween($shiftId, substr($from, 0, 10), substr($to, 0, 10));
     }
 
     protected function tz(): string

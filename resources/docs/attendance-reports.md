@@ -153,7 +153,7 @@ The month is not locked yet, so the numbers can still change. Lock it under **At
 
 ### Someone is missing from Daily attendance
 
-People who had not joined on that date are left out. Also check the filters (**Branch**, **Department**, **Employee status**), and remember that **Shift** uses today's shift. Managers see only the people who report to them.
+People who had not joined on that date are left out. Also check the filters (**Branch**, **Department**, **Employee status**), and remember that **Shift** keeps only people who were on that shift on that date. Managers see only the people who report to them.
 
 ### The Punctuality scorecard does not list an employee
 

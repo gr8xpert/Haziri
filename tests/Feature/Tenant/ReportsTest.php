@@ -15,6 +15,8 @@ use App\Filament\Tenant\Widgets\Analytics\HeadlineStats;
 use App\Models\AttendanceDay;
 use App\Models\Department;
 use App\Models\Employee;
+use App\Models\Shift;
+use App\Models\ShiftAssignment;
 use App\Models\User;
 use App\Reports\AbsentRegisterReport;
 use App\Reports\CellFormat;
@@ -226,4 +228,17 @@ it('counts analytics deduction days with each employee\'s own rules, as Monthly 
 
     expect($stats[1]->getLabel())->toBe('Deduction days, August')->and($stats[1]->getValue())->toBe('4')
         ->and(collect((new MonthSummaryReport)->rows(['month' => '2026-08']))->firstWhere('code', 'R1')['deduction'])->toEqual(4);
+});
+
+it('filters by the shift people were on during the report dates, not today', function () {
+    $this->travelTo(CarbonImmutable::parse('2026-10-12 12:00'));
+    $night = Shift::create(['name' => 'Night', 'code' => 'RN', 'start_time' => '20:00', 'end_time' => '04:00', 'crosses_midnight' => true]);
+    ShiftAssignment::withoutEvents(fn () => ShiftAssignment::create(['employee_id' => $this->e->id, 'shift_id' => $night->id,
+        'effective_from' => '2026-08-01', 'effective_to' => '2026-08-31']));
+    $default = Shift::where('is_default', true)->value('id');
+    $codes = fn (array $rows) => collect($rows)->pluck('code')->all();
+
+    expect($codes((new MonthlySheetReport)->rows(['month' => '2026-08', 'shift_id' => $night->id])))->toContain('R1')
+        ->and($codes((new DailyMusterReport)->rows(['date' => '2026-08-03', 'shift_id' => $default])))->not->toContain('R1')
+        ->and($codes((new AbsentRegisterReport)->rows(['from' => '2026-09-01', 'to' => '2026-09-30', 'shift_id' => $night->id])))->not->toContain('R1');
 });
