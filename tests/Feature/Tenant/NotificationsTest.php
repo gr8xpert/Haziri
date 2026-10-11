@@ -9,6 +9,7 @@ use App\Enums\DevicePunchSourceType;
 use App\Enums\PunchSource;
 use App\Enums\PunchStatus;
 use App\Enums\Role;
+use App\Filament\Tenant\Pages\Integrations;
 use App\Filament\Tenant\Resources\Holidays\HolidayResource;
 use App\Models\Announcement;
 use App\Models\AttendanceDay;
@@ -23,10 +24,14 @@ use App\Models\Punch;
 use App\Models\Setting;
 use App\Models\User;
 use App\Services\Attendance\AttendanceRecomputer;
+use App\Services\Notifications\Notifier;
+use App\Services\Notifications\Recipient;
 use App\Services\Notifications\TemplateRenderer;
 use App\Services\Settings\TenantSettings;
 use Carbon\CarbonImmutable;
+use Filament\Facades\Filament;
 use Illuminate\Support\Facades\Mail;
+use Livewire\Livewire;
 
 beforeEach(function () {
     Mail::fake();
@@ -162,4 +167,18 @@ it('sends no late alert when an old day is recomputed, and tells HR when there i
     app(AttendanceRecomputer::class)->recompute($this->emp->id, '2026-09-01', $now);
     expect(NotificationLog::where(['event' => 'employee_late', 'recipient' => "user:{$this->hr->id}"])->exists())->toBeTrue()
         ->and(NotificationLog::where(['event' => 'employee_late', 'recipient' => "user:{$this->manager->id}"])->exists())->toBeFalse();
+});
+
+it('marks SMS through the log-only provider as logged only, in the log and in the test message', function () {
+    $this->travelTo(CarbonImmutable::parse('2026-09-01 12:00', 'Asia/Karachi')); // outside quiet hours
+    $this->emp->update(['phone' => '03001234567']);
+
+    app(Notifier::class)->send('missing_punch_out', [Recipient::fromEmployee($this->emp)], ['name' => 'Imran', 'date' => '01 Sep'], null, null, ['sms']);
+
+    expect(NotificationLog::where(['event' => 'missing_punch_out', 'channel' => 'sms'])->value('status'))->toBe('logged');
+
+    $this->actingAs(User::where('email', 'owner@pest.test')->first());
+    Filament::setCurrentPanel(Filament::getPanel('tenant'));
+    Livewire::test(Integrations::class)->callAction('test', ['channel' => 'sms', 'phone' => '03001234567'])
+        ->assertNotified('Logged only (no provider set up)');
 });

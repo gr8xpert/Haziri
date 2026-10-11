@@ -14,7 +14,7 @@ screens: notifications-texts=/admin/notification-templates | notifications-log=/
 - Messages go by **email**, **in-app** (the bell at the top right, and in the staff app), **WhatsApp** and **SMS**. Each event has its own default channels.
 - **Notification texts**: change the wording of a message, in English or Urdu, or switch a message off.
 - **WhatsApp & SMS**: connect your WhatsApp Business (Meta) account and your SMS gateway. Until then, those messages are only logged, not sent. WhatsApp also needs WhatsApp alerts in your plan.
-- **Notification log**: every message, with its status (*sent*, *failed*, *skipped*, *queued*). Look here first when someone says "I didn't get the message".
+- **Notification log**: every message, with its status (*sent*, *Logged only (no provider set up)*, *failed*, *skipped*, *queued*). Look here first when someone says "I didn't get the message".
 
 ## The messages {app} sends
 
@@ -94,7 +94,7 @@ Saved passwords and tokens are kept secret: the field shows *•••• saved 
 
 Click **Send test message** at the top right, pick **Channel** (*WhatsApp* or *SMS*), type a **Phone** number, and submit. You see *Sent* or *Failed* with the reason.
 
-> **Tip:** If the provider is still *Not set up (log only)*, the test says *Sent* with the word *log*, but no message leaves {app}. Choose a real provider first.
+> **Tip:** If the provider is still *Not set up (log only)*, the test says *Logged only (no provider set up)*: no message leaves {app}. Choose a real provider and save first.
 
 The sign-in code for the staff app (sign in with phone number) is sent by SMS, so set up SMS if staff will sign in that way.
 
@@ -110,7 +110,7 @@ The sign-in code for the staff app (sign in with phone number) is sent by SMS, s
 | **Event** | Which message, for example *Leave Decided*. |
 | **Channel** | Email, In-app, WhatsApp, SMS or Log. |
 | **Recipient** | Who it was for (email or phone). |
-| **Status** | *sent* (green), *failed* (red), *queued* (yellow, waiting, for example during quiet hours) or *skipped* (grey). |
+| **Status** | *sent* (green), *failed* (red), *queued* (yellow, waiting, for example during quiet hours), *skipped* (grey) or *Logged only (no provider set up)* (grey: WhatsApp or SMS with no provider chosen, so nothing was sent). |
 | **Attempts** | How many times {app} tried. A failed message is tried up to 3 times. |
 | **Error** | Why it failed or was skipped. |
 
@@ -130,9 +130,13 @@ Someone switched this message off under **Notification texts**. Edit it and swit
 
 The person has no phone number (for WhatsApp or SMS) or no email address. Add it on their login under **Users & roles** or on their employee profile.
 
+### Status "Logged only (no provider set up)"
+
+The WhatsApp or SMS provider is still *Not set up (log only)*: messages are written to the log only. Choose a provider on **WhatsApp & SMS** and save.
+
 ### WhatsApp shows "sent" but nobody received anything
 
-The **Whatsapp provider** is still *Not set up (log only)*: messages are written to the log only. Set up Meta WhatsApp Cloud API on **WhatsApp & SMS**. If it is set up, check that the **WhatsApp approved template name** is filled in on the text.
+Check that the **WhatsApp approved template name** is filled in on the text, and that the number is on WhatsApp.
 
 ### "This channel is disabled for your company."
 

@@ -36,6 +36,9 @@ class NotificationLogResource extends Resource
     /** @var array<string, string> */
     private const CHANNELS = ['mail' => 'Email', 'database' => 'In-app', 'whatsapp' => 'WhatsApp', 'sms' => 'SMS', 'log' => 'Log'];
 
+    /** @var array<string, string> */
+    private const STATUSES = ['queued' => 'queued', 'sent' => 'sent', 'logged' => 'Logged only (no provider set up)', 'failed' => 'failed', 'skipped' => 'skipped'];
+
     public static function table(Table $table): Table
     {
         return $table
@@ -45,14 +48,15 @@ class NotificationLogResource extends Resource
                 TextColumn::make('event')->searchable()->formatStateUsing(fn (string $state) => Str::headline($state)),
                 TextColumn::make('channel')->badge()->formatStateUsing(fn (string $state) => self::CHANNELS[$state] ?? $state),
                 TextColumn::make('recipient')->searchable(),
-                TextColumn::make('status')->badge()->color(fn (string $state) => match ($state) {
-                    'sent' => 'success', 'failed' => 'danger', 'queued' => 'warning', default => 'gray',
-                }),
+                TextColumn::make('status')->badge()->formatStateUsing(fn (string $state) => self::STATUSES[$state] ?? $state)
+                    ->color(fn (string $state) => match ($state) {
+                        'sent' => 'success', 'failed' => 'danger', 'queued' => 'warning', default => 'gray',
+                    }),
                 TextColumn::make('attempts'),
                 TextColumn::make('error')->limit(40),
             ])
             ->filters([
-                SelectFilter::make('status')->options(['queued' => 'queued', 'sent' => 'sent', 'failed' => 'failed', 'skipped' => 'skipped']),
+                SelectFilter::make('status')->options(self::STATUSES),
                 SelectFilter::make('channel')->options(self::CHANNELS),
             ]);
     }

@@ -122,9 +122,12 @@ class Integrations extends Page
                     }
                     $r = $driver->send(new Recipient('Test', null, $data['phone']),
                         new RenderedMessage('test', null, __(':app test message from :c', ['app' => Brand::name(), 'c' => tenant('company_name')])));
-                    $r->ok
-                        ? Notification::make()->success()->title(__('Sent'))->body($r->providerRef)->send()
-                        : Notification::make()->danger()->title(__('Failed'))->body($r->error)->persistent()->send();
+                    match (true) {
+                        $r->loggedOnly => Notification::make()->warning()->title(__('Logged only (no provider set up)'))
+                            ->body(__('Nothing was sent to the phone. Choose a provider above and save first.'))->persistent()->send(),
+                        $r->ok => Notification::make()->success()->title(__('Sent'))->body($r->providerRef)->send(),
+                        default => Notification::make()->danger()->title(__('Failed'))->body($r->error)->persistent()->send(),
+                    };
                 }),
         ];
     }

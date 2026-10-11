@@ -31,6 +31,6 @@ final class LogChannel implements NotificationChannel
             'tenant' => tenant('id'), 'email' => $to->email, 'phone' => $to->phone, 'subject' => $message->subject, 'body' => $message->body,
         ]);
 
-        return DeliveryResult::sent('log');
+        return DeliveryResult::loggedOnly();
     }
 }

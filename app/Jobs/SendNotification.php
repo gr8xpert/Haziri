@@ -38,7 +38,7 @@ final class SendNotification implements ShouldQueue
     public function handle(ChannelRegistry $channels, TemplateRenderer $renderer, TenantSettings $settings): void
     {
         $log = NotificationLog::query()->find($this->logId);
-        if ($log === null || $log->status === 'sent') {
+        if ($log === null || in_array($log->status, ['sent', 'logged'], true)) {
             return;
         }
 
@@ -61,7 +61,7 @@ final class SendNotification implements ShouldQueue
         $log->increment('attempts');
         $result = $driver->send($this->to, $message);
         $log->update([
-            'status' => $result->ok ? 'sent' : 'failed',
+            'status' => $result->ok ? ($result->loggedOnly ? 'logged' : 'sent') : 'failed',
             'provider_ref' => $result->providerRef,
             'error' => $result->error,
         ]);
