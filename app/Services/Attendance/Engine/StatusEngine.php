@@ -249,6 +249,7 @@ final class StatusEngine
             $ctx->punches,
             fn (PunchInput $p) => $p->at->greaterThanOrEqualTo($from) && $p->at->lessThanOrEqualTo($to),
         ));
+        $inWindow = $this->applyOverride($inWindow, $ctx->date);
         usort($inWindow, fn (PunchInput $a, PunchInput $b) => $a->at->getTimestamp() <=> $b->at->getTimestamp());
 
         $kept = [];
@@ -261,6 +262,21 @@ final class StatusEngine
         }
 
         return $kept;
+    }
+
+    /**
+     * Times HR replaced in Manual Entry win: when this day has override punches, only they count. Override punches
+     * of another day (a night shift's next-morning out) never count here.
+     *
+     * @param  list<PunchInput>  $punches
+     * @return list<PunchInput>
+     */
+    private function applyOverride(array $punches, string $date): array
+    {
+        $punches = array_values(array_filter($punches, fn (PunchInput $p) => $p->overrideFor === null || $p->overrideFor === $date));
+        $override = array_values(array_filter($punches, fn (PunchInput $p) => $p->overrideFor === $date));
+
+        return $override !== [] ? $override : $punches;
     }
 
     /**

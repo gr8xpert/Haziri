@@ -12,6 +12,7 @@ use App\Models\Employee;
 use App\Models\Punch;
 use App\Models\UnmappedPin;
 use App\Services\Settings\TenantSettings;
+use App\Services\Webhooks\Webhooks;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\QueryException;
 
@@ -43,7 +44,7 @@ final class IngestPunchAction
 
         $status = match (true) {
             $employee === null => PunchStatus::Unmapped,
-            $this->isDoubleTap($employee->id, $data->punchedAt) => PunchStatus::Duplicate,
+            ! isset($data->meta['override_for']) && $this->isDoubleTap($employee->id, $data->punchedAt) => PunchStatus::Duplicate,
             $data->requiresApproval => PunchStatus::Pending,
             default => PunchStatus::Valid,
         };
@@ -86,7 +87,7 @@ final class IngestPunchAction
         }
         if ($status === PunchStatus::Valid) {
             self::queueRecompute($employee->id, $localDate);
-            \App\Services\Webhooks\Webhooks::dispatch('punch.created', [
+            Webhooks::dispatch('punch.created', [
                 'id' => $punch->id, 'employee' => $employee->code, 'punched_at' => $punch->punched_at->toIso8601String(),
                 'local_date' => $localDate, 'direction' => $direction->value, 'source' => $data->source->value,
             ]);

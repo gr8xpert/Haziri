@@ -78,6 +78,7 @@ class Punch extends Model
             source: $this->source,
             isManual: $this->is_manual,
             geofenceFail: (bool) ($this->meta['geofence_fail'] ?? false),
+            overrideFor: $this->meta['override_for'] ?? null,
         );
     }
 }

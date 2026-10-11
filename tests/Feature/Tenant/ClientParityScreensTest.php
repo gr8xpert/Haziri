@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Enums\ExemptionType;
 use App\Filament\Tenant\Pages\CompanySettings;
+use App\Filament\Tenant\Pages\DailySheet;
 use App\Filament\Tenant\Pages\Roster;
 use App\Filament\Tenant\Resources\AttendanceExemptions\Pages\ManageAttendanceExemptions;
 use App\Filament\Tenant\Resources\Branches\Pages\ManageBranches;
@@ -23,6 +24,7 @@ use App\Models\Punch;
 use App\Models\Shift;
 use App\Models\ShiftAssignment;
 use App\Models\User;
+use App\Services\Attendance\AttendanceRecomputer;
 use App\Services\Settings\TenantSettings;
 use Carbon\CarbonImmutable;
 use Filament\Facades\Filament;
@@ -147,6 +149,33 @@ it('refuses to add or remove a single punch in a locked month', function () {
 
     expect(Punch::where('employee_id', $e->id)->count())->toBe(1)
         ->and($punch->fresh()->trashed())->toBeFalse();
+});
+
+it('replaces the day when Manual Entry changes a time that was already recorded', function () {
+    $this->travelTo(CarbonImmutable::parse('2026-09-20 12:00', 'Asia/Karachi'));
+    $e = Employee::create(['code' => 'UI5', 'first_name' => 'Ui', 'joined_on' => '2025-01-01']);
+    foreach (['04:00:00', '13:30:00'] as $utc) {
+        Punch::create(['employee_id' => $e->id, 'punched_at' => "2026-09-15 {$utc}", 'local_date' => '2026-09-15', 'source' => 'adms',
+            'direction' => 'unknown', 'status' => 'valid', 'dedupe_hash' => md5("ui5-{$utc}")]);
+    }
+    $lastOut = function () use ($e): string {
+        $day = app(AttendanceRecomputer::class)->recompute($e->id, '2026-09-15');
+
+        return $day->last_out->setTimezone('Asia/Karachi')->format('H:i');
+    };
+    expect($lastOut())->toBe('18:30');
+
+    $sheet = Livewire::test(DailySheet::class)->set('date', '2026-09-15')
+        ->assertSet("rows.{$e->id}.out", '18:30')
+        ->set("rows.{$e->id}.out", '17:00')->call('save');
+    expect($lastOut())->toBe('17:00')
+        ->and(Punch::where('employee_id', $e->id)->where('is_manual', false)->count())->toBe(2);
+    $sheet->assertSet("rows.{$e->id}.in", '09:00')->assertSet("rows.{$e->id}.out", '17:00');
+
+    $sheet->set("rows.{$e->id}.out", '18:30')->call('save');
+    expect($lastOut())->toBe('18:30')
+        ->and(Punch::where('employee_id', $e->id)->where('is_manual', true)->count())->toBe(2)
+        ->and(Punch::onlyTrashed()->where('employee_id', $e->id)->count())->toBe(2);
 });
 
 it('stores no weekly offs as blank on a shift and a branch so the fallback applies', function () {

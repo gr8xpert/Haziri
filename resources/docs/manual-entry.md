@@ -13,7 +13,8 @@ screens: manual-entry=/admin/manual-entry
 - One date, one row per employee, with **In** and **Out** boxes. Type the times and click **Save changes**.
 - The boxes are filled with the punches already recorded for that day, so you only add what is missing.
 - **Fill empty rows with shift times** puts the shift start and end in every empty row in one click.
-- Only new or changed times are saved, as manual punches with your **Reason**. Existing punches are **never deleted** here.
+- Only new or changed times are saved, as manual punches with your **Reason**. Machine, kiosk and phone punches are **never deleted** here.
+- If you change a time that was already there, the day then uses exactly the times in that row (see [Correcting a wrong time](#correcting-a-wrong-time)).
 - Leave a row empty for an absent employee.
 
 ## When to use it
@@ -59,13 +60,19 @@ A message tells you how many employees were updated. Their days are worked out a
 
 **Night shifts:** if the out time is earlier than the in time (for example in 22:00, out 06:00), the out punch is saved on the next morning.
 
-> **Tip:** Rows you did not touch are not saved, and nothing is deleted. You can open the sheet, add one missing out time, and save without risk to the other rows.
+> **Tip:** Rows you did not touch are not saved. You can open the sheet, add one missing out time, and save without risk to the other rows.
 
 ## Correcting a wrong time
 
-This page only **adds** punches. If you change a time that was already there, the new time is added and the old punch stays. With *First in, last out*, an earlier in time or a later out time then wins, but a **later** in time or an **earlier** out time does not.
+Change the **In** or **Out** box and click **Save changes**. When a row's time was already there and you change it, the row **replaces** that day:
 
-To correct a wrong punch, remove it first in the [Punch log](/help/punch-log) (**Remove**), then enter the right time here.
+- the day then counts only the in and out times in that row, earlier or later than before;
+- manual punches entered for that day before are removed, with the reason *Replaced in Manual Entry* in the [Punch log](/help/punch-log);
+- machine, kiosk and phone punches stay in the Punch log, but no longer count for that day.
+
+To give the day back to the machine punches, remove the manual punches of that day in the [Punch log](/help/punch-log). Only owner, admin, HR and branch managers can change a time that is already there; receptionists can only fill empty boxes.
+
+Typing a time into an **empty** box only adds that punch; the other punches of the day still count.
 
 ## Who can use it
 
@@ -90,9 +97,9 @@ The **Reason** box at the top is empty. Write a short reason and save again.
 
 The sheet shows only employees who joined on or before this date and are not marked as left. Check the employee's **joining date** and status under [Employees](/help/employees), and the **Branch** filter.
 
-### I changed the out time to an earlier time but the day still shows the old time
+### "Only HR can change a time that is already recorded."
 
-This page does not delete punches; the later punch still counts as the out time. Remove the wrong punch in the [Punch log](/help/punch-log). The day is then worked out again with your new time.
+Receptionists can fill empty boxes but not change a time that is there. Ask HR, or send a [correction](/help/corrections).
 
 ### I saved, but nothing changed for that date
 

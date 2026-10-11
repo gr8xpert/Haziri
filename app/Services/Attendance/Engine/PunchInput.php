@@ -17,5 +17,7 @@ final readonly class PunchInput
         public PunchSource $source = PunchSource::Manual,
         public bool $isManual = false,
         public bool $geofenceFail = false,
+        /** Y-m-d of the day whose times HR replaced in Manual Entry; that day then counts only these punches. */
+        public ?string $overrideFor = null,
     ) {}
 }

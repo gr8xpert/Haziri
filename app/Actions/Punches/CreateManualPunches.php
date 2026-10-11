@@ -9,9 +9,11 @@ use App\Enums\PunchSource;
 use App\Enums\Role;
 use App\Models\AttendancePeriod;
 use App\Models\Employee;
+use App\Models\Punch;
 use App\Models\User;
 use App\Services\Settings\TenantSettings;
 use Carbon\CarbonImmutable;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -36,15 +38,25 @@ final class CreateManualPunches
         string $reason,
         User $by,
         ?string $note = null,
+        bool $replaceDay = false,
     ): array {
         $tz = tenant('timezone') ?? config('hazri.default_timezone');
         $this->authorise($date, $by, $tz, $reason, $inTime, $outTime);
+        if ($replaceDay && ! $by->can('attendance.manual_edit')) {
+            throw ValidationException::withMessages(['in_time' => __('Only HR can change a time that is already recorded. Add the missing time only, or ask HR.')]);
+        }
 
         $results = [];
         $in = $inTime ? CarbonImmutable::parse("{$date} {$inTime}", $tz) : null;
         $out = $outTime ? CarbonImmutable::parse("{$date} {$outTime}", $tz) : null;
         if ($in !== null && $out !== null && $out->lessThanOrEqualTo($in)) {
             $out = $out->addDay(); // night shift: out time is on the next calendar day
+        }
+
+        $override = [];
+        if ($replaceDay) {
+            $this->removeEarlierOverride($employee, $date, $reason, $by);
+            $override = ['override_for' => $date, 'override_id' => (string) Str::uuid()];
         }
 
         foreach ([[$in, PunchDirection::In], [$out, PunchDirection::Out]] as [$at, $direction]) {
@@ -59,11 +71,29 @@ final class CreateManualPunches
                 isManual: true,
                 reason: $reason,
                 enteredByUserId: $by->id,
-                meta: array_filter(['note' => $note]),
+                meta: array_filter(['note' => $note]) + $override,
             ));
         }
 
         return $results;
+    }
+
+    /**
+     * Manual Entry changed a time that was already there: the day's earlier manual punches (and an earlier override's
+     * next-morning out) are removed with a reason. Machine, kiosk and phone punches stay but no longer count for the day,
+     * because the new punches carry `override_for` and the engine then uses only them (StatusEngine::punchesInWindow).
+     */
+    private function removeEarlierOverride(Employee $employee, string $date, string $reason, User $by): void
+    {
+        $earlier = Punch::query()->where('employee_id', $employee->id)->where('is_manual', true)
+            ->where(fn ($q) => $q->whereDate('local_date', $date)->orWhere('meta->override_for', $date))
+            ->get();
+        foreach ($earlier as $punch) {
+            $punch->update(['meta' => array_merge($punch->meta ?? [], [
+                'removed_reason' => __('Replaced in Manual Entry: :reason', ['reason' => $reason]), 'removed_by' => $by->id,
+            ])]);
+            $punch->delete();
+        }
     }
 
     private function authorise(string $date, User $by, string $tz, string $reason, ?string $in, ?string $out): void

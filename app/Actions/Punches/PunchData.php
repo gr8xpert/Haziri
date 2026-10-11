@@ -46,6 +46,9 @@ final readonly class PunchData
     {
         $serial = $this->deviceSerial ?? ($this->source->value . ':' . ($this->deviceId ?? '-'));
         $pin = $this->devicePin ?? ('emp:' . $this->employeeId);
+        if (isset($this->meta['override_id'])) {
+            $serial .= ':' . $this->meta['override_id']; // a Manual Entry replacement may repeat a time removed before
+        }
 
         return sha1($serial . '|' . $pin . '|' . $this->punchedAt->utc()->format('Y-m-d H:i:s'));
     }

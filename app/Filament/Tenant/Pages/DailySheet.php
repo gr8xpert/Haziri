@@ -20,7 +20,8 @@ use Illuminate\Validation\ValidationException;
 
 /**
  * Bulk manual entry (spec §6.4): one date, every active employee, In/Out boxes.
- * Only changed/new times are saved (as manual punches through CreateManualPunches).
+ * Only changed/new times are saved (as manual punches through CreateManualPunches). A row whose existing in or out
+ * time was changed replaces the day: its earlier manual punches go and the day counts only the times entered here.
  */
 class DailySheet extends Page
 {
@@ -94,7 +95,9 @@ class DailySheet extends Page
         $resolver = app(ShiftResolver::class);
         $this->rows = [];
         foreach ($employees as $e) {
-            $own = $punches->get($e->id, collect());
+            $own = $punches->get($e->id, collect())->reject(fn (Punch $p) => ($p->meta['override_for'] ?? $this->date) !== $this->date);
+            $override = $own->filter(fn (Punch $p) => isset($p->meta['override_for']));
+            $own = $override->isNotEmpty() ? $override->values() : $own->values();
             $first = $own->first()?->punched_at?->setTimezone($tz)->format('H:i');
             $last = $own->count() > 1 ? $own->last()->punched_at->setTimezone($tz)->format('H:i') : null;
             $shift = $resolver->resolve($e, $this->date, $tz);
@@ -135,13 +138,16 @@ class DailySheet extends Page
         $saved = 0;
         $errors = [];
         foreach ($this->rows as $id => $row) {
-            $newIn = $row['in'] && $row['in'] !== $row['had_in'] ? $row['in'] : null;
-            $newOut = $row['out'] && $row['out'] !== $row['had_out'] ? $row['out'] : null;
+            $in = $row['in'] ?: null;
+            $out = $row['out'] ?: null;
+            $replace = ($row['had_in'] !== null && $in !== $row['had_in']) || ($row['had_out'] !== null && $out !== $row['had_out']);
+            $newIn = $replace ? $in : ($in !== $row['had_in'] ? $in : null);
+            $newOut = $replace ? $out : ($out !== $row['had_out'] ? $out : null);
             if ($newIn === null && $newOut === null) {
                 continue;
             }
             try {
-                $create(Employee::findOrFail($id), $this->date, $newIn, $newOut, $this->reason, auth()->user());
+                $create(Employee::findOrFail($id), $this->date, $newIn, $newOut, $this->reason, auth()->user(), replaceDay: $replace);
                 $saved++;
             } catch (ValidationException $e) {
                 $errors[] = "{$row['code']}: " . implode(' ', $e->validator->errors()->all());
