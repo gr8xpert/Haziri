@@ -81,7 +81,7 @@ From the row menu (⋮):
 - **Bank transfer CSV** — a spreadsheet file for your bank's bulk transfer upload. Columns: account, name, amount, reference ("Salary" and the month). Only employees with a net pay above Rs 0 are listed.
 - **Bank letter (PDF)** — a letter to your bank asking it to transfer each salary. You can type the **Bank / branch** name, for example "HBL, Main Boulevard branch". Print it, sign it and send it.
 
-Both use the **Bank name** and **Account / IBAN** from each employee's current salary structure.
+Both use the **Bank name** and **Account / IBAN** from the salary structure in force on the last day of the run's month, the same one the pay comes from. A newer structure (for example with a new bank account) is used from its own **Effective from** month.
 
 ## Reports
 
