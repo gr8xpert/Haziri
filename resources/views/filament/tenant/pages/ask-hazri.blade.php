@@ -29,7 +29,9 @@
                 <x-slot name="heading">{{ trans_choice(':n row|:n rows', count($answer['rows']), ['n' => count($answer['rows'])]) }}</x-slot>
                 <x-slot name="afterHeader">
                     <div class="flex items-center gap-1">
-                        <x-filament::button size="sm" color="gray" wire:click="export" icon="heroicon-m-arrow-down-tray">Excel</x-filament::button>
+                        @can('reports.export')
+                            <x-filament::button size="sm" color="gray" wire:click="export" icon="heroicon-m-arrow-down-tray">Excel</x-filament::button>
+                        @endcan
                         <x-filament::icon-button icon="heroicon-o-hand-thumb-up" color="gray" wire:click="feedback(1)" :label="__('Good answer')" />
                         <x-filament::icon-button icon="heroicon-o-hand-thumb-down" color="gray" wire:click="feedback(-1)" :label="__('Bad answer')" />
                     </div>

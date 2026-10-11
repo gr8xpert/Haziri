@@ -6,6 +6,7 @@ use App\Contracts\AiModel;
 use App\Enums\DevicePunchSourceType;
 use App\Enums\PunchSource;
 use App\Enums\PunchStatus;
+use App\Filament\Tenant\Pages\AskHazriPage;
 use App\Filament\Tenant\Resources\Anomalies\AnomalyResource;
 use App\Filament\Tenant\Resources\Anomalies\Pages\ListAnomalies;
 use App\Jobs\GenerateMonthlyNarrative;
@@ -107,6 +108,19 @@ it('ties the answer to its own logged question when another user asks at the sam
     $answer = app(AskHazri::class)->ask('List all employees', $this->owner->id);
 
     expect(AiQuery::find($answer['query_id']))->prompt->toBe('List all employees')->user_id->toBe($this->owner->id);
+});
+
+it('shows the Excel button only to users who may download reports', function () {
+    Filament::setCurrentPanel(Filament::getPanel('tenant'));
+    $answer = ['ok' => true, 'sql' => 'SELECT 1', 'columns' => ['Code'], 'rows' => [['Code' => 'A1']], 'query_id' => null];
+    $viewer = User::create(['name' => 'Viewer', 'email' => 'viewer@pest.test', 'password' => 'x']);
+    $viewer->givePermissionTo('reports.view');
+
+    $this->actingAs($viewer);
+    Livewire::test(AskHazriPage::class)->set('answer', $answer)->assertSee('A1')->assertDontSee('Excel');
+
+    $this->actingAs($this->owner);
+    Livewire::test(AskHazriPage::class)->set('answer', $answer)->assertSee('Excel');
 });
 
 it('stays off without the feature flag or budget', function () {

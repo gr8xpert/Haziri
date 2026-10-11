@@ -22,7 +22,7 @@ screens: ask-assistant=/admin/ask
 
 - **The question box** with the **Ask** button.
 - Under it: *Answers are read-only queries over attendance, leave and employee data*, and **AI budget left this month**: how many tokens (units of AI use) are left.
-- After you ask: the number of rows, the answer table, an **Excel** button, thumbs up / thumbs down buttons, and **Show SQL**.
+- After you ask: the number of rows, the answer table, an **Excel** button (if you may download reports), thumbs up / thumbs down buttons, and **Show SQL**.
 
 If your company uses {app} under its own brand, the menu item may be called **Ask AI** or another name your company chose. It is the same page.
 
@@ -56,7 +56,7 @@ It cannot answer about salaries, payroll, tax, loans, devices, visitors or setti
 
 ## Download, feedback and SQL
 
-- **Excel** downloads the answer. You need permission to download reports (Owner, Admin, HR).
+- **Excel** downloads the answer. Only users who may download reports see it (Owner, Admin, HR).
 - **Thumbs up / thumbs down** tells us whether the answer was right. It helps improve the assistant; it does not change the answer.
 - **Show SQL** shows the database query the assistant wrote. You do not need it, but someone technical can use it to check how the answer was worked out.
 
@@ -101,6 +101,6 @@ The assistant can misunderstand a question. Click thumbs down, then check **Show
 
 Your plan does not include the AI assistant, your role does not have full report access, or your user is limited to some branches.
 
-### The Excel button does nothing
+### There is no Excel button
 
 You do not have permission to download reports. Ask the owner or HR to run the question and download it.
