@@ -30,7 +30,7 @@ screens: shifts-list=/admin/shifts | shifts-form=/admin/shifts/create
 | **Night** | A tick means the shift ends the next day (for example 22:00–06:00). |
 | **Default** | A tick means this shift is used for employees who have no shift of their own. |
 
-Use **Edit** or **Delete** at the end of a row. **New shift** at the top right opens the form.
+Use **Edit** or **Delete** at the end of a row. **New shift** at the top right opens the form. **Delete** first tells you how many employees are on the shift today or later; after deleting, they use the default shift. Past days keep the deleted shift.
 
 ## Create or change a shift
 
@@ -101,11 +101,11 @@ Then any [timing override](/help/timing-overrides) for that date is laid on top.
 
 ### "The code has already been taken"
 
-Another shift already uses this code. A deleted shift still keeps its code. Choose a different code, for example *MOR2*.
+Another shift already uses this code. Choose a different code, for example *MOR2*. The code of a deleted shift can be used again.
 
 ### Staff show the wrong shift after I deleted a shift
 
-People who were on the deleted shift now fall back to the default shift. Give them a new shift with **Assign shift** on the **Employees** list, or on the [Roster](/help/roster).
+People who were on the deleted shift now fall back to the default shift. Before deleting, {app} tells you how many employees are on the shift today or later. Give them a new shift with **Assign shift** on the **Employees** list, or on the [Roster](/help/roster).
 
 ### Days show no late, no absent and no shift at all
 

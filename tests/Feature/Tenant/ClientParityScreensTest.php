@@ -11,6 +11,7 @@ use App\Filament\Tenant\Resources\Holidays\Pages\ManageHolidays;
 use App\Filament\Tenant\Resources\LeaveTypes\Pages\ManageLeaveTypes;
 use App\Filament\Tenant\Resources\Punches\Pages\ListPunches;
 use App\Filament\Tenant\Resources\Shifts\Pages\CreateShift;
+use App\Filament\Tenant\Resources\Shifts\Pages\ListShifts;
 use App\Models\AttendanceExemption;
 use App\Models\Branch;
 use App\Models\Employee;
@@ -157,4 +158,25 @@ it('refuses a second holiday on the same date for the same branches', function (
 
     expect(Holiday::whereDate('date', '2027-04-07')->count())->toBe(2)
         ->and(fn () => Holiday::create(['date' => '2027-04-07', 'name' => 'Sneaky']))->toThrow(UniqueConstraintViolationException::class);
+});
+
+it('warns how many employees use a shift before deleting it and frees its code', function () {
+    $this->travelTo(CarbonImmutable::parse('2026-09-08 10:00', 'Asia/Karachi'));
+    $old = Shift::create(['name' => 'Old', 'code' => 'OLD', 'start_time' => '07:00', 'end_time' => '15:00']);
+    foreach (['DL1', 'DL2'] as $code) {
+        $e = Employee::create(['code' => $code, 'first_name' => $code, 'joined_on' => '2025-01-01']);
+        ShiftAssignment::create(['employee_id' => $e->id, 'shift_id' => $old->id, 'effective_from' => '2026-01-01']);
+    }
+
+    $list = Livewire::test(ListShifts::class)->mountTableAction('delete', $old);
+    expect($list->instance()->getMountedAction()->getModalDescription())->toContain('2 employees are on this shift');
+    $list->callMountedAction();
+
+    Livewire::test(CreateShift::class)
+        ->fillForm(['name' => 'Old again', 'code' => 'OLD', 'start_time' => '07:00', 'end_time' => '15:00'])
+        ->call('create')
+        ->assertHasNoFormErrors();
+
+    expect(Shift::where('code', 'OLD')->value('name'))->toBe('Old again')
+        ->and(Shift::onlyTrashed()->find($old->id)->code)->toBe("OLD~{$old->id}");
 });

@@ -25,6 +25,7 @@ use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Illuminate\Validation\Rules\Unique;
 
 class ShiftResource extends Resource
 {
@@ -50,7 +51,7 @@ class ShiftResource extends Resource
         return $schema->columns(2)->components([
             Section::make(__('Timing'))->columns(3)->columnSpanFull()->schema([
                 CodeFromName::nameInput(Shift::class, 20)->required()->maxLength(100),
-                TextInput::make('code')->required()->maxLength(20)->unique(ignoreRecord: true)->helperText('Filled in from the name; you can change it.'),
+                TextInput::make('code')->required()->maxLength(20)->unique(ignoreRecord: true, modifyRuleUsing: fn (Unique $rule) => $rule->withoutTrashed())->helperText('Filled in from the name; you can change it.'),
                 Toggle::make('is_default')->label('Default shift')->helperText('Used for employees with no shift of their own')->inline(false),
                 TimePicker::make('start_time')->seconds(false)->required(),
                 TimePicker::make('end_time')->seconds(false)->required(),
@@ -87,7 +88,7 @@ class ShiftResource extends Resource
     {
         return [
             CodeFromName::nameInput(Shift::class, 20)->required()->maxLength(100)->placeholder('Night'),
-            TextInput::make('code')->required()->maxLength(20)->unique(Shift::class, 'code')->helperText('Filled in from the name; you can change it.'),
+            TextInput::make('code')->required()->maxLength(20)->unique(Shift::class, 'code', modifyRuleUsing: fn (Unique $rule) => $rule->withoutTrashed())->helperText('Filled in from the name; you can change it.'),
             TimePicker::make('start_time')->seconds(false)->required(),
             TimePicker::make('end_time')->seconds(false)->required(),
             Toggle::make('crosses_midnight')->label('Ends the next day (night shift)'),
@@ -117,7 +118,20 @@ class ShiftResource extends Resource
                 IconColumn::make('crosses_midnight')->boolean()->label('Night'),
                 IconColumn::make('is_default')->boolean()->label('Default'),
             ])
-            ->recordActions([EditAction::make(), DeleteAction::make()]);
+            ->recordActions([EditAction::make(), self::deleteAction(DeleteAction::make())]);
+    }
+
+    /** Delete asks first and says how many employees are on the shift; they fall back to the default shift. */
+    public static function deleteAction(DeleteAction $action): DeleteAction
+    {
+        return $action->modalDescription(function (Shift $record): string {
+            $n = $record->employeesUsingCount();
+            $note = $n > 0
+                ? trans_choice(':count employee is on this shift today or later. After deleting, they use the default shift until you give them another one.|:count employees are on this shift today or later. After deleting, they use the default shift until you give them another one.', $n)
+                : __('No employee is on this shift today or later.');
+
+            return $note . ' ' . __('Past days keep this shift. Its code can be used again.');
+        });
     }
 
     public static function getPages(): array

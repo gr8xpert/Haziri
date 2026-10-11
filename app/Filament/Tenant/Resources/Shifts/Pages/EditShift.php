@@ -15,7 +15,7 @@ class EditShift extends EditRecord
 
     protected function getHeaderActions(): array
     {
-        return [DeleteAction::make()];
+        return [ShiftResource::deleteAction(DeleteAction::make())];
     }
 
     protected function afterSave(): void

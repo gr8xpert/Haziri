@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Enums\EmployeeStatus;
 use App\Enums\MultiPunchMode;
 use App\Services\Attendance\Engine\ResolvedShift;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -17,6 +18,37 @@ class Shift extends Model
     use HasFactory, LogsActivity, SoftDeletes;
 
     protected $guarded = ['id'];
+
+    /** A deleted shift keeps its code until a new or edited shift takes that code; then the old one gets a retired code. */
+    protected static function booted(): void
+    {
+        static::saving(function (Shift $shift) {
+            if (! $shift->isDirty('code')) {
+                return;
+            }
+            static::onlyTrashed()->where('code', $shift->code)->whereKeyNot($shift->id ?? 0)->get()
+                ->each(fn (Shift $old) => $old->forceFill(['code' => $old->retiredCode()])->saveQuietly());
+        });
+    }
+
+    /** "MOR~7": the old code with the shift id, cut to fit the 20-character column. */
+    public function retiredCode(): string
+    {
+        $suffix = '~' . $this->id;
+
+        return mb_substr((string) $this->code, 0, 20 - strlen($suffix)) . $suffix;
+    }
+
+    /** Employees whose shift assignment points at this shift today or later (who fall back to the default if it is deleted). */
+    public function employeesUsingCount(): int
+    {
+        $today = now(tenant('timezone') ?? config('hazri.default_timezone'))->format('Y-m-d');
+
+        return ShiftAssignment::query()->where('shift_id', $this->id)
+            ->where(fn ($q) => $q->whereNull('effective_to')->orWhere('effective_to', '>=', $today))
+            ->whereHas('employee', fn ($q) => $q->where('status', '!=', EmployeeStatus::Left))
+            ->distinct()->count('employee_id');
+    }
 
     protected function casts(): array
     {
