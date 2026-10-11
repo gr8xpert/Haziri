@@ -84,9 +84,11 @@ The list shows **active** advances first. Use the **Status** filter to see settl
 
 ### Change an advance
 
-Click **Edit**. You can change **Issued on**, **Instalments** and **Note**. The **Employee** and **Amount** cannot be changed after the advance is created. To spread the rest over more months, increase **Instalments**.
+Click **Edit**. You can change **Issued on**, **Instalments** and **Note**. The **Amount** can be changed only while nothing has been recovered yet; **Remaining** then follows the new amount. The **Employee** cannot be changed. To spread the rest over more months, increase **Instalments**.
 
-> **Tip:** An advance cannot be deleted from this page, so check the amount before you click **Create**. For a one-off recovery that is not a real advance, use a *Deduct* item under Bonuses & Adjustments instead.
+To remove an advance given by mistake, click **Delete** on its row. This is possible only while nothing has been recovered (no final payroll run has taken an instalment). If a draft payroll run already shows the recovery, click **Recalculate** on the run afterwards.
+
+> **Tip:** For a one-off recovery that is not a real advance, use a *Deduct* item under Bonuses & Adjustments instead.
 
 ## Common problems
 

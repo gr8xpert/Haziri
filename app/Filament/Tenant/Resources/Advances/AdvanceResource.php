@@ -9,6 +9,7 @@ use App\Filament\Concerns\RequiresFeature;
 use App\Filament\Tenant\NavigationGroup;
 use App\Models\Advance;
 use App\Models\Employee;
+use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
@@ -45,7 +46,9 @@ class AdvanceResource extends Resource
             Select::make('employee_id')->label('Employee')->required()->searchable()->disabledOn('edit')
                 ->options(fn () => Employee::orderBy('code')->get()->mapWithKeys(fn (Employee $e) => [$e->id => "{$e->code} — {$e->fullName()}"])),
             DatePicker::make('issued_on')->required()->default(now()),
-            TextInput::make('amount')->numeric()->integer()->minValue(1)->prefix('Rs')->required()->disabledOn('edit'),
+            TextInput::make('amount')->numeric()->integer()->minValue(1)->prefix('Rs')->required()
+                ->disabled(fn (?Advance $record) => $record !== null && ! $record->nothingRecovered())
+                ->helperText(fn (?Advance $record) => $record !== null && ! $record->nothingRecovered() ? __('Part of it has been recovered, so the amount cannot change.') : null),
             TextInput::make('instalments')->numeric()->integer()->minValue(1)->maxValue(60)->default(1)->required(),
             TextInput::make('note')->columnSpanFull(),
         ]);
@@ -64,7 +67,11 @@ class AdvanceResource extends Resource
                 TextColumn::make('status')->badge()->color(fn (string $state) => $state === 'settled' ? 'success' : 'warning'),
             ])
             ->filters([SelectFilter::make('status')->options(['active' => 'active', 'settled' => 'settled'])->default('active')])
-            ->recordActions([EditAction::make()]);
+            ->recordActions([
+                EditAction::make()->mutateDataUsing(fn (array $data, Advance $record): array => $record->nothingRecovered() && isset($data['amount'])
+                    ? $data + ['remaining' => (int) $data['amount']] : $data),
+                DeleteAction::make()->visible(fn (Advance $record) => $record->nothingRecovered()),
+            ]);
     }
 
     public static function getPages(): array

@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Actions\Payroll\PayrollActions;
 use App\Actions\Periods\PeriodActions;
 use App\Enums\AttendanceStatus;
+use App\Filament\Tenant\Resources\Advances\Pages\ManageAdvances;
 use App\Models\Advance;
 use App\Models\Announcement;
 use App\Models\AttendanceDay;
@@ -20,11 +21,13 @@ use App\Services\Notifications\Channels\MetaWhatsAppChannel;
 use App\Services\Notifications\Recipient;
 use App\Services\Notifications\RenderedMessage;
 use App\Services\Settings\TenantSettings;
+use Filament\Facades\Filament;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
+use Livewire\Livewire;
 
 function setting(string $key, mixed $value): void
 {
@@ -103,6 +106,24 @@ it('takes the bank details for the bank file from the salary structure of the ru
         'bank_name' => 'MCB', 'bank_account' => 'PK00MUCB0000009999999999']);
 
     expect($payroll->bankCsv($run->fresh()))->toContain('PK36HABB0000001234567890')->not->toContain('PK00MUCB');
+});
+
+it('lets HR change the amount of an advance or delete it until something is recovered', function () {
+    Filament::setCurrentPanel(Filament::getPanel('tenant'));
+    $this->actingAs($this->owner);
+    $advance = Advance::firstOrFail();
+
+    Livewire::test(ManageAdvances::class)
+        ->callTableAction('edit', $advance, data: ['amount' => 12000, 'instalments' => 4])
+        ->assertHasNoTableActionErrors();
+    expect($advance->fresh()->only(['amount', 'remaining']))->toBe(['amount' => 12000, 'remaining' => 12000]);
+
+    $advance->update(['remaining' => 9000]); // one instalment recovered
+    Livewire::test(ManageAdvances::class)->assertTableActionHidden('delete', $advance);
+
+    $advance->update(['remaining' => 12000]);
+    Livewire::test(ManageAdvances::class)->callTableAction('delete', $advance);
+    expect(Advance::count())->toBe(0);
 });
 
 it('stores the bank account encrypted', function () {
