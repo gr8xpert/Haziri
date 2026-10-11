@@ -7,6 +7,7 @@ namespace App\Reports;
 use App\Models\LeaveRequest;
 use App\Models\LeaveType;
 use App\Models\User;
+use App\Services\Approvals\ApprovalChain;
 use Filament\Forms\Components\Select;
 
 /** R9 — Leave register: request-level list with approvals. */
@@ -55,7 +56,11 @@ final class LeaveRegisterReport extends DateRangeReport
                 'days' => $l->days + count($l->sandwich_dates ?? []),
                 'status' => $l->status->getLabel(),
                 'approvals' => collect($l->approver_chain ?? [])->filter(fn ($s) => $s['decision'])
-                    ->map(fn ($s) => "{$s['step']}: {$s['decision']} by " . ($names[$s['decided_by']] ?? '?'))->implode('; '),
+                    ->map(fn ($s) => __(':step: :decision by :name', [
+                        'step' => ApprovalChain::stepLabel((string) $s['step']),
+                        'decision' => $s['decision'] === 'approved' ? __('approved') : __('rejected'),
+                        'name' => $names[$s['decided_by']] ?? '?',
+                    ]))->implode('; '),
                 'reason' => $l->reason,
             ])->all();
     }

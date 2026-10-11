@@ -36,6 +36,7 @@ use App\Models\LeaveType;
 use App\Models\Shift;
 use App\Models\ShiftAssignment;
 use App\Models\User;
+use App\Reports\LeaveRegisterReport;
 use App\Services\Attendance\MissingPunchSuggester;
 use App\Services\Leave\LeaveBalanceService;
 use App\Services\Leave\LeaveYear;
@@ -98,6 +99,9 @@ it('counts working days only and routes through manager then HR', function () {
         ->and($balance->pending)->toBe(0.0)->and($balance->used)->toBe(5.0)
         ->and(dayStatus($this->emp, '2026-09-03'))->toBe(AttendanceStatus::LeavePaid)
         ->and(dayStatus($this->emp, '2026-09-02'))->toBe(AttendanceStatus::Holiday);
+
+    $register = collect((new LeaveRegisterReport)->rows(['from' => '2026-09-01', 'to' => '2026-09-30']))->firstWhere('code', 'EMP');
+    expect($register['approvals'])->toBe('Manager: approved by mgr@pest.test; HR: approved by hr@pest.test');
 });
 
 it('skips the manager step when there is no manager login', function () {

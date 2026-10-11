@@ -82,6 +82,12 @@ final class ApprovalChain
         return ['chain' => $chain, 'current' => $final ? $current : $current + 1, 'final' => $final];
     }
 
+    /** A step name as people read it: "manager" → Manager, anything else (the final step) → HR. */
+    public static function stepLabel(string $step): string
+    {
+        return $step === 'manager' ? __('Manager') : __('HR');
+    }
+
     /** @return array<string, mixed> */
     private static function step(string $name, ?int $userId): array
     {

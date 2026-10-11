@@ -78,9 +78,8 @@ class LeaveRequestResource extends Resource
                     RequestStatus::Rejected => 'danger', RequestStatus::Cancelled => 'gray',
                 }),
                 TextColumn::make('current_step')->label('Waiting for')
-                    ->formatStateUsing(fn (LeaveRequest $r) => $r->status !== RequestStatus::Pending ? '' : match ($r->approver_chain[$r->current_step]['step'] ?? 'hr') {
-                        'manager' => __('Manager'), default => __('HR'),
-                    }),
+                    ->formatStateUsing(fn (LeaveRequest $r) => $r->status !== RequestStatus::Pending ? ''
+                        : ApprovalChain::stepLabel((string) ($r->approver_chain[$r->current_step]['step'] ?? 'hr'))),
                 TextColumn::make('reason')->limit(30)->toggleable(),
             ])
             ->filters([

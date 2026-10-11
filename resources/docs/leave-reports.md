@@ -29,7 +29,7 @@ screens: leave-reports-balances=/admin/reports/leave-balances | leave-reports-mo
 | **Part** | Full day, or first / second half. |
 | **Days** | Days charged, including any days added by the sandwich rule (a weekly off or holiday between two leave days that is counted as leave). |
 | **Status** | Pending, Approved, Rejected or Cancelled. |
-| **Approvals** | Each decision so far, for example *manager: approved by Sana Ahmed; hr: approved by Bilal Khan*. |
+| **Approvals** | Each decision so far, for example *Manager: approved by Sana Ahmed; HR: approved by Bilal Khan*. |
 | **Reason** | What the employee wrote. |
 
 **Use it:** to see who was on leave in a period, or to check who approved a leave.
