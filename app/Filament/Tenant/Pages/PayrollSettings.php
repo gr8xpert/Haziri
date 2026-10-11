@@ -67,8 +67,8 @@ class PayrollSettings extends Page
                 ->description(__('Slabs are under Payroll → Tax slabs.'))->schema([
                     Select::make('tax_year_start_month')->label('Tax year starts in')->required()
                         ->options(collect(range(1, 12))->mapWithKeys(fn (int $m) => [$m => date('F', mktime(0, 0, 0, $m, 1))])->all()),
-                    $rs('tax_surcharge_threshold', 'Surcharge on annual income above'),
-                    $pct('tax_surcharge_percent', 'Surcharge (% of the tax)'),
+                    $rs('tax_surcharge_threshold', 'Surcharge on annual income above')->helperText(__('Only for tax year 2025-26 and earlier.')),
+                    $pct('tax_surcharge_percent', 'Surcharge (% of the tax)')->helperText(__('Only for tax year 2025-26 and earlier.')),
                 ]),
             Section::make(__('EOBI & social security'))->columns(3)->visible($on('payroll_social'))
                 ->description(__('Contributions are worked out on the wage base (normally the minimum wage), only for employees marked as registered.'))->schema([
