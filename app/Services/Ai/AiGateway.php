@@ -47,7 +47,7 @@ final class AiGateway
 
         $start = microtime(true);
         $result = $this->model->json($system, $content, $schema, $effort, $maxTokens);
-        AiQuery::create([
+        $log = AiQuery::create([
             'user_id' => $userId,
             'feature' => $feature,
             'prompt' => mb_substr($prompt, 0, 5000),
@@ -58,6 +58,6 @@ final class AiGateway
             'error' => $result->error,
         ]);
 
-        return $result;
+        return new AiResult($result->ok, $result->data, $result->inputTokens, $result->outputTokens, $result->error, $log->id);
     }
 }

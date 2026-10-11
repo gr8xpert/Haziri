@@ -94,6 +94,21 @@ it('answers a question with a validated read-only query and logs it', function (
         ->and($this->ai->calls[1]['content'][0]['text'])->toContain('rejected');
 });
 
+it('ties the answer to its own logged question when another user asks at the same time', function () {
+    $interleaved = false;
+    AiQuery::created(function () use (&$interleaved) {
+        if (! $interleaved) {
+            $interleaved = true;
+            AiQuery::create(['user_id' => null, 'feature' => 'ask', 'prompt' => 'someone else', 'status' => 'ok']);
+        }
+    });
+    $this->ai->reply(['sql' => '', 'note' => 'Not answerable.']);
+
+    $answer = app(AskHazri::class)->ask('List all employees', $this->owner->id);
+
+    expect(AiQuery::find($answer['query_id']))->prompt->toBe('List all employees')->user_id->toBe($this->owner->id);
+});
+
 it('stays off without the feature flag or budget', function () {
     Setting::where('key', 'feature.ai_reports')->update(['value' => json_encode(false)]);
     app(TenantSettings::class)->flush();

@@ -52,7 +52,7 @@ final class AskHazri
             $content = [['type' => 'text', 'text' => $attempt === 0 ? $question
                 : "Question: {$question}\nYour previous SQL was rejected: {$error}\nReturn a corrected query."]];
             $result = $this->ai->ask('ask', $prompt, $system, $content, $schema, 'medium', $userId, 2000);
-            $queryId = AiQuery::query()->latest('id')->value('id');
+            $queryId = $result->queryId;
             if (! $result->ok) {
                 return ['ok' => false, 'error' => $result->error, 'query_id' => $queryId];
             }
