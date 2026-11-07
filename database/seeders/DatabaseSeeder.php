@@ -21,9 +21,9 @@ class DatabaseSeeder extends Seeder
         $payrollFull = array_fill_keys(array_keys($catalog->inGroup('payroll_full')), false);
 
         $plans = [
-            'starter' => ['Starter', 150, ['employees' => 25], array_merge($allFlags, $payrollFull, ['payroll_lite' => false, 'ai_reports' => false,
+            'starter' => ['Starter', 150, ['employees' => null], array_merge($allFlags, $payrollFull, ['payroll_lite' => false, 'ai_reports' => false,
                 'whatsapp' => false, 'multi_branch' => false, 'kiosk_face' => false, 'public_api' => false, 'white_label' => false])],
-            'business' => ['Business', 120, ['employees' => 100], array_merge($allFlags, $payrollFull, ['ai_reports' => false, 'kiosk_face' => false])],
+            'business' => ['Business', 120, ['employees' => null], array_merge($allFlags, $payrollFull, ['ai_reports' => false, 'kiosk_face' => false])],
             'enterprise' => ['Enterprise', 100, ['employees' => null], $allFlags],
         ];
         foreach ($plans as $code => [$name, $price, $limits, $flags]) {
