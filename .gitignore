@@ -52,3 +52,6 @@ agent/agent.yaml
 /agent/build/
 /agent/dist/
 /public/downloads/hazri-agent.exe
+/docs/*-import/
+/docs/*.rar
+/docs/*.zip
